@@ -9,6 +9,11 @@ Programamos cuatro: **Ansel, Fran, Juan Carlos y Javi**. Ansel revisa y fusiona 
 ## 1. Chuleta: una tarea de principio a fin
 
 ```bash
+# 0. En cada terminal nueva: entra en el repo y activa el entorno virtual
+cd ruta/al/nasa-health-monitor
+source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
+# la línea de comandos tiene que empezar por (.venv)
+
 # 1. Empezar, siempre desde main actualizado
 git switch main
 git pull
@@ -17,12 +22,12 @@ git switch -c tunombre/que-hace
 # 2. Trabajar y guardar cada vez que algo funcione
 git add ruta/archivo1.py ruta/archivo2.py
 git commit -m "Add measurement form to Check-in"
-git push -u origin tunombre/que-hace        # la primera vez; después basta git push
+git push                                     # también la primera vez (ver nota)
 
 # 3. Antes de pedir revisión: traerte lo último de main y probar
 git fetch origin
 git merge origin/main
-pytest
+python -m pytest
 streamlit run app.py
 
 # 4. Pedir revisión
@@ -37,17 +42,24 @@ git pull
 
 Mientras esperas la revisión, **no te quedes parado**: vuelve al paso 1 con la siguiente tarea.
 
+> **Nota sobre `git push`.** Para que `git push` a secas funcione también la primera vez que subes una rama nueva, cada uno tiene que haber ejecutado **una vez** en su portátil (viene en el documento de preparación del entorno):
+> ```bash
+> git config --global push.autoSetupRemote true
+> ```
+> Sin eso, la primera subida de cada rama sería `git push -u origin tunombre/que-hace`.
+
 ---
 
 ## 2. Reglas de oro
 
 1. **Nunca se hace commit directamente en `main`.** Nadie, tampoco Ansel.
-2. **`main` siempre arranca.** Lo que entra en `main` ha pasado `pytest` y se ha probado con `streamlit run app.py`.
+2. **`main` siempre arranca.** Lo que entra en `main` ha pasado `python -m pytest` y se ha probado con `streamlit run app.py`.
 3. **Una rama = una tarea pequeña** (1-2 horas como mucho). Si mezcla dos cosas, se separa en dos.
 4. **Solo tocas tus archivos** (tabla de dueños en `AGENTS.md`, sección 4). Si necesitas un cambio en un archivo de otro, se lo pides a su dueño.
 5. **Nunca `git push --force`** ni `git reset --hard` sobre algo que ya has subido.
 6. **Quien fusiona es Ansel**, después de revisar. Tú abres el pull request; no lo fusionas.
-7. **Ante la duda, para y pregunta.** Un comando que no entiendes puede costar más que esperar 5 minutos.
+7. **Siempre dentro del entorno virtual (`.venv`)**, y los tests siempre con `python -m pytest`, no con `pytest` a secas: así se usan el Python y las librerías del proyecto, no los del sistema.
+8. **Ante la duda, para y pregunta.** Un comando que no entiendes puede costar más que esperar 5 minutos.
 
 ---
 
@@ -112,7 +124,7 @@ Tráete lo que otros han fusionado mientras trabajabas y comprueba que todo sigu
 ```bash
 git fetch origin         # baja las novedades de GitHub sin tocar tus archivos
 git merge origin/main    # las mezcla en tu rama
-pytest                   # todos los tests en verde
+python -m pytest         # todos los tests en verde
 python -m core.config    # debe decir OK
 streamlit run app.py     # prueba tu funcionalidad Y que las otras pantallas siguen abriendo
 ```
@@ -199,7 +211,7 @@ Si `git merge origin/main` dice `CONFLICT`:
    git add archivo-con-conflicto.py
    git commit                   # el mensaje ya viene escrito; guarda y cierra
    ```
-4. Vuelve a probar (`pytest` y la app).
+4. Vuelve a probar (`python -m pytest` y la app).
 
 **Si no lo ves claro:**
 ```bash
@@ -221,7 +233,10 @@ y llama a Ansel. Nunca resuelvas un conflicto en un archivo que no es tuyo sin h
 | He subido `data/measurements.csv` o `data/episodes.json` | Avisa a Ansel; en tu siguiente commit: `git checkout origin/main -- data/measurements.csv data/episodes.json` |
 | `git pull` dice que tienes cambios locales | Haz commit de tus cambios (si es tu rama) o `git stash` antes del `pull` |
 | `git push` dice `rejected` / `fetch first` | Otro ha subido a tu rama, o el PR se actualizó: `git pull` y vuelve a hacer `git push` |
+| `git push` dice `has no upstream branch` | Te falta la configuración de la nota de la sección 1: `git config --global push.autoSetupRemote true` y vuelve a hacer `git push` |
 | `git push` pide usuario y contraseña | `gh auth setup-git` y vuelve a probar |
+| `ModuleNotFoundError: No module named 'streamlit'` (o `pandas`, `plotly`...) | El entorno no está activo, o lanzaste `pytest` a secas. Activa `.venv` y usa `python -m pytest`. Si `.venv` no existe, créalo (documento de preparación del entorno) |
+| `pip install` falla compilando algo (p. ej. `pyarrow`) | Tu Python es demasiado nuevo (3.14). Borra `.venv` y créalo con Python 3.12 (documento de preparación del entorno) |
 | No sé en qué estado estoy | `git status` y pégalo en el chat del equipo |
 
 ---
@@ -274,7 +289,7 @@ gh pr diff 12                   # el cambio completo
 git status                      # asegúrate de no tener cambios sin guardar
 gh pr checkout 12               # te pone en la rama del PR
 git merge origin/main           # opcional: comprueba que se integra con lo último
-pytest
+python -m pytest
 python -m core.config
 streamlit run app.py            # sigue el "How to test" de la descripción
 ```
@@ -284,7 +299,7 @@ Cuando acabes, vuelve a tu trabajo con `git switch tu-rama` (o `git switch main`
 ### 10.4 Lista de comprobación
 
 **Arranca e integra**
-- [ ] `pytest` en verde y `python -m core.config` dice OK.
+- [ ] `python -m pytest` en verde y `python -m core.config` dice OK.
 - [ ] La app arranca y **las demás pantallas siguen abriendo**, no solo la del PR.
 - [ ] La funcionalidad hace lo que dice la descripción.
 - [ ] La rama está al día con `main` o no tiene conflictos (GitHub lo indica en el PR).
@@ -348,13 +363,13 @@ Tú también trabajas en ramas (`ansel/...`) y abres PR. Puedes fusionarlos tú 
 ### 10.7 En cada integración (14:00, 19:00, 13:00)
 
 1. Revisa y fusiona todo lo que esté listo.
-2. En `main` actualizado: `pytest`, `python -m core.config` y un recorrido completo por la app (Home → Check-in → Protocol → Trends).
+2. En `main` actualizado: `python -m pytest`, `python -m core.config` y un recorrido completo por la app (Home → Check-in → Protocol → Trends).
 3. Si algo se ha roto, identifica qué PR lo rompió (`git log --oneline`) y pide el arreglo al dueño, o revierte ese PR:
    ```bash
    gh pr view 12 --json mergeCommit --jq .mergeCommit.oid    # commit del merge
    git switch -c ansel/revert-12
    git revert <ese-commit>
-   git push -u origin ansel/revert-12
+   git push
    gh pr create --base main --fill
    ```
 4. Desde la integración de las 19:00: comprueba que la app desplegada se actualiza y abre en una ventana privada.

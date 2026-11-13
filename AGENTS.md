@@ -26,7 +26,8 @@ The app **guides, it does not diagnose**.
 
 ## 3. Stack
 
-- Python 3.12, Streamlit, pandas, Plotly, numpy. pytest for tests.
+- Python 3.12, Streamlit, pandas, Plotly, numpy. pytest for tests (always run as `python -m pytest`).
+- Always work inside the project virtual environment (`.venv`). Use Python 3.12: newer versions (3.14) may fail to install some packages.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files in `data/`. No database server.
 - Multipage Streamlit app: `app.py` + `pages/`.
@@ -254,24 +255,24 @@ Severity and environment do **not** create separate files: they are branches (`d
 - **Keep the contracts** in section 7. Do not rename functions, parameters, JSON keys or CSV columns.
 - Pages (`app.py`, `pages/`) **never read or write files directly**: they only call `core/`. Charts come from `core/charts.py`, the mascot from `core/mascot.py`.
 - No new libraries, no new top-level folders, no secrets or API keys in the code.
-- Add a test in `tests/` when you add logic in `core/`. Keep `pytest` green.
+- Add a test in `tests/` when you add logic in `core/`. Keep `python -m pytest` green.
 - **Mark AI-generated code.** Every new file starts with a header comment: `# AI-assisted: generated with <tool> and reviewed by <person>.` (NASA Space Apps requires AI-generated code to be acknowledged in text and metadata).
 - At the end of every task, say **which files you changed and how to test it** in one or two lines.
 
 ## 12. Commands
 
 ```bash
-python -m venv .venv && source .venv/bin/activate      # Windows: py -3.12 -m venv .venv; .venv\Scripts\Activate.ps1
+python3.12 -m venv .venv && source .venv/bin/activate  # Windows: py -3.12 -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 streamlit run app.py
-pytest
+python -m pytest
 python -m core.config             # validates config/ and prints errors
 python -m core.config --strict    # also lists values still marked TODO
 ```
 
 ## 13. Git workflow
 
-- `main` always starts. Run the app and `pytest` before every push.
+- `main` always starts. Run the app and `python -m pytest` before every push.
 - One branch per task: `<name>/short-description` (e.g. `juancarlos/confirmation-step`). Open a pull request; Ansel reviews and merges.
 - Small commits with messages that say what changes. Commit every time something works.
 - Integrations: Saturday 14:00 and 19:00 (first deploy), Sunday 13:00. Feature freeze Sunday 16:00.
