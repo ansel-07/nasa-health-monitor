@@ -22,7 +22,7 @@ git switch -c tunombre/que-hace
 # 2. Trabajar y guardar cada vez que algo funcione
 git add ruta/archivo1.py ruta/archivo2.py
 git commit -m "Add measurement form to Check-in"
-git push -u origin tunombre/que-hace        # la primera vez; después basta git push
+git push                                     # también la primera vez (ver nota)
 
 # 3. Antes de pedir revisión: traerte lo último de main y probar
 git fetch origin
@@ -41,6 +41,12 @@ git pull
 ```
 
 Mientras esperas la revisión, **no te quedes parado**: vuelve al paso 1 con la siguiente tarea.
+
+> **Nota sobre `git push`.** Para que `git push` a secas funcione también la primera vez que subes una rama nueva, cada uno tiene que haber ejecutado **una vez** en su portátil (viene en el documento de preparación del entorno):
+> ```bash
+> git config --global push.autoSetupRemote true
+> ```
+> Sin eso, la primera subida de cada rama sería `git push -u origin tunombre/que-hace`.
 
 ---
 
@@ -227,6 +233,7 @@ y llama a Ansel. Nunca resuelvas un conflicto en un archivo que no es tuyo sin h
 | He subido `data/measurements.csv` o `data/episodes.json` | Avisa a Ansel; en tu siguiente commit: `git checkout origin/main -- data/measurements.csv data/episodes.json` |
 | `git pull` dice que tienes cambios locales | Haz commit de tus cambios (si es tu rama) o `git stash` antes del `pull` |
 | `git push` dice `rejected` / `fetch first` | Otro ha subido a tu rama, o el PR se actualizó: `git pull` y vuelve a hacer `git push` |
+| `git push` dice `has no upstream branch` | Te falta la configuración de la nota de la sección 1: `git config --global push.autoSetupRemote true` y vuelve a hacer `git push` |
 | `git push` pide usuario y contraseña | `gh auth setup-git` y vuelve a probar |
 | `ModuleNotFoundError: No module named 'streamlit'` (o `pandas`, `plotly`...) | El entorno no está activo, o lanzaste `pytest` a secas. Activa `.venv` y usa `python -m pytest`. Si `.venv` no existe, créalo (documento de preparación del entorno) |
 | `pip install` falla compilando algo (p. ej. `pyarrow`) | Tu Python es demasiado nuevo (3.14). Borra `.venv` y créalo con Python 3.12 (documento de preparación del entorno) |
@@ -362,7 +369,7 @@ Tú también trabajas en ramas (`ansel/...`) y abres PR. Puedes fusionarlos tú 
    gh pr view 12 --json mergeCommit --jq .mergeCommit.oid    # commit del merge
    git switch -c ansel/revert-12
    git revert <ese-commit>
-   git push -u origin ansel/revert-12
+   git push
    gh pr create --base main --fill
    ```
 4. Desde la integración de las 19:00: comprueba que la app desplegada se actualiza y abre en una ventana privada.
