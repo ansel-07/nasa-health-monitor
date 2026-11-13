@@ -1,5 +1,5 @@
-# AI-assisted: generated with Claude Code and reviewed by Rol 3.
-"""Shared condition evaluator for triggers and protocol decisions. Owner: Rol 5.
+# AI-assisted: generated with Claude Code and reviewed by Ansel.
+"""Shared condition evaluator for triggers and protocol decisions. Owner: Juan Carlos.
 
 Condition language: AGENTS.md, section 5.
 ctx = {"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}}
@@ -7,5 +7,5 @@ ctx = {"astronaut", "environment", "severity", "vars", "answers", "latest": {ind
 
 
 def check(cond: dict, ctx: dict) -> bool:
-    # STUB (Rol 5): implement every key of AGENTS.md section 5, including all/any.
+    # STUB (Juan Carlos): implement every key of AGENTS.md section 5, including all/any.
     return False

@@ -1,8 +1,8 @@
-# AI-assisted: generated with Claude Code and reviewed by Rol 3.
-"""Home page: pick astronaut and environment, see open episode, reset the demo. Owner: Rol 3."""
+# AI-assisted: generated with Claude Code and reviewed by Ansel.
+"""Home ("login"): pick astronaut and environment, mascot greeting, reset the demo. Owner: Ansel."""
 import streamlit as st
 
-from core import config, data, episodes
+from core import config, data, episodes, mascot
 
 st.set_page_config(page_title="Astronaut Health Monitor", page_icon="🩺", layout="wide")
 
@@ -23,7 +23,7 @@ if "environment" not in st.session_state:
 st.title("TODO: project name")
 st.caption("Prototype, not a medical device. It guides; it does not diagnose.")
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
     st.session_state["astronaut"] = st.selectbox(
         "Who are you?",
@@ -38,17 +38,20 @@ with col2:
         index=env_ids.index(st.session_state["environment"]),
         format_func=lambda e: environments[e]["name"],
     )
+with col3:
+    mascot.voice_toggle()
 
 astronaut = st.session_state["astronaut"]
 open_episode = data.get_open_episode(astronaut)
 pending = episodes.get_pending(astronaut)
 
+# Placeholder lines: final wording and moods are still to be decided by the team.
 if open_episode:
-    st.warning(f"Open problem: {open_episode['problem']} ({open_episode['severity']}). Go to Protocol.")
+    mascot.say(f"Hi {names[astronaut]}. We have an open issue to take care of. Let's go to Protocol.", "worried")
 elif pending:
-    st.info(f"{len(pending)} pending alert(s).")
+    mascot.say(f"Hi {names[astronaut]}. I have {len(pending)} alert(s) waiting for you.", "thinking")
 else:
-    st.success("No open problems.")
+    mascot.say(f"Hi {names[astronaut]}! Everything looks fine. Ready for your check-in?", "happy")
 
 st.divider()
 if st.button("Reset demo"):

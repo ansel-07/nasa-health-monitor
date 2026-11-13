@@ -1,5 +1,5 @@
-# AI-assisted: generated with Claude Code and reviewed by Rol 3.
-"""Load and validate the JSON files in config/. Owner: Rol 3.
+# AI-assisted: generated with Claude Code and reviewed by Ansel.
+"""Load and validate the JSON files in config/. Owner: Ansel.
 
 Run `python -m core.config` to validate everything and print the errors.
 Files are read on every call (no cache) so edits show up when Streamlit reruns.

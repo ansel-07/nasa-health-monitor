@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and reviewed by Rol 3.
+# AI-assisted: generated with Claude Code and reviewed by Ansel.
 from core.models import SEVERITIES, max_severity, severity_rank
 
 

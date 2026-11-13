@@ -1,7 +1,7 @@
-# AI-assisted: generated with Claude Code and reviewed by Rol 3.
-"""Shared constants and small helpers. Owner: Rol 3.
+# AI-assisted: generated with Claude Code and reviewed by Ansel.
+"""Shared constants and small helpers. Owner: Ansel.
 
-Every other module imports from here. Do not change names without asking Rol 3.
+Every other module imports from here. Do not change names without asking Ansel.
 """
 from pathlib import Path
 
@@ -15,7 +15,7 @@ MEASUREMENTS_FILE = DATA_DIR / "measurements.csv"
 ASTRONAUTS_FILE = DATA_DIR / "astronauts.csv"
 EPISODES_FILE = DATA_DIR / "episodes.json"
 
-# Ordered from least to most severe. Provisional: the final list comes from Rol 2.
+# Ordered from least to most severe. Provisional: the final list comes from Edu.
 SEVERITIES = ["inactive", "mild", "moderate", "severe"]
 
 EPISODE_STATUSES = [
@@ -35,6 +35,10 @@ MEASUREMENT_COLUMNS = ["timestamp", "astronaut", "indicator", "value", "unit", "
 
 CONTACT_TARGETS = ["crew_medical_officer", "flight_surgeon"]
 
+# Mascot expressions. Provisional: the team decides the final list and when each one is used.
+MOODS = ["happy", "neutral", "thinking", "worried", "serious"]
+MASCOT_SIZES = ["large", "small"]
+
 # Node type -> required fields. Optional fields are listed in AGENTS.md, section 7.
 NODE_TYPES = {
     "info": ["text", "next"],
@@ -47,7 +51,7 @@ NODE_TYPES = {
     "end": ["outcome", "text"],
 }
 
-# Values that still have to be written by a person (Rol 2 or Rol 1) start with this mark.
+# Values that still have to be written by a person (Edu or Gonzalo) start with this mark.
 TODO_MARK = "TODO"
 
 

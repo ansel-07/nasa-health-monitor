@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and reviewed by Rol 3.
+# AI-assisted: generated with Claude Code and reviewed by Ansel.
 """Config files are valid and the example protocol covers every node type."""
 from core import config
 from core.models import NODE_TYPES

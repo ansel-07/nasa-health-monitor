@@ -1,27 +1,27 @@
 {
   "problem_1": {
     "name": "TODO: problem 1 name",
-    "description": "TODO_ROL2",
-    "hrp_risk": "TODO_ROL2",
-    "confirm_wait_min": "TODO_ROL2",
+    "description": "TODO_EDU",
+    "hrp_risk": "TODO_EDU",
+    "confirm_wait_min": "TODO_EDU",
     "protocol": "protocols/problem_1.json",
     "triggers": [
-      { "severity": "mild", "when": { "indicator": "heart_rate", "z_above": "TODO_ROL2" } },
-      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_ROL2" } },
-      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_ROL2" }, "environments": ["mars"] }
+      { "severity": "mild", "when": { "indicator": "heart_rate", "z_above": "TODO_EDU" } },
+      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_EDU" } },
+      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_EDU" }, "environments": ["mars"] }
     ],
-    "source": "TODO_ROL2"
+    "source": "TODO_EDU"
   },
   "problem_2": {
     "name": "TODO: problem 2 name",
-    "description": "TODO_ROL2",
-    "hrp_risk": "TODO_ROL2",
-    "confirm_wait_min": "TODO_ROL2",
+    "description": "TODO_EDU",
+    "hrp_risk": "TODO_EDU",
+    "confirm_wait_min": "TODO_EDU",
     "protocol": "protocols/problem_2.json",
     "triggers": [
-      { "severity": "mild", "when": { "indicator": "sleep_hours", "z_below": "TODO_ROL2" } }
+      { "severity": "mild", "when": { "indicator": "sleep_hours", "z_below": "TODO_EDU" } }
     ],
-    "source": "TODO_ROL2"
+    "source": "TODO_EDU"
   },
   "_example": {
     "name": "Example problem (test fixture)",

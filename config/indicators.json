@@ -2,51 +2,51 @@
   "heart_rate": {
     "name": "Resting heart rate",
     "unit": "bpm",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   },
   "bp_systolic": {
     "name": "Blood pressure (systolic)",
     "unit": "mmHg",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   },
   "bp_diastolic": {
     "name": "Blood pressure (diastolic)",
     "unit": "mmHg",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   },
   "glucose": {
     "name": "Blood glucose",
     "unit": "mg/dL",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   },
   "temperature": {
     "name": "Body temperature",
     "unit": "°C",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   },
   "sleep_hours": {
     "name": "Sleep",
     "unit": "h",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   },
   "mood": {
     "name": "Mood",
     "unit": "1-5",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   },
   "_example_indicator": {
     "name": "Example indicator (test fixture, not health data)",

@@ -21,6 +21,10 @@ TODO: why astronauts need to assess their own health on long missions (hazards, 
 
 TODO: the user's journey in a few lines.
 
+## Meet the mascot
+
+TODO: name, look and personality of the mascot that narrates the app.
+
 ## How it works
 
 TODO: short explanation of the flow: measurements → personal baseline → trigger → confirmation → protocol by problem, severity and environment.
@@ -70,7 +74,14 @@ tests/              pytest tests
 
 ## Team
 
-TODO: names and roles.
+| Name | Role |
+|---|---|
+| Gonzalo | Product, coordination and testing |
+| Edu | Science and health |
+| Ansel | Architecture, integration and mascot |
+| Fran | Data and trends |
+| Juan Carlos | Anomaly detection |
+| Javi | Protocol execution |
 
 ## License
 

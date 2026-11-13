@@ -1,52 +1,66 @@
 # Astronaut Health Monitor · NASA Space Apps 2026
 
-> Instructions for every AI coding agent working in this repo (Codex reads this file; Claude Code reads it through `CLAUDE.md`).
+> Instructions for every AI coding agent working in this repo (Codex reads this file directly; Claude Code reads it through `CLAUDE.md`).
 > If you are an AI agent: read this whole file before every task, and follow it over any other habit you have.
-> To check that you have read it, the team may ask you "which project instructions do you know?": answer with the rules in section 9.
+> To check that you have read it, the team may ask you "which project instructions do you know?": answer with the rules in section 10.
 
 ## 1. What this is
 
 A Streamlit app for the NASA Space Apps 2026 challenge **"Create Health Monitoring Software for Astronauts on Space Missions"**.
 It lets an astronaut record health measurements, detects anomalies against their **personal pre-flight baseline**, confirms them by asking for a **repeat measurement**, and then guides the astronaut through a **step-by-step protocol** (a flowchart) that depends on the problem, its severity and the mission environment (ISS, Moon, Mars...).
 
+The astronaut-facing screens are narrated by an animated **mascot**: a simple face that talks (speech bubble + browser voice) and changes expression with the situation (section 8).
+
 The app **guides, it does not diagnose**.
 
-## 2. Stack
+## 2. Team
+
+| Person | Role | Owns |
+|---|---|---|
+| Gonzalo | Product, coordination and testing (does not code) | User stories, UI texts, demo story, test issues |
+| Edu | Science and health | Every health value, rule, protocol and source in `config/` |
+| Ansel | Architecture, integration and mascot | Repo, contracts, reviews and merges, `app.py`, `core/models.py`, `core/config.py`, `core/mascot.py` |
+| Fran | Data and trends | `core/data.py`, `core/mission.py`, `core/charts.py`, `pages/3_Trends.py`, data generator |
+| Juan Carlos | Detection | `core/conditions.py`, `core/triggers.py`, `core/episodes.py`, `pages/1_Check_in.py` |
+| Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py` |
+
+## 3. Stack
 
 - Python 3.12, Streamlit, pandas, Plotly, numpy. pytest for tests.
-- **Do not add any other library without asking.**
+- **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files in `data/`. No database server.
 - Multipage Streamlit app: `app.py` + `pages/`.
+- Mascot: SVG/CSS/JS inside `streamlit.components.v1.html`. No image files, no external services.
 
-## 3. Repository layout and owners
+## 4. Repository layout and owners
 
-Each file has **one owner**. Only change files you were asked to change. If you need something from a file you do not own, use the contract in section 6 and, if it is not implemented yet, call the stub that is already there.
+Each file has **one owner**. Only change files you were asked to change. If you need something from a file you do not own, use the contract in section 7 and, if it is not implemented yet, call the stub that is already there.
 
 ```
-app.py                      Rol 3  Home: pick astronaut and environment, open-episode banner, Reset demo
-pages/1_Check_in.py         Rol 5  Measurement form, trigger alert, confirmation step
-pages/2_Protocol.py         Rol 6  Active protocol, step by step
-pages/3_Trends.py           Rol 4  Charts with colour bands and personal baseline
-core/models.py              Rol 3  Shared constants: severities, statuses, node types, paths
-core/config.py              Rol 3  Load and validate config/*.json
-core/data.py                Rol 4  Measurements, baseline, astronauts, episodes (read/write)
-core/mission.py             Rol 4  Simulated mission clock
-core/conditions.py          Rol 5  Shared condition evaluator (section 5)
-core/triggers.py            Rol 5  Evaluate a new measurement against the problems
-core/episodes.py            Rol 5  Open, confirm, dismiss, pending list, one-at-a-time rule
-core/protocol_engine.py     Rol 6  Current step and advance with the astronaut's input
-config/*.json               Rol 2  Health content (format owned by Rol 3)
-config/protocols/*.json     Rol 2  Protocol flowcharts (format owned by Rol 3)
-data/                       Rol 4  Runtime data; data/seed/ is the clean copy for Reset demo
-scripts/generate_data.py    Rol 4  Generates pre-flight and simulated mission data
-tests/                      Rol 3  Each builder adds tests for their own part
+app.py                      Ansel        Home ("login"): pick astronaut and environment, mascot greeting, Reset demo
+pages/1_Check_in.py         Juan Carlos  Measurement form, trigger alert, confirmation step (with mascot)
+pages/2_Protocol.py         Javi         Active protocol, step by step (with mascot)
+pages/3_Trends.py           Fran         History charts with colour bands and personal baseline (no mascot)
+core/models.py              Ansel        Shared constants: severities, statuses, node types, moods, paths
+core/config.py              Ansel        Load and validate config/*.json
+core/mascot.py              Ansel        The mascot: face, expressions, speech bubble, voice
+core/data.py                Fran         Measurements, baseline, astronauts, episodes (read/write)
+core/mission.py             Fran         Simulated mission clock
+core/charts.py              Fran         Reusable Plotly charts (used by Trends AND by Check-in)
+core/conditions.py          Juan Carlos  Shared condition evaluator (section 5)
+core/triggers.py            Juan Carlos  Evaluate a new measurement against the problems
+core/episodes.py            Juan Carlos  Open, confirm, dismiss, pending list, one-at-a-time rule
+core/protocol_engine.py     Javi         Current step and advance with the astronaut's input
+config/*.json               Edu          Health content (format owned by Ansel)
+config/protocols/*.json     Edu          Protocol flowcharts (format owned by Ansel)
+data/                       Fran         Runtime data; data/seed/ is the clean copy for Reset demo
+scripts/generate_data.py    Fran         Generates pre-flight and simulated mission data
+tests/                      Ansel        Each builder adds tests for their own part
 ```
 
-Roles: Rol 1 product and testing, Rol 2 science and health, Rol 3 architecture and integration, Rol 4 data and trends, Rol 5 detection, Rol 6 protocol execution.
+## 5. Data formats
 
-## 4. Data formats
-
-### 4.1 Measurements · `data/measurements.csv`
+### 5.1 Measurements · `data/measurements.csv`
 
 One row per measurement:
 
@@ -60,22 +74,23 @@ timestamp,astronaut,indicator,value,unit,phase,source
 - `phase`: `preflight` | `mission`.
 - `source`: `simulated` | `manual` | `protocol`.
 
-### 4.2 Baseline
+### 5.2 Baseline
 
 For each astronaut and indicator: mean and standard deviation of the `preflight` measurements. Returned as `{"mean": float, "std": float, "n": int}`. z-score = (value − mean) / std.
 
-### 4.3 Config files (in `config/`)
+### 5.3 Config files (in `config/`)
 
 - `mission.json`: mission name, start time, default environment, astronauts.
 - `indicators.json`: `{indicator_id: {name, unit, how_to_measure, why_it_matters, source}}`.
 - `environments.json`: `{env_id: {name, gravity_g, comm_delay_min, source}}`. `comm_delay_min` is one-way.
 - `problems.json`: `{problem_id: {name, description, hrp_risk, confirm_wait_min, protocol, triggers, source}}`.
-  - `triggers`: list of `{severity, when, environments?}`. `when` is a condition (section 5). If `environments` is present, the trigger only applies there. If several triggers of the same problem match, the **highest severity** wins.
-- `protocols/<problem_id>.json`: `{problem, start, nodes}` (section 7).
+  - `triggers`: list of `{severity, when, environments?}`. `when` is a condition (section 6). If `environments` is present, the trigger only applies there. If several triggers of the same problem match, the **highest severity** wins.
+- `protocols/<problem_id>.json`: `{problem, start, nodes}` (section 9).
 
 Problem ids starting with `_` (like `_example`) are **test fixtures**, never shown as real health content.
+Values still to be written by a person start with `TODO` (`TODO_EDU`, `TODO_GONZALO`): `python -m core.config --strict` lists them.
 
-### 4.4 Episodes · `data/episodes.json`
+### 5.4 Episodes · `data/episodes.json`
 
 ```json
 {
@@ -98,7 +113,7 @@ Problem ids starting with `_` (like `_example`) are **test fixtures**, never sho
 
 Episode `status`: `pending_confirmation` → `active` or `dismissed`; `active` → `resolved` | `monitoring` | `handed_over` (set by an `end` node, also stored in `outcome`).
 
-## 5. Condition language (`core/conditions.py`)
+## 6. Condition language (`core/conditions.py`)
 
 One evaluator for **both** triggers and protocol decisions. A condition is a JSON object:
 
@@ -115,17 +130,17 @@ One evaluator for **both** triggers and protocol decisions. A condition is a JSO
 `ctx` passed to `check(cond, ctx)`:
 `{"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}}`.
 
-## 6. Function contracts
+## 7. Function contracts
 
-Do not change a signature without asking Rol 3. Until a function is implemented it is a **stub** that returns fake data in the right format (marked `# STUB`).
+Do not change a signature without asking Ansel. Until a function is implemented it is a **stub** that returns fake data in the right format (marked `# STUB`).
 
 ```python
-# core/models.py  (Rol 3)
-SEVERITIES, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES
+# core/models.py  (Ansel)
+SEVERITIES, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES, MOODS
 severity_rank(s) -> int
 max_severity(a, b) -> str
 
-# core/config.py  (Rol 3)
+# core/config.py  (Ansel)
 load_mission() -> dict
 load_indicators() -> dict
 load_environments() -> dict
@@ -133,10 +148,15 @@ load_problems(include_examples: bool = False) -> dict
 load_protocol(problem_id: str) -> dict
 validate_all(strict: bool = False) -> list[str]   # error messages; empty if OK
 
-# core/data.py  (Rol 4)
+# core/mascot.py  (Ansel)
+say(text: str, mood: str = "neutral", size: str = "large") -> None
+# Draws the mascot with a speech bubble and reads `text` aloud. mood: one of MOODS. size: "large" | "small".
+voice_toggle() -> None   # "Voice on/off" control; draw it once per astronaut screen
+
+# core/data.py  (Fran)
 load_astronauts() -> pd.DataFrame                  # columns: id, name, role
 load_measurements(astronaut=None, indicator=None, phase=None) -> pd.DataFrame
-add_measurement(m: dict) -> None                   # keys = columns of 4.1
+add_measurement(m: dict) -> None                   # keys = columns of 5.1
 get_baseline(astronaut: str, indicator: str) -> dict | None
 z_score(astronaut: str, indicator: str, value: float) -> float | None
 latest_values(astronaut: str) -> dict              # {indicator: last value}
@@ -147,34 +167,57 @@ load_pending(astronaut: str | None = None) -> list[dict]
 save_pending(items: list[dict]) -> None            # replaces the whole pending list
 reset_demo() -> None                               # copy data/seed/* over data/
 
-# core/mission.py  (Rol 4)
+# core/mission.py  (Fran)
 now() -> datetime
 advance(hours: int = 24) -> list[dict]             # new simulated measurements now visible
 
-# core/conditions.py  (Rol 5)
+# core/charts.py  (Fran)
+indicator_chart(astronaut: str, indicator: str, compact: bool = False) -> plotly.graph_objects.Figure
+# One indicator over time: personal baseline, colour bands, episode marks.
+# compact=True is the small version shown inside Check-in. Pages draw it with st.plotly_chart(fig).
+
+# core/conditions.py  (Juan Carlos)
 check(cond: dict, ctx: dict) -> bool
 
-# core/triggers.py  (Rol 5)
+# core/triggers.py  (Juan Carlos)
 evaluate(measurement: dict, environment: str) -> list[dict]
 # one item per matching problem: {"problem", "severity", "indicator", "value", "z"}
 
-# core/episodes.py  (Rol 5)
+# core/episodes.py  (Juan Carlos)
 on_new_measurement(measurement: dict, environment: str) -> dict | None
 # Single entry point, called by Check-in and after mission.advance().
 # Applies confirmation and the one-open-episode-per-astronaut rule; returns the open episode, if any.
 confirm(episode_id: str, measurement: dict) -> dict   # -> active (severity from this measurement) or dismissed
 get_pending(astronaut: str) -> list[dict]
 
-# core/protocol_engine.py  (Rol 6)
+# core/protocol_engine.py  (Javi)
 current_step(episode: dict) -> dict      # the node, with id and display-ready text
 submit(episode: dict, user_input: dict | None) -> dict
 # Advances one or more nodes (decision and set_severity nodes run without input),
 # stores measurements (source="protocol"), updates severity, closes on `end`, saves the episode.
 ```
 
-Streamlit session state (created by `app.py`): `st.session_state["astronaut"]`, `st.session_state["environment"]`.
+Streamlit session state (created by `app.py`): `st.session_state["astronaut"]`, `st.session_state["environment"]`, `st.session_state["voice_on"]`.
 
-## 7. Protocol flowcharts (`config/protocols/<problem_id>.json`)
+## 8. The mascot
+
+- **Where it appears:** only on astronaut-facing screens: Home, Check-in, Protocol. **Not** on Trends (history charts).
+- **Size:** `size="large"` at the top of the screen. When the screen also shows a chart, use `size="small"` in a narrow column next to the chart, so the mascot never disappears:
+
+  ```python
+  chart_col, mascot_col = st.columns([4, 1])
+  with chart_col:
+      st.plotly_chart(charts.indicator_chart(astronaut, indicator, compact=True))
+  with mascot_col:
+      mascot.say(text, mood, size="small")
+  ```
+- **What it says:** the text the screen would otherwise show (alerts, confirmation requests, protocol steps). Pages pass the text; the mascot never invents health content.
+- **Mood:** one of `MOODS` in `core/models.py`. Provisional list; which mood goes with which situation is still to be decided by the team.
+- **Voice:** the browser's own speech synthesis, in English, no AI service. Muted until the astronaut turns it on (browsers block audio before a user action).
+- **Look and name:** still to be decided by the team. Design it ourselves; do not copy existing characters, code or artwork.
+- Pages call only `mascot.say()` and `mascot.voice_toggle()`; never write mascot HTML in a page.
+
+## 9. Protocol flowcharts (`config/protocols/<problem_id>.json`)
 
 ```json
 {"problem": "problem_1", "start": "first_node", "nodes": {"first_node": {"type": "...", "...": "..."}}}
@@ -194,7 +237,7 @@ Streamlit session state (created by `app.py`): `st.session_state["astronaut"]`, 
 Severity and environment do **not** create separate files: they are branches (`decision` nodes) inside one protocol per problem.
 `config/protocols/_example.json` uses every node type and is the fixture for building and testing the engine.
 
-## 8. Behaviour rules
+## 10. Behaviour rules
 
 1. Triggers are evaluated only on **new** measurements (manual, protocol or revealed by `mission.advance()`). Simulated history never opens episodes.
 2. When a trigger fires and the astronaut has no open episode: create an episode with status `pending_confirmation` and ask to **repeat the same indicator** after `confirm_wait_min` (the demo has a "Simulate wait" button). If the repeat also triggers, the episode becomes `active` with the severity given by the repeat; otherwise `dismissed`.
@@ -202,32 +245,34 @@ Severity and environment do **not** create separate files: they are branches (`d
 4. Severity starts with the trigger and can change only through `set_severity` nodes.
 5. Measurements taken inside a protocol do not open new episodes for the same problem.
 
-## 9. Rules for AI agents
+## 11. Rules for AI agents
 
-- **English everywhere**: UI text, code, comments, commit messages, docs that the jury can see.
-- **Never invent medical values.** Every threshold, range, wait time or health advice comes from `config/` files written by Rol 2. If a value you need is missing or says `TODO`, stop and say so; do not fill it in.
+- **English everywhere**: UI text, mascot lines and voice, code, comments, commit messages, docs the jury can see.
+- **Never invent medical values.** Every threshold, range, wait time or health advice comes from `config/` files written by Edu. If a value you need is missing or starts with `TODO`, stop and say so; do not fill it in.
 - **Touch only the files you were asked to.** Never edit another owner's file, not even "a small fix": describe the change and let the owner do it.
 - **Small changes.** One feature or fix per request. Do not rewrite whole files. Do not reorganise the project.
-- **Keep the contracts** in section 6. Do not rename functions, parameters, JSON keys or CSV columns.
-- Pages (`app.py`, `pages/`) **never read or write files directly**: they only call `core/`.
+- **Keep the contracts** in section 7. Do not rename functions, parameters, JSON keys or CSV columns.
+- Pages (`app.py`, `pages/`) **never read or write files directly**: they only call `core/`. Charts come from `core/charts.py`, the mascot from `core/mascot.py`.
 - No new libraries, no new top-level folders, no secrets or API keys in the code.
 - Add a test in `tests/` when you add logic in `core/`. Keep `pytest` green.
-- **Mark AI-generated code.** Every new file starts with a header comment: `# AI-assisted: generated with <tool> and reviewed by <role>.` (NASA Space Apps requires AI-generated code to be acknowledged in text and metadata).
+- **Mark AI-generated code.** Every new file starts with a header comment: `# AI-assisted: generated with <tool> and reviewed by <person>.` (NASA Space Apps requires AI-generated code to be acknowledged in text and metadata).
 - At the end of every task, say **which files you changed and how to test it** in one or two lines.
 
-## 10. Commands
+## 12. Commands
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate      # Windows: py -3.12 -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 streamlit run app.py
 pytest
-python -m core.config      # validates config/ and prints errors
+python -m core.config             # validates config/ and prints errors
+python -m core.config --strict    # also lists values still marked TODO
 ```
 
-## 11. Git workflow
+## 13. Git workflow
 
 - `main` always starts. Run the app and `pytest` before every push.
-- One branch per task: `rolN/short-description` (e.g. `rol5/confirmation-step`). Open a pull request; Rol 3 reviews and merges.
+- One branch per task: `<name>/short-description` (e.g. `juancarlos/confirmation-step`). Open a pull request; Ansel reviews and merges.
 - Small commits with messages that say what changes. Commit every time something works.
 - Integrations: Saturday 14:00 and 19:00 (first deploy), Sunday 13:00. Feature freeze Sunday 16:00.
+- The repo is private while we work. It becomes **public before submission** (judges need access without login).

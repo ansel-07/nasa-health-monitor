@@ -1,8 +1,10 @@
 # Estructura del proyecto · NASA Space Apps 2026
 
-Basada en el esquema de la pizarra (Rol 5) y en las decisiones del viernes 13 por la tarde. Pensada para copiarse al repo como `docs/ESTRUCTURA.md`; los contratos de la sección 5 pasan además al `AGENTS.md`.
+Basada en el esquema de la pizarra (Juan Carlos) y en las decisiones del viernes 13 por la tarde. Documento interno del equipo, en español: **traducir o borrar antes de entregar**, porque el repo será público y todo lo que vea el jurado va en inglés. La referencia técnica vigente es el `AGENTS.md`; si algo no coincide, manda el `AGENTS.md`.
 
-Las marcas **⚠️ FALTA DETALLE · Rol X** señalan huecos que no se han dejado en blanco por descuido: los tiene que cerrar ese rol. La lista completa está en la sección 8.
+Equipo: Gonzalo (producto y pruebas), Edu (ciencia y salud), Ansel (arquitectura, integración y mascota), Fran (datos y gráficas), Juan Carlos (detectar), Javi (actuar).
+
+Las marcas **⚠️ FALTA DETALLE · Persona** señalan huecos que no se han dejado en blanco por descuido: los tiene que cerrar esa persona. La lista completa está en la sección 8.
 
 ---
 
@@ -18,6 +20,9 @@ Las marcas **⚠️ FALTA DETALLE · Rol X** señalan huecos que no se han dejad
 | Entorno | **Ajusta los umbrales del trigger** y **elige ramas del protocolo** (incluido el retraso de comunicación). |
 | Problemas simultáneos | **Uno activo a la vez** por astronauta. Los demás quedan como pendientes. |
 | Alcance P0 | **2 problemas** con protocolo completo. |
+| Mascota | Una cara animada (inspirada en un llavero con pantalla OLED) **narra** las pantallas del astronauta: bocadillo de texto, expresiones y voz del navegador en inglés. **Habla, no escucha**: se responde con teclado y botones. Dibujada en código (SVG/CSS). La programa Ansel. |
+| Dónde sale la mascota | Grande en Inicio, Check-in y Protocolo. Pequeña en una columna junto a la gráfica cuando esas pantallas enseñan una. No sale en el histórico (Trends). |
+| Idioma | Todo en inglés, también la voz. |
 
 ---
 
@@ -42,7 +47,7 @@ Conceptos:
 - **Línea base**: media y desviación típica de las medidas `preflight` de ese astronauta para ese indicador.
 - **Entorno**: dónde está la misión (p. ej. ISS, Luna, Marte). Tiene gravedad y retraso de comunicación, y puede cambiar umbrales.
 - **Problema**: uno de una **lista cerrada** definida en configuración, con sus reglas de trigger y su protocolo.
-- **Gravedad**: nivel ordenado. Provisional: `inactive < mild < moderate < severe`. ⚠️ FALTA DETALLE · Rol 2: lista definitiva y qué significa cada nivel.
+- **Gravedad**: nivel ordenado. Provisional: `inactive < mild < moderate < severe`. ⚠️ FALTA DETALLE · Edu: lista definitiva y qué significa cada nivel.
 - **Episodio**: una instancia de un problema en un astronauta: cuándo saltó, con qué gravedad, en qué paso del protocolo va y cómo terminó. Es lo que conecta todo.
 - **Protocolo**: el diagrama de flujo de un problema. **Un archivo por problema**; la gravedad y el entorno no generan protocolos distintos, sino **ramas** dentro del mismo diagrama.
 
@@ -71,19 +76,19 @@ Conceptos:
 Reglas:
 
 1. **Uno activo a la vez.** Si salta otro trigger mientras hay un episodio `pending_confirmation` o `active`, se guarda en la lista de **pendientes** y se muestra un aviso. Al cerrar el episodio actual, se ofrece el pendiente de mayor gravedad (que vuelve a pasar por confirmar).
-   ⚠️ FALTA DETALLE · Rol 1: qué ve el astronauta si el pendiente es más grave que el activo (¿botón para cambiar de problema?). Para el P0 basta el aviso.
+   ⚠️ FALTA DETALLE · Gonzalo: qué ve el astronauta si el pendiente es más grave que el activo (¿botón para cambiar de problema?). Para el P0 basta el aviso.
 2. **Confirmar** pide repetir **el mismo indicador** que disparó. Cada problema tiene un `confirm_wait_min` (espera antes de repetir; la AHA, por ejemplo, pide repetir la tensión a los 5 min). En la demo hay un botón «Simular espera».
    La gravedad inicial del episodio es la que da la **medida de confirmación**, no la primera.
-   ⚠️ FALTA DETALLE · Rol 2: `confirm_wait_min` de cada problema.
+   ⚠️ FALTA DETALLE · Edu: `confirm_wait_min` de cada problema.
 3. El **historial simulado no abre episodios**. Los triggers solo se evalúan sobre medidas **nuevas**: las que entran a mano y las que aparecen al avanzar el reloj de misión.
 
 ---
 
 ## 4. Formatos de datos y configuración
 
-Todo lo que vea el jurado y todo el código, en inglés. Los valores `TODO_ROL2` son marcadores: **ningún número médico sale de la IA**.
+Todo lo que vea el jurado y todo el código, en inglés. Los valores `TODO_EDU` son marcadores: **ningún número médico sale de la IA**.
 
-### 4.1 Medidas · `data/measurements.csv` (dueño: Rol 4)
+### 4.1 Medidas · `data/measurements.csv` (dueño: Fran)
 
 ```
 timestamp,astronaut,indicator,value,unit,phase,source
@@ -96,7 +101,7 @@ timestamp,astronaut,indicator,value,unit,phase,source
 - `source`: `simulated` | `manual` | `protocol`.
 - Amplía el contrato de la guía (`timestamp, astronaut, indicator, value, unit`) con `phase` y `source`.
 
-### 4.2 Astronautas y misión (dueño: Rol 4; valores de entorno: Rol 2)
+### 4.2 Astronautas y misión (dueño: Fran; valores de entorno: Edu)
 
 `data/astronauts.csv`
 ```
@@ -114,49 +119,49 @@ a1,Alex Doe,Commander
 }
 ```
 
-### 4.3 Indicadores · `config/indicators.json` (dueños: Rol 2 contenido, Rol 1 textos)
+### 4.3 Indicadores · `config/indicators.json` (dueños: Edu contenido, Gonzalo textos)
 
 ```json
 {
   "heart_rate": {
     "name": "Resting heart rate",
     "unit": "bpm",
-    "how_to_measure": "TODO_ROL1",
-    "why_it_matters": "TODO_ROL2",
-    "source": "TODO_ROL2"
+    "how_to_measure": "TODO_GONZALO",
+    "why_it_matters": "TODO_EDU",
+    "source": "TODO_EDU"
   }
 }
 ```
 
-### 4.4 Entornos · `config/environments.json` (dueño: Rol 2)
+### 4.4 Entornos · `config/environments.json` (dueño: Edu)
 
 ```json
 {
-  "iss":  { "name": "International Space Station", "gravity_g": "TODO_ROL2", "comm_delay_min": "TODO_ROL2", "source": "TODO_ROL2" },
-  "moon": { "name": "Lunar base",                  "gravity_g": "TODO_ROL2", "comm_delay_min": "TODO_ROL2", "source": "TODO_ROL2" },
-  "mars": { "name": "Mars base",                   "gravity_g": "TODO_ROL2", "comm_delay_min": "TODO_ROL2", "source": "TODO_ROL2" }
+  "iss":  { "name": "International Space Station", "gravity_g": "TODO_EDU", "comm_delay_min": "TODO_EDU", "source": "TODO_EDU" },
+  "moon": { "name": "Lunar base",                  "gravity_g": "TODO_EDU", "comm_delay_min": "TODO_EDU", "source": "TODO_EDU" },
+  "mars": { "name": "Mars base",                   "gravity_g": "TODO_EDU", "comm_delay_min": "TODO_EDU", "source": "TODO_EDU" }
 }
 ```
 
 `comm_delay_min` es el retraso **en un sentido**. La guía da hasta 20 min para Marte.
-⚠️ FALTA DETALLE · Rol 2: lista de entornos y valores con fuente.
+⚠️ FALTA DETALLE · Edu: lista de entornos y valores con fuente.
 
-### 4.5 Problemas y triggers · `config/problems.json` (dueño: Rol 2)
+### 4.5 Problemas y triggers · `config/problems.json` (dueño: Edu)
 
 ```json
 {
   "problem_id_1": {
     "name": "TODO",
-    "description": "TODO_ROL2",
-    "hrp_risk": "TODO_ROL2 (riesgo del Human Research Program al que corresponde)",
-    "confirm_wait_min": "TODO_ROL2",
+    "description": "TODO_EDU",
+    "hrp_risk": "TODO_EDU (riesgo del Human Research Program al que corresponde)",
+    "confirm_wait_min": "TODO_EDU",
     "protocol": "protocols/problem_id_1.json",
     "triggers": [
-      { "severity": "mild",     "when": { "indicator": "heart_rate", "z_above": "TODO_ROL2" } },
-      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_ROL2" } },
-      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_ROL2" }, "environments": ["mars"] }
+      { "severity": "mild",     "when": { "indicator": "heart_rate", "z_above": "TODO_EDU" } },
+      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_EDU" } },
+      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_EDU" }, "environments": ["mars"] }
     ],
-    "source": "TODO_ROL2"
+    "source": "TODO_EDU"
   }
 }
 ```
@@ -180,7 +185,7 @@ Un solo evaluador (`core/conditions.py`) entiende estas claves, que se pueden co
 | `environment_in` | Lista de entornos. |
 | `answer` + `equals` | Respuesta a un paso `question`. |
 
-### 4.7 Protocolos · `config/protocols/<problem_id>.json` (dueño: Rol 2 contenido; formato: Rol 3)
+### 4.7 Protocolos · `config/protocols/<problem_id>.json` (dueño: Edu contenido; formato: Ansel)
 
 Un grafo de nodos con un nodo de inicio. Tipos de nodo:
 
@@ -205,29 +210,29 @@ Ejemplo de **forma** (el contenido es de relleno):
     "route": { "type": "decision",
                "branches": [ { "if": { "severity_at_least": "severe" }, "next": "contact_ground" } ],
                "default": "explain" },
-    "explain":   { "type": "info",    "text": "TODO_ROL2", "next": "do_action" },
-    "do_action": { "type": "action",  "text": "TODO_ROL2", "wait_min": "TODO_ROL2",
-                   "source": "TODO_ROL2", "next": "remeasure", "next_if_cannot": "contact_ground" },
+    "explain":   { "type": "info",    "text": "TODO_EDU", "next": "do_action" },
+    "do_action": { "type": "action",  "text": "TODO_EDU", "wait_min": "TODO_EDU",
+                   "source": "TODO_EDU", "next": "remeasure", "next_if_cannot": "contact_ground" },
     "remeasure": { "type": "measure", "indicator": "heart_rate", "save_as": "hr_after", "next": "check" },
     "check":     { "type": "decision",
-                   "branches": [ { "if": { "var": "hr_after", "z_above": "TODO_ROL2" }, "next": "escalate" } ],
+                   "branches": [ { "if": { "var": "hr_after", "z_above": "TODO_EDU" }, "next": "escalate" } ],
                    "default": "done" },
     "escalate":  { "type": "set_severity", "severity": "severe", "next": "contact_ground" },
-    "contact_ground": { "type": "contact", "target": "flight_surgeon", "text": "TODO_ROL2", "next": "wait_and_monitor" },
-    "wait_and_monitor": { "type": "end", "outcome": "handed_over", "text": "TODO_ROL2" },
-    "done":      { "type": "end", "outcome": "resolved", "text": "TODO_ROL2" }
+    "contact_ground": { "type": "contact", "target": "flight_surgeon", "text": "TODO_EDU", "next": "wait_and_monitor" },
+    "wait_and_monitor": { "type": "end", "outcome": "handed_over", "text": "TODO_EDU" },
+    "done":      { "type": "end", "outcome": "resolved", "text": "TODO_EDU" }
   }
 }
 ```
 
-Reglas para el Rol 2 al escribir protocolos:
+Reglas para Edu al escribir protocolos:
 - Todo nodo con contenido de salud lleva `source`.
 - El **retraso de comunicación** se usa en ramas `environment_in`: en Marte, antes de `contact` conviene que haya pasos autónomos («el amarillo debe dar instrucciones claras», como dice la guía).
 - El protocolo **orienta, no diagnostica**.
 
-⚠️ FALTA DETALLE · Rol 2 (con Rol 1 para la redacción): contenido completo de los 2 protocolos, primero en una tabla o un dibujo, después en JSON.
+⚠️ FALTA DETALLE · Edu (con Gonzalo para la redacción): contenido completo de los 2 protocolos, primero en una tabla o un dibujo, después en JSON.
 
-### 4.8 Episodios · `data/episodes.json` (dueño de lectura y escritura: Rol 4)
+### 4.8 Episodios · `data/episodes.json` (dueño de lectura y escritura: Fran)
 
 ```json
 {
@@ -248,7 +253,7 @@ Reglas para el Rol 2 al escribir protocolos:
 }
 ```
 
-Más una lista `pending` de triggers en espera por astronauta (mismo archivo o `data/pending.json`, lo decide el Rol 4).
+Más una lista `pending` de triggers en espera por astronauta (mismo archivo o `data/pending.json`, lo decide Fran).
 
 Nota de despliegue: en Streamlit Community Cloud lo que la app escribe en disco se pierde al reiniciar. Para la demo vale; habrá un botón **«Reset demo»** que restaura los datos iniciales.
 
@@ -259,41 +264,46 @@ Nota de despliegue: en Streamlit Community Cloud lo que la app escribe en disco 
 ### 5.1 Árbol del repo
 
 ```
-app.py                         Rol 3   Inicio: elegir astronauta y entorno, aviso de episodio activo o pendiente, Reset demo
+app.py                         Ansel   Inicio: elegir astronauta y entorno, saludo de la mascota, Reset demo
 pages/
-  1_Check_in.py                Rol 5   Formulario de medidas, aviso de trigger y paso de confirmar
-  2_Protocol.py                Rol 6   El protocolo activo, paso a paso
-  3_Trends.py                  Rol 4   Evolución con bandas de color y línea base personal
+  1_Check_in.py                Juan Carlos   Formulario de medidas, aviso de trigger y paso de confirmar (con mascota)
+  2_Protocol.py                Javi   El protocolo activo, paso a paso (con mascota)
+  3_Trends.py                  Fran   Histórico con bandas de color y línea base personal (sin mascota)
   4_Mission_log.py             (P1)    Historial de episodios y falsas alarmas · dueño por decidir
 core/
-  models.py                    Rol 3   Constantes y tipos: SEVERITIES ordenadas, estados, dataclasses
-  config.py                    Rol 3   Cargar y validar los JSON de config/
-  data.py                      Rol 4   Medidas, línea base, astronautas, episodios (leer y guardar)
-  mission.py                   Rol 4   Reloj de misión simulado: hora actual, avanzar
-  conditions.py                Rol 5   Evaluador común de condiciones (sección 4.6)
-  triggers.py                  Rol 5   Evaluar una medida nueva contra los problemas
-  episodes.py                  Rol 5   Abrir, confirmar, descartar, pendientes, regla de uno a la vez
-  protocol_engine.py           Rol 6   Paso actual y avanzar con la respuesta del astronauta
+  models.py                    Ansel   Constantes: gravedades, estados, tipos de nodo, expresiones de la mascota
+  config.py                    Ansel   Cargar y validar los JSON de config/
+  mascot.py                    Ansel   La mascota: cara, expresiones, bocadillo y voz
+  data.py                      Fran   Medidas, línea base, astronautas, episodios (leer y guardar)
+  mission.py                   Fran   Reloj de misión simulado: hora actual, avanzar
+  charts.py                    Fran   Gráficas reutilizables (en Trends y, en pequeño, en Check-in)
+  conditions.py                Juan Carlos   Evaluador común de condiciones (sección 4.6)
+  triggers.py                  Juan Carlos   Evaluar una medida nueva contra los problemas
+  episodes.py                  Juan Carlos   Abrir, confirmar, descartar, pendientes, regla de uno a la vez
+  protocol_engine.py           Javi   Paso actual y avanzar con la respuesta del astronauta
 config/
-  mission.json  indicators.json  environments.json  problems.json         Rol 2 (formato: Rol 3)
-  protocols/<problem_id>.json                                             Rol 2 (formato: Rol 3)
+  mission.json  indicators.json  environments.json  problems.json         Edu (formato: Ansel)
+  protocols/<problem_id>.json                                             Edu (formato: Ansel)
 data/
-  astronauts.csv  measurements.csv  episodes.json  (+ copia inicial para Reset demo)   Rol 4
-scripts/generate_data.py       Rol 4   Genera pre-espacio y misión simulada, con el escenario de la demo
-tests/                         Rol 3 organiza; cada constructor añade los de su parte
-AGENTS.md  CLAUDE.md (@AGENTS.md)  README.md  LICENSE (MIT)  requirements.txt        Rol 3
+  astronauts.csv  measurements.csv  episodes.json  (+ copia inicial para Reset demo)   Fran
+scripts/generate_data.py       Fran   Genera pre-espacio y misión simulada, con el escenario de la demo
+tests/                         Ansel organiza; cada constructor añade los de su parte
+AGENTS.md  CLAUDE.md (@AGENTS.md)  README.md  LICENSE (MIT)  requirements.txt        Ansel
 ```
 
 Reparto en una frase:
-- **Rol 5 · Funcionalidad A, detectar:** de que entra una medida a que hay un episodio confirmado.
-- **Rol 6 · Funcionalidad B, actuar:** del episodio confirmado a que se cierra.
-- **Rol 4 · Funcionalidad C, datos y tendencias:** todo lo que se guarda, la línea base, la misión simulada y las gráficas.
+- **Juan Carlos · Funcionalidad A, detectar:** de que entra una medida a que hay un episodio confirmado.
+- **Javi · Funcionalidad B, actuar:** del episodio confirmado a que se cierra.
+- **Fran · Funcionalidad C, datos y tendencias:** todo lo que se guarda, la línea base, la misión simulada y las gráficas.
+- **Ansel · Mascota:** la cara que narra las pantallas del astronauta.
 
-### 5.2 Contratos (los fija el Rol 3 en la primera hora; van al `AGENTS.md`)
+### 5.2 Contratos
+
+La versión vigente, con la mascota (`mascot.say(text, mood, size)`) y las gráficas (`charts.indicator_chart(astronaut, indicator, compact)`), está en la sección 7 del `AGENTS.md`. Esta es la primera versión, como referencia:
 
 ```python
 # core/models.py
-SEVERITIES = ["inactive", "mild", "moderate", "severe"]   # provisional, Rol 2
+SEVERITIES = ["inactive", "mild", "moderate", "severe"]   # provisional, Edu
 EPISODE_STATUSES = ["pending_confirmation", "active", "resolved", "monitoring",
                     "handed_over", "dismissed"]
 
@@ -345,7 +355,7 @@ Estado de sesión de Streamlit (lo crea `app.py`): `st.session_state.astronaut`,
 
 - Las pantallas **no** leen ni escriben archivos: solo llaman a `core/`.
 - Nadie toca `core/` de otro. Si necesitas algo que aún no existe, pon un **stub** con la misma firma que devuelva datos falsos y avisa.
-- `config.validate_all()` comprueba que cada `next` apunta a un nodo que existe, que hay al menos un `end` alcanzable y que no quedan `TODO_ROL2` en los problemas que entran en la demo. Lo ejecuta un test.
+- `config.validate_all()` comprueba que cada `next` apunta a un nodo que existe, que hay al menos un `end` alcanzable y que no quedan `TODO_EDU` en los problemas que entran en la demo. Lo ejecuta un test.
 
 ---
 
@@ -353,34 +363,35 @@ Estado de sesión de Streamlit (lo crea `app.py`): `st.session_state.astronaut`,
 
 ### Viernes por la noche (todos)
 - Elegir **los 2 problemas** con el método de la guía. Tienen que salir de vosotros, no de la IA (la guía de entrega de 2026 lo exige). ⚠️ FALTA DETALLE · equipo.
-- Repasar este documento y cambiar lo que no convenza **antes** de que el Rol 3 lo pase al `AGENTS.md`.
+- Repasar este documento y cambiar lo que no convenza **antes** de que Ansel lo pase al `AGENTS.md`.
 
-### Rol 3 · Arquitectura e integración
+### Ansel · Arquitectura e integración
 - **9:00-10:00:** repo con el árbol de 5.1, `models.py`, `config.py` con validación, configs de ejemplo con marcadores, **un protocolo de prueba** que use los 8 tipos de nodo, `AGENTS.md` + `CLAUDE.md` con los contratos de 5.2, `README.md` con secciones (About, How it works, NASA resources, AI usage, Disclaimer, License).
 - Después: revisar y fusionar PR, mantener `main` arrancando, tests de `validate_all`.
+- **Mascota:** P0 = cara con sus expresiones, bocadillo y voz con botón de activar (versión provisional ya en el repo). P1 = boca que se mueve al hablar y más animaciones; P1 opcional = mascota fija en la esquina con CSS en lugar de la columna.
 - **14:00:** integración 1. **19:00:** integración 2 y primer despliegue. **Domingo 13:00:** integración 3.
 
-### Rol 5 · Detectar (Funcionalidad A)
+### Juan Carlos · Detectar (Funcionalidad A)
 - Hasta las 14:00: `conditions.py`, `triggers.py` y `episodes.py` contra el problema de prueba y un stub de `data.py`; pantalla Check-in con el paso de confirmar y el botón «Simular espera».
 - Por la tarde: los 2 problemas reales, pendientes y avisos.
 
-### Rol 6 · Actuar (Funcionalidad B)
-- Hasta las 14:00: `protocol_engine.py` y la pantalla Protocol recorriendo el **protocolo de prueba** completo (los 8 tipos de nodo). Usa `conditions.check()`; hasta que el Rol 5 lo fusione, un stub.
-- Por la tarde: los protocolos reales del Rol 2. Pantalla de `contact` con el retraso del entorno.
+### Javi · Actuar (Funcionalidad B)
+- Hasta las 14:00: `protocol_engine.py` y la pantalla Protocol recorriendo el **protocolo de prueba** completo (los 8 tipos de nodo). Usa `conditions.check()`; hasta que Juan Carlos lo fusione, un stub.
+- Por la tarde: los protocolos reales de Edu. Pantalla de `contact` con el retraso del entorno.
 
-### Rol 4 · Datos y tendencias (Funcionalidad C)
-- Hasta las 14:00: `data.py` y `mission.py` reales; `generate_data.py` con 3 astronautas, pre-espacio y misión, incluido **el escenario de la demo** (qué astronauta, qué día y qué anomalía; lo decide con el Rol 1).
+### Fran · Datos y tendencias (Funcionalidad C)
+- Hasta las 14:00: `data.py`, `mission.py` y `charts.indicator_chart()` reales (Juan Carlos la usa en Check-in en versión compacta); `generate_data.py` con 3 astronautas, pre-espacio y misión, incluido **el escenario de la demo** (qué astronauta, qué día y qué anomalía; lo decide con Gonzalo).
 - Por la tarde: pantalla Trends con bandas de color, línea base y marcas de los episodios.
-- ⚠️ FALTA DETALLE · Rol 4 (con Rol 2): cuántas medidas pre-espacio hacen falta, desviación típica mínima para que el z-score no explote con datos muy estables, y cómo tratar el ánimo (escala 1-5) y el sueño (diario).
+- ⚠️ FALTA DETALLE · Fran (con Edu): cuántas medidas pre-espacio hacen falta, desviación típica mínima para que el z-score no explote con datos muy estables, y cómo tratar el ánimo (escala 1-5) y el sueño (diario).
 
-### Rol 2 · Ciencia y salud
+### Edu · Ciencia y salud
 - **Antes de las 12:00 del sábado:** problemas, triggers y gravedades en tabla, con fuente; entornos con sus valores.
 - **Antes de las 16:00:** los 2 protocolos en tabla o dibujo y luego en JSON, revisados número a número.
 - Revisa todo texto de salud que genere la IA. Prepara qué recursos de la NASA se citan (HRP Hazards, HRP Risks, HRP Research) y para qué se usó cada uno: es lo que pide el campo «NASA Data» y el criterio de Relevancia.
 
-### Rol 1 · Producto, coordinación y pruebas
-- **9:00:** historias de usuario y bocetos de las 4 pantallas, y **la historia de la demo** (el recorrido que se grabará). ⚠️ FALTA DETALLE · Rol 1.
-- Textos de la interfaz (con el Rol 2 para lo de salud), guía de estilo del semáforo (un color por gravedad).
+### Gonzalo · Producto, coordinación y pruebas
+- **9:00:** historias de usuario y bocetos de las 4 pantallas, y **la historia de la demo** (el recorrido que se grabará). ⚠️ FALTA DETALLE · Gonzalo.
+- Textos de la interfaz (con Edu para lo de salud), guía de estilo del semáforo (un color por gravedad).
 - Tras cada fusión: probar contra las historias y abrir issues. Sábado por la tarde y domingo por la mañana: pruebas con gente de fuera.
 - Decide P0/P1 de lo que queda abierto (sección 7).
 
@@ -394,9 +405,10 @@ Estado de sesión de Streamlit (lo crea `app.py`): `st.session_state.astronaut`,
 3. Trigger con umbrales por entorno → confirmar repitiendo la medida → episodio.
 4. Protocolo paso a paso con los 8 tipos de nodo, para 2 problemas.
 5. Gráfica de evolución con línea base y bandas.
-6. Reset demo y despliegue.
+6. Mascota narrando Inicio, Check-in y Protocolo, con voz.
+7. Reset demo y despliegue.
 
-**P1 (domingo por la mañana, por orden a decidir por el Rol 1):**
+**P1 (domingo por la mañana, por orden a decidir por Gonzalo):**
 - Historial de episodios y falsas alarmas (pantalla 4).
 - Ver el protocolo como diagrama (`st.graphviz_chart` con texto DOT; comprobad que funciona sin instalar nada más).
 - Cuerpo humano clicable con el estado de cada sistema (lo sugiere el enunciado).
@@ -410,16 +422,19 @@ Estado de sesión de Streamlit (lo crea `app.py`): `st.session_state.astronaut`,
 
 | # | Hueco | Responsable | Para cuándo |
 |---|---|---|---|
-| 1 | Qué 2 problemas | Equipo (propone Rol 2) | Viernes noche |
-| 2 | Niveles de gravedad definitivos y su significado | Rol 2 | Sábado 12:00 |
-| 3 | Triggers: indicadores, umbrales absolutos, umbrales z, ajustes por entorno | Rol 2 | Sábado 12:00 |
-| 4 | `confirm_wait_min` de cada problema | Rol 2 | Sábado 12:00 |
-| 5 | Entornos: lista, gravedad y retraso con fuente | Rol 2 | Sábado 12:00 |
-| 6 | Contenido de los 2 protocolos con fuentes | Rol 2 (+ Rol 1 redacción) | Sábado 16:00 |
-| 7 | Recursos NASA que se citan y para qué | Rol 2 | Domingo 13:00 |
-| 8 | Línea base: n mínimo, desviación mínima, ánimo y sueño | Rol 4 (+ Rol 2) | Sábado 14:00 |
-| 9 | Escenario simulado de la demo | Rol 4 + Rol 1 | Sábado 14:00 |
-| 10 | Historia de la demo, bocetos y textos | Rol 1 | Sábado 10:00 / tarde |
-| 11 | Qué ve el astronauta con un pendiente más grave | Rol 1 (+ Rol 5) | Sábado tarde |
-| 12 | Si `contact` es solo un mensaje o simula una respuesta | Rol 1 | Sábado tarde |
-| 13 | Orden del P1 | Rol 1 | Sábado 19:00 |
+| 1 | Qué 2 problemas | Equipo (propone Edu) | Viernes noche |
+| 2 | Niveles de gravedad definitivos y su significado | Edu | Sábado 12:00 |
+| 3 | Triggers: indicadores, umbrales absolutos, umbrales z, ajustes por entorno | Edu | Sábado 12:00 |
+| 4 | `confirm_wait_min` de cada problema | Edu | Sábado 12:00 |
+| 5 | Entornos: lista, gravedad y retraso con fuente | Edu | Sábado 12:00 |
+| 6 | Contenido de los 2 protocolos con fuentes | Edu (+ Gonzalo redacción) | Sábado 16:00 |
+| 7 | Recursos NASA que se citan y para qué | Edu | Domingo 13:00 |
+| 8 | Línea base: n mínimo, desviación mínima, ánimo y sueño | Fran (+ Edu) | Sábado 14:00 |
+| 9 | Escenario simulado de la demo | Fran + Gonzalo | Sábado 14:00 |
+| 10 | Historia de la demo, bocetos y textos | Gonzalo | Sábado 10:00 / tarde |
+| 11 | Qué ve el astronauta con un pendiente más grave | Gonzalo (+ Juan Carlos) | Sábado tarde |
+| 12 | Si `contact` es solo un mensaje o simula una respuesta | Gonzalo | Sábado tarde |
+| 13 | Orden del P1 | Gonzalo | Sábado 19:00 |
+| 14 | Nombre y aspecto de la mascota (diseño vuestro, no de la IA) | Equipo | Sábado mañana |
+| 15 | Lista de expresiones y en qué situación sale cada una (tono revisado por Edu) | Equipo (+ Edu) | Sábado mañana |
+| 16 | Qué dice la mascota: solo los textos de las pantallas o también frases propias, y quién las escribe | Equipo | Sábado mañana |
