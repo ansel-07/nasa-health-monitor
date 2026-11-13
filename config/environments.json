@@ -1,0 +1,20 @@
+{
+  "iss": {
+    "name": "International Space Station",
+    "gravity_g": "TODO_ROL2",
+    "comm_delay_min": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "moon": {
+    "name": "Lunar base",
+    "gravity_g": "TODO_ROL2",
+    "comm_delay_min": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "mars": {
+    "name": "Mars base",
+    "gravity_g": "TODO_ROL2",
+    "comm_delay_min": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  }
+}

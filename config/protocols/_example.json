@@ -1,0 +1,90 @@
+{
+  "problem": "_example",
+  "start": "route",
+  "nodes": {
+    "route": {
+      "type": "decision",
+      "branches": [
+        { "if": { "severity_at_least": "severe" }, "next": "contact_now" },
+        { "if": { "environment_in": ["mars"] }, "next": "intro_mars" }
+      ],
+      "default": "intro"
+    },
+    "intro": {
+      "type": "info",
+      "text": "Example protocol. This text explains what is happening.",
+      "next": "symptoms"
+    },
+    "intro_mars": {
+      "type": "info",
+      "text": "Example protocol (Mars branch). Earth is far away, so we start with steps you can do alone.",
+      "next": "symptoms"
+    },
+    "symptoms": {
+      "type": "question",
+      "text": "Example question: do you notice symptom X?",
+      "save_as": "has_symptom",
+      "options": { "yes": "escalate", "no": "do_action" }
+    },
+    "do_action": {
+      "type": "action",
+      "text": "Example action: do something, then press Done.",
+      "wait_min": 1,
+      "source": "none",
+      "next": "remeasure",
+      "next_if_cannot": "contact_crew"
+    },
+    "remeasure": {
+      "type": "measure",
+      "indicator": "_example_indicator",
+      "save_as": "value_after",
+      "text": "Measure the example indicator again.",
+      "next": "check"
+    },
+    "check": {
+      "type": "decision",
+      "branches": [
+        { "if": { "var": "value_after", "above": 20 }, "next": "escalate" },
+        { "if": { "var": "value_after", "above": 10 }, "next": "monitor" }
+      ],
+      "default": "deescalate"
+    },
+    "escalate": {
+      "type": "set_severity",
+      "severity": "severe",
+      "next": "contact_now"
+    },
+    "deescalate": {
+      "type": "set_severity",
+      "severity": "inactive",
+      "next": "done"
+    },
+    "contact_crew": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Example: tell the crew medical officer.",
+      "next": "monitor"
+    },
+    "contact_now": {
+      "type": "contact",
+      "target": "flight_surgeon",
+      "text": "Example: a message is sent to the flight surgeons on Earth.",
+      "next": "handed_over"
+    },
+    "monitor": {
+      "type": "end",
+      "outcome": "monitoring",
+      "text": "Example end: keep monitoring."
+    },
+    "handed_over": {
+      "type": "end",
+      "outcome": "handed_over",
+      "text": "Example end: the doctors take over."
+    },
+    "done": {
+      "type": "end",
+      "outcome": "resolved",
+      "text": "Example end: resolved."
+    }
+  }
+}

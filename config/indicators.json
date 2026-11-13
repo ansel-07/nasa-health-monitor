@@ -1,0 +1,58 @@
+{
+  "heart_rate": {
+    "name": "Resting heart rate",
+    "unit": "bpm",
+    "how_to_measure": "TODO_ROL1",
+    "why_it_matters": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "bp_systolic": {
+    "name": "Blood pressure (systolic)",
+    "unit": "mmHg",
+    "how_to_measure": "TODO_ROL1",
+    "why_it_matters": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "bp_diastolic": {
+    "name": "Blood pressure (diastolic)",
+    "unit": "mmHg",
+    "how_to_measure": "TODO_ROL1",
+    "why_it_matters": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "glucose": {
+    "name": "Blood glucose",
+    "unit": "mg/dL",
+    "how_to_measure": "TODO_ROL1",
+    "why_it_matters": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "temperature": {
+    "name": "Body temperature",
+    "unit": "°C",
+    "how_to_measure": "TODO_ROL1",
+    "why_it_matters": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "sleep_hours": {
+    "name": "Sleep",
+    "unit": "h",
+    "how_to_measure": "TODO_ROL1",
+    "why_it_matters": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "mood": {
+    "name": "Mood",
+    "unit": "1-5",
+    "how_to_measure": "TODO_ROL1",
+    "why_it_matters": "TODO_ROL2",
+    "source": "TODO_ROL2"
+  },
+  "_example_indicator": {
+    "name": "Example indicator (test fixture, not health data)",
+    "unit": "units",
+    "how_to_measure": "Type any number.",
+    "why_it_matters": "Used only to test the engine.",
+    "source": "none"
+  }
+}

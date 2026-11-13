@@ -1,0 +1,40 @@
+{
+  "problem_1": {
+    "name": "TODO: problem 1 name",
+    "description": "TODO_ROL2",
+    "hrp_risk": "TODO_ROL2",
+    "confirm_wait_min": "TODO_ROL2",
+    "protocol": "protocols/problem_1.json",
+    "triggers": [
+      { "severity": "mild", "when": { "indicator": "heart_rate", "z_above": "TODO_ROL2" } },
+      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_ROL2" } },
+      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_ROL2" }, "environments": ["mars"] }
+    ],
+    "source": "TODO_ROL2"
+  },
+  "problem_2": {
+    "name": "TODO: problem 2 name",
+    "description": "TODO_ROL2",
+    "hrp_risk": "TODO_ROL2",
+    "confirm_wait_min": "TODO_ROL2",
+    "protocol": "protocols/problem_2.json",
+    "triggers": [
+      { "severity": "mild", "when": { "indicator": "sleep_hours", "z_below": "TODO_ROL2" } }
+    ],
+    "source": "TODO_ROL2"
+  },
+  "_example": {
+    "name": "Example problem (test fixture)",
+    "description": "Fake problem used to build and test the engine. Not health content.",
+    "hrp_risk": "none",
+    "confirm_wait_min": 0,
+    "protocol": "protocols/_example.json",
+    "triggers": [
+      { "severity": "mild", "when": { "indicator": "_example_indicator", "above": 10 } },
+      { "severity": "moderate", "when": { "indicator": "_example_indicator", "above": 20 } },
+      { "severity": "severe", "when": { "indicator": "_example_indicator", "above": 30 } },
+      { "severity": "moderate", "when": { "indicator": "_example_indicator", "above": 5 }, "environments": ["mars"] }
+    ],
+    "source": "none"
+  }
+}

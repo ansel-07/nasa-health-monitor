@@ -1,0 +1,11 @@
+{
+  "problem": "problem_2",
+  "start": "todo",
+  "nodes": {
+    "todo": {
+      "type": "end",
+      "outcome": "resolved",
+      "text": "TODO_ROL2: write this protocol (see _example.json for every node type)."
+    }
+  }
+}
