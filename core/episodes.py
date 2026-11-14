@@ -68,6 +68,23 @@ def _wait(problem: dict) -> timedelta:
     return timedelta(minutes=float(minutes))
 
 
+def _new_episode(stored: list[dict], astronaut: str, environment: str, match: dict,
+                 measured_at: str, now: datetime) -> dict:
+    _wait(config.load_problems()[match["problem"]])
+    numbers = [int(e["id"][3:]) for e in stored
+               if e["id"].startswith("ep-") and e["id"][3:].isdigit()]
+    return {
+        "id": f"ep-{max(numbers, default=0) + 1:04d}", "astronaut": astronaut,
+        "problem": match["problem"], "environment": environment,
+        "status": "pending_confirmation", "severity_initial": match["severity"],
+        "severity": match["severity"],
+        "trigger": {"indicator": match["indicator"], "value": match["value"], "z": match["z"],
+                    "measured_at": measured_at},
+        "current_node": None, "vars": {}, "answers": {}, "log": [],
+        "opened_at": now.isoformat(), "closed_at": None, "outcome": None,
+    }
+
+
 def _pending_items(items: list[dict], matches: list[dict], m: dict, exclude: str | None) -> list[dict]:
     """Keep one pending item per astronaut/problem, with the most recent evidence."""
     updated = deepcopy(items)
@@ -154,19 +171,7 @@ def on_new_measurement(measurement: dict, environment: str) -> dict | None:
     created = False
     if opened is None and matches:
         chosen = max(matches, key=lambda item: severity_rank(item["severity"]))
-        _wait(config.load_problems()[chosen["problem"]])
-        numbers = [int(e["id"][3:]) for e in stored
-                   if e["id"].startswith("ep-") and e["id"][3:].isdigit()]
-        opened = {
-            "id": f"ep-{max(numbers, default=0) + 1:04d}", "astronaut": m["astronaut"],
-            "problem": chosen["problem"], "environment": environment,
-            "status": "pending_confirmation", "severity_initial": chosen["severity"],
-            "severity": chosen["severity"],
-            "trigger": {"indicator": m["indicator"], "value": m["value"], "z": chosen["z"],
-                        "measured_at": m["timestamp"]},
-            "current_node": None, "vars": {}, "answers": {}, "log": [],
-            "opened_at": now.isoformat(), "closed_at": None, "outcome": None,
-        }
+        opened = _new_episode(stored, m["astronaut"], environment, chosen, m["timestamp"], now)
         created = True
     pending = data.load_pending()
     updated = _pending_items(pending, matches, m, opened["problem"] if opened else None)
@@ -184,7 +189,7 @@ def confirm(episode_id: str, measurement: dict) -> dict:
     Both the repeat timestamp and mission clock must satisfy the configured
     wait from opened_at. Invalid or unevaluable repeats leave storage unchanged.
     Confirmation sets severity from the repeat; subsequent changes belong to
-    protocol set_severity nodes. Pending promotion is a separate integration.
+    protocol set_severity nodes. Call accept_pending separately to review the queue.
     """
     stored = data.load_episodes()
     episode = next((e for e in stored if e["id"] == episode_id), None)
@@ -221,7 +226,49 @@ def confirm(episode_id: str, measurement: dict) -> dict:
 def get_pending(astronaut: str) -> list[dict]:
     """Read pending items by descending severity, preserving queue order on ties.
 
-    This function never opens episodes. Accepting a pending item requires a
-    promotion contract agreed with Ansel; it must start confirmation again.
+    This function never opens episodes. Use accept_pending to begin a new
+    confirmation wait for the highest-priority pending alert.
     """
     return sorted(data.load_pending(astronaut), key=lambda item: severity_rank(item["severity"]), reverse=True)
+
+
+def accept_pending(astronaut: str, environment: str) -> dict | None:
+    """Accept the most severe pending alert, starting confirmation at mission.now().
+
+    Additive public contract for Check-in. Ties preserve queue order. Returns
+    the existing open episode without changing storage if one is already open,
+    or None if there are no real pending alerts for this astronaut. The supplied
+    current environment is used because pending records have no environment.
+    Original evidence is preserved; accepting never records a new measurement,
+    confirms an alert or runs a protocol. Other pending items remain untouched.
+    """
+    if not isinstance(astronaut, str) or not astronaut.strip():
+        raise ValueError("Accepting an alert requires an astronaut.")
+    stored = data.load_episodes()
+    opened = _open(stored, astronaut)
+    if opened is not None:
+        return deepcopy(opened)
+    pending = data.load_pending()
+    candidates = [(index, item) for index, item in enumerate(pending)
+                  if item["astronaut"] == astronaut and not item["problem"].startswith("_")]
+    if not candidates:
+        return None
+    index, chosen = max(candidates, key=lambda pair: severity_rank(pair[1]["severity"]))
+    if not isinstance(environment, str) or environment not in config.load_environments():
+        raise ValueError("Accepting an alert requires a configured mission environment.")
+    if chosen["problem"] not in config.load_problems():
+        raise ValueError("The pending problem is unavailable in the configuration.")
+    indicator = chosen.get("indicator")
+    if not isinstance(indicator, str) or indicator.startswith("_") or indicator not in config.load_indicators():
+        raise ValueError("The pending indicator is unavailable in the configuration.")
+    if not _finite(chosen.get("value")) or (chosen.get("z") is not None and not _finite(chosen["z"])):
+        raise ValueError("The pending measurement contains invalid numeric evidence.")
+    now = mission.now()
+    measured_at = _at(chosen.get("measured_at"))
+    if measured_at > now:
+        raise ValueError("Pending evidence cannot be later than the mission clock.")
+    opened = _new_episode(stored, astronaut, environment, chosen, measured_at.isoformat(), now)
+    # Save the episode first so a storage failure cannot silently discard the alert.
+    data.save_episode(opened)
+    data.save_pending(pending[:index] + pending[index + 1:])
+    return opened

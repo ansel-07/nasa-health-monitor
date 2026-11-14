@@ -383,3 +383,180 @@ def test_duplicate_open_episodes_are_reported_not_silently_modified(state):
     data.save_episode({**initial, "id": "ep-0002"})
     with pytest.raises(ValueError, match="multiple open"):
         episodes.on_new_measurement(measurement(clock), "mars")
+
+
+@pytest.fixture
+def pending_state(state, monkeypatch):
+    clock, problems = state
+    monkeypatch.setattr(config, "load_indicators", lambda: {"x": {}, "y": {}})
+    data.save_pending([{
+        "astronaut": "a1", "problem": "problem_a", "severity": "moderate",
+        "indicator": "x", "value": 20, "z": 1.5,
+        "measured_at": (clock[0] - timedelta(hours=2)).isoformat(),
+    }])
+    return clock, problems
+
+
+def test_accept_pending_starts_new_wait_preserves_evidence_and_does_not_record_measurement(pending_state):
+    clock, _ = pending_state
+    item = data.load_pending()[0]
+    result = episodes.accept_pending("a1", "iss")
+    assert result["status"] == "pending_confirmation"
+    assert result["environment"] == "iss"
+    assert result["opened_at"] == clock[0].isoformat()
+    assert result["severity_initial"] == result["severity"] == "moderate"
+    assert result["trigger"] == {key: item[key] for key in ("indicator", "value", "z", "measured_at")}
+    assert result["current_node"] is None
+    assert result["vars"] == result["answers"] == {}
+    assert data.load_pending() == []
+    assert data.load_episodes() == [result]
+    assert data.load_measurements().empty
+
+
+def test_accept_pending_orders_by_severity_preserves_ties_and_other_astronauts(pending_state):
+    _, problems = pending_state
+    base = data.load_pending()[0]
+    problems.update({key: {"confirm_wait_min": 5, "triggers": [rule()]}
+                     for key in ("problem_b", "problem_c", "problem_d")})
+    items = [base, {**base, "astronaut": "a2", "problem": "problem_b", "severity": "severe"},
+             {**base, "problem": "problem_c", "severity": "severe"},
+             {**base, "problem": "problem_d", "severity": "severe"}]
+    data.save_pending(items)
+    assert episodes.accept_pending("a1", "mars")["problem"] == "problem_c"
+    assert data.load_pending() == items[:2] + items[3:]
+
+
+@pytest.mark.parametrize("status", ["pending_confirmation", "active"])
+def test_accept_pending_does_not_replace_open_episode(pending_state, status):
+    existing = {"id": "ep-0007", "astronaut": "a1", "problem": "other", "status": status}
+    data.save_episode(existing)
+    before = data.load_pending()
+    assert episodes.accept_pending("a1", "mars") == existing
+    assert data.load_pending() == before
+    assert data.load_episodes() == [existing]
+
+
+@pytest.mark.parametrize("status", ["dismissed", "resolved", "monitoring", "handed_over"])
+def test_accept_pending_after_each_closed_state(pending_state, status):
+    existing = {"id": "ep-0007", "astronaut": "a1", "problem": "other", "status": status}
+    data.save_episode(existing)
+    result = episodes.accept_pending("a1", "mars")
+    assert result["id"] == "ep-0008"
+    assert result["status"] == "pending_confirmation"
+    assert data.load_episodes()[0] == existing
+
+
+def test_accept_pending_is_idempotent_on_repeated_click(pending_state):
+    result = episodes.accept_pending("a1", "mars")
+    assert episodes.accept_pending("a1", "mars") == result
+    assert len(data.load_episodes()) == 1
+    assert data.load_measurements().empty
+
+
+def test_accept_pending_empty_or_other_astronaut_queue_returns_none(pending_state):
+    before = data.load_pending()
+    assert episodes.accept_pending("a2", "mars") is None
+    assert data.load_pending() == before
+    data.save_pending([])
+    assert episodes.accept_pending("a1", "mars") is None
+    assert data.load_episodes() == []
+
+
+def test_accept_pending_never_promotes_fixture(pending_state):
+    item = {**data.load_pending()[0], "problem": "_example", "severity": "severe"}
+    data.save_pending([item])
+    assert episodes.accept_pending("a1", "mars") is None
+    assert data.load_pending() == [item]
+
+
+def test_promoted_alert_requires_fresh_wait_and_can_then_be_confirmed(pending_state):
+    clock, _ = pending_state
+    result = episodes.accept_pending("a1", "mars")
+    clock[0] += timedelta(minutes=1)
+    with pytest.raises(ValueError, match="confirm_wait_min"):
+        episodes.confirm(result["id"], measurement(clock))
+    assert data.load_measurements().empty
+    clock[0] += timedelta(minutes=4)
+    confirmed = episodes.confirm(result["id"], measurement(clock))
+    assert confirmed["status"] == "active"
+    assert confirmed["severity"] == "mild"
+    assert confirmed["severity_initial"] == "moderate"
+    assert len(data.load_measurements()) == 1
+
+
+def test_promoted_alert_can_be_dismissed_without_consuming_next_pending(pending_state):
+    clock, problems = pending_state
+    original = data.load_pending()[0]
+    problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [rule()]}
+    other = {**original, "problem": "problem_b", "severity": "mild"}
+    data.save_pending([original, other])
+    promoted = episodes.accept_pending("a1", "mars")
+    clock[0] += timedelta(minutes=5)
+    assert episodes.confirm(promoted["id"], measurement(clock, value=0))["status"] == "dismissed"
+    assert data.load_pending() == [other]
+    assert episodes.accept_pending("a1", "mars")["problem"] == "problem_b"
+
+
+@pytest.mark.parametrize("change", [
+    {"indicator": "unknown"}, {"problem": "unknown"}, {"value": float("nan")},
+    {"z": float("inf")}, {"measured_at": "invalid"}, {"measured_at": "2027-04-11T08:00:00"},
+])
+def test_accept_invalid_evidence_preserves_queue_and_episodes(pending_state, change):
+    item = {**data.load_pending()[0], **change}
+    data.save_pending([item])
+    before = models.EPISODES_FILE.read_text(encoding="utf-8")
+    with pytest.raises(ValueError):
+        episodes.accept_pending("a1", "mars")
+    assert models.EPISODES_FILE.read_text(encoding="utf-8") == before
+    assert data.load_episodes() == []
+
+
+def test_accept_unconfigured_wait_or_environment_keeps_alert_pending(pending_state):
+    _, problems = pending_state
+    before = data.load_pending()
+    with pytest.raises(ValueError, match="environment"):
+        episodes.accept_pending("a1", "unknown")
+    problems["problem_a"]["confirm_wait_min"] = "TODO_EDU"
+    with pytest.raises(ValueError, match="confirm_wait_min"):
+        episodes.accept_pending("a1", "mars")
+    assert data.load_pending() == before
+    assert data.load_episodes() == []
+
+
+def test_check_in_reviews_and_confirms_pending_with_real_storage(pending_state, monkeypatch):
+    from pathlib import Path
+
+    from streamlit.testing.v1 import AppTest
+
+    from core import mascot
+
+    clock, problems = pending_state
+    problems["problem_a"]["name"] = "Synthetic alert"
+    metadata = {"name": "Synthetic indicator", "unit": "example",
+                "how_to_measure": "Synthetic test instructions.", "why_it_matters": "Synthetic test content."}
+    monkeypatch.setattr(config, "load_indicators", lambda: {"x": metadata})
+    monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
+    data.save_episode({"id": "ep-0001", "astronaut": "a1", "problem": "other", "status": "resolved"})
+    page = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
+    app = AppTest.from_file(str(page))
+    app.session_state["astronaut"] = "a1"
+    app.session_state["environment"] = "mars"
+    app.run()
+    next(b for b in app.button if b.label == "Review next alert").click().run()
+    assert not app.exception
+    opened = data.get_open_episode("a1")
+    assert opened["id"] == "ep-0002"
+    assert opened["status"] == "pending_confirmation"
+    assert app.number_input[0].disabled
+    assert data.load_pending() == []
+    assert data.load_measurements().empty
+    clock[0] += timedelta(minutes=5)
+    app.run()
+    app.number_input[0].set_value(20)
+    next(b for b in app.button if b.label == "Confirm repeat measurement").click().run()
+    assert not app.exception
+    assert data.get_open_episode("a1")["status"] == "active"
+    assert any(b.label == "Open Protocol" for b in app.button)
+    app.run()
+    assert len(data.load_episodes()) == 2
+    assert len(data.load_measurements()) == 1

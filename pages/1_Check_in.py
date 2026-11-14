@@ -197,6 +197,20 @@ def main() -> None:
                          else problems[item["problem"]]["name"]), "Severity": item["severity"],
              "Measured at": item["measured_at"]} for item in pending
         ], hide_index=True)
+        if opened is None:
+            next_indicator = indicators.get(pending[0].get("indicator"), {})
+            next_ready = all(not _unfinished(next_indicator.get(key))
+                             for key in ("name", "unit", "how_to_measure", "why_it_matters"))
+            st.caption("Reviewing the next alert starts a new confirmation wait in the selected mission environment.")
+            if not next_ready:
+                st.warning("Measurement guidance for the next alert is not available yet.")
+            if st.button("Review next alert", disabled=blocked or not next_ready):
+                try:
+                    result = episodes.accept_pending(astronaut, environment)
+                except (ValueError, KeyError, OSError) as error:
+                    report("error", str(error))
+                report("info", "The next alert is ready for a repeat measurement after its confirmation wait."
+                       if result is not None else "There are no waiting alerts to review.")
 
 
 main()
