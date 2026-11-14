@@ -6,7 +6,54 @@ from math import nextafter
 import pytest
 
 from core import conditions
-from core.models import SEVERITIES
+from core.models import PROBLEM_STATES, SEVERITIES, SYMPTOM_LEVELS
+
+
+@pytest.mark.parametrize("actual", SYMPTOM_LEVELS)
+@pytest.mark.parametrize("required", SYMPTOM_LEVELS)
+def test_symptom_level_conditions(actual, required):
+    context = {"symptoms": {"a": actual}}
+    assert conditions.check({"symptom": "a", "level_is": required}, context) is (actual == required)
+    assert conditions.check({"symptom": "a", "level_at_least": required}, context) is (
+        SYMPTOM_LEVELS.index(actual) >= SYMPTOM_LEVELS.index(required))
+
+
+@pytest.mark.parametrize("actual", PROBLEM_STATES)
+@pytest.mark.parametrize("required", PROBLEM_STATES)
+def test_problem_state_severity_conditions(actual, required):
+    assert conditions.check({"severity_is": required}, {"severity": actual}) is (actual == required)
+    assert conditions.check({"severity_at_least": required}, {"severity": actual}) is (
+        PROBLEM_STATES.index(actual) >= PROBLEM_STATES.index(required))
+
+
+def test_count_nested_symptoms_and_environment():
+    context = {"symptoms": {"a": "concern", "b": "watch"}, "environment": "mars"}
+    items = [{"symptom": "a", "level_at_least": "watch"},
+             {"symptom": "b", "level_is": "concern"}, {"environment_in": ["mars"]}]
+    assert conditions.check({"count_at_least": 2, "of": items}, context)
+    assert not conditions.check({"count_at_least": 3, "of": items}, context)
+    assert not conditions.check({"symptom": "missing", "level_is": "not_present"}, context)
+
+
+@pytest.mark.parametrize("condition", [
+    {"count_at_least": True, "of": [{"environment_in": ["mars"]}]},
+    {"count_at_least": 0, "of": [{"environment_in": ["mars"]}]},
+    {"count_at_least": 2, "of": [{"environment_in": ["mars"]}]},
+    {"count_at_least": 1, "of": []}, {"count_at_least": 1, "of": [{}]},
+    {"symptom": "a", "level_is": "unknown"},
+    {"symptom": "a", "level_is": "watch", "level_at_least": "watch"},
+])
+def test_invalid_symptom_conditions(condition):
+    with pytest.raises(ValueError):
+        conditions.check(condition, {})
+
+
+def test_count_validates_all_children_and_variable_mappings():
+    with pytest.raises(ValueError, match="var_indicators"):
+        conditions.check({"count_at_least": 1, "of": [
+            {"environment_in": ["mars"]}, {"var": "after", "z_above": 2}]}, {"environment": "mars"})
+    with pytest.raises(ValueError, match="Context symptom"):
+        conditions.check({"symptom": "a", "level_is": "watch"}, {"symptoms": {"a": "invalid"}})
 
 
 @pytest.fixture
