@@ -21,7 +21,10 @@ def episode():
 def dependencies(monkeypatch):
     saved, measured = Mock(), Mock()
     monkeypatch.setattr(engine.data, "save_episode", saved)
-    monkeypatch.setattr(engine.data, "add_measurement", measured)
+    # Protocol readings are stored through detection (episodes.on_new_measurement).
+    monkeypatch.setattr(engine.episodes, "on_new_measurement", measured)
+    monkeypatch.setattr(engine.data, "add_measurement", Mock(side_effect=AssertionError("use detection")))
+    monkeypatch.setattr(engine.data, "get_open_episode", lambda astronaut: {"id": "ep-test", "status": "active"})
     monkeypatch.setattr(engine.data, "latest_values", lambda astronaut: {"heart_rate": 60})
     monkeypatch.setattr(engine.mission, "now", lambda: datetime(2027, 4, 10, 8))
     monkeypatch.setattr(engine.triggers, "symptom_levels", Mock(return_value=dict(SYMPTOMS_NONE)))
@@ -138,7 +141,7 @@ def test_measurement_drives_decision(episode, monkeypatch, dependencies, matched
     saved, measured = dependencies
     measured.assert_called_once_with({"timestamp": "2027-04-10T08:00:00", "astronaut": "a1",
                                       "indicator": "_example_indicator", "value": 8, "unit": "units",
-                                      "phase": "mission", "source": "protocol"})
+                                      "phase": "mission", "source": "protocol"}, "mars")
     saved.assert_called_once_with(updated)
     engine.submit(updated, None)
     measured.assert_called_once()

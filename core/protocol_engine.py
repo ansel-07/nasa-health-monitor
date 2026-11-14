@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import datetime
 from math import isfinite
 
-from core import conditions, data, mission, triggers
+from core import conditions, data, episodes, mission, triggers
 from core.config import load_environments, load_indicators, load_problems, load_protocol
 from core.models import NODE_TYPES, OUTCOMES, PROBLEM_STATES, SEVERITIES, TODO_MARK
 
@@ -94,6 +94,10 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     does not advance the mission clock or simulate notifications.
     A valid measurement is saved as soon as it is accepted, so the symptom
     levels used by later decision nodes (symptom-based problems) include it.
+    It is saved through episodes.on_new_measurement() (AGENTS.md 10, rules 1
+    and 5) while this episode is still open in storage: its own problem is
+    suppressed, other problems go to pending, even if this submit then ends.
+    Only newly accepted readings are routed; submit(None) never replays one.
     The caller must use the returned episode on subsequent submissions.
     """
     if episode["status"] in OUTCOMES:
@@ -192,9 +196,15 @@ def submit(episode: dict, user_input: dict | None) -> dict:
                 unit = indicator["unit"]
                 if unit.startswith("TODO"):
                     raise ValueError("Measurement unit is still TODO in config/indicators.json.")
-                data.add_measurement({"timestamp": timestamp, "astronaut": updated["astronaut"],
-                                      "indicator": node["indicator"], "value": value, "unit": unit,
-                                      "phase": "mission", "source": "protocol"})
+                # Detection suppresses the problem of the astronaut's open episode, so
+                # that stored episode must be this one; otherwise it could reopen it.
+                stored_open = data.get_open_episode(updated["astronaut"])
+                if not stored_open or stored_open["id"] != updated["id"]:
+                    raise ValueError("This episode is not the astronaut's open episode in storage.")
+                episodes.on_new_measurement({
+                    "timestamp": timestamp, "astronaut": updated["astronaut"],
+                    "indicator": node["indicator"], "value": value, "unit": unit,
+                    "phase": "mission", "source": "protocol"}, updated["environment"])
                 updated["vars"][node["save_as"]] = value
                 latest[node["indicator"]] = value
                 recorded_input = value
