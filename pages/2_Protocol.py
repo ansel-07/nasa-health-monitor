@@ -1,5 +1,7 @@
 # AI-assisted: generated with Claude Code and Codex; human review pending.
 """Protocol: run the active episode step by step. Owner: Javi."""
+from datetime import datetime
+
 import streamlit as st
 
 from core import config, data, episodes, mascot, protocol_engine
@@ -7,9 +9,7 @@ from core.models import OUTCOMES
 
 
 def show_pending(astronaut: str) -> None:
-    """Read Juan Carlos's severity-ordered queue without promoting an episode."""
-    # Integration with Juan Carlos: get_pending() is read-only. A contract for
-    # promoting its first item to pending_confirmation is still needed.
+    """Show the severity-ordered queue; Check-in starts its confirmation (episodes.accept_pending)."""
     problems = config.load_problems()
     pending = [item for item in episodes.get_pending(astronaut) if item["problem"] in problems]
     if pending:
@@ -17,7 +17,7 @@ def show_pending(astronaut: str) -> None:
         name = problems[next_item["problem"]]["name"]
         if name.startswith("TODO"):
             name = "Pending issue"
-        st.info(f"{len(pending)} issue(s) awaiting confirmation. Next: {name} ({next_item['severity']}).")
+        st.info(f"{len(pending)} issue(s) awaiting confirmation. Next: {name} ({readable(next_item['severity'])}).")
         st.page_link("pages/1_Check_in.py", label="Go to Check-in")
 
 
@@ -29,6 +29,22 @@ def advance(episode: dict, response: dict) -> None:
         st.error("The step could not be saved or completed. Check your response and try again. If this continues, ask the mission team for help.")
         return
     st.rerun()
+
+
+def readable(name: str) -> str:
+    """Internal names as plain words for the astronaut: "medical_urgency" -> "Medical urgency"."""
+    return str(name).replace("_", " ").capitalize()
+
+
+def environment_name(environment: str) -> str:
+    """Configured environment name (e.g. "Mars base"), or the readable id if it has none."""
+    name = config.load_environments().get(environment, {}).get("name", "")
+    return name if isinstance(name, str) and name and not name.startswith("TODO") else readable(environment)
+
+
+def format_mission_time(timestamp: str) -> str:
+    """Mission timestamp as "10 Apr 2027, 08:12"."""
+    return datetime.fromisoformat(timestamp).strftime("%d %b %Y, %H:%M")
 
 
 def format_delay(minutes: float) -> str:
@@ -47,7 +63,7 @@ def show_result(episode: dict, step: dict, astronaut: str) -> None:
     labels = {"resolved": "Resolved", "monitoring": "Monitoring", "handed_over": "Handed over"}
     st.success(f"Protocol completed: {labels[episode['status']]}")
     if episode.get("closed_at"):
-        st.caption(f"Completed at mission time {episode['closed_at']}")
+        st.caption(f"Completed at mission time {format_mission_time(episode['closed_at'])}")
     show_pending(astronaut)
 
 
@@ -98,7 +114,7 @@ def main() -> None:
         return
 
     mascot.say(step["text"], "neutral", size="large")
-    st.caption(f"Severity: {episode['severity']} · Environment: {episode['environment']}")
+    st.caption(f"Severity: {readable(episode['severity'])} · Environment: {environment_name(episode['environment'])}")
     # Log length distinguishes repeated visits to the same node, clearing old
     # form values when a protocol loops back for another measurement or answer.
     key = f"protocol_{astronaut}_{episode['id']}_{step['id']}_{len(episode.get('log', []))}"
@@ -132,7 +148,8 @@ def main() -> None:
                 advance(episode, {"value": value})
     elif kind == "question":
         with st.form(f"{key}_question"):
-            answer = st.radio("Choose an answer", list(step["options"]), index=None, key=f"{key}_answer")
+            answer = st.radio("Choose an answer", list(step["options"]), index=None,
+                              format_func=readable, key=f"{key}_answer")
             submitted = st.form_submit_button("Submit answer")
         if submitted:
             if answer is None:
