@@ -56,6 +56,10 @@ with st.expander("Demo controls"):
         st.rerun()
     if reset_col.button("Reset demo", use_container_width=True):
         data.reset_demo()
+        # Check-in keeps drafts, retries and feedback in the session (#132): drop them with
+        # the data. Astronaut, environment, voice and other screens' state are kept.
+        for key in [k for k in st.session_state if str(k).startswith("check_in_")]:
+            del st.session_state[key]
         st.session_state["menu_feedback"] = "Demo data reset."
         st.rerun()
     if feedback := st.session_state.pop("menu_feedback", None):
