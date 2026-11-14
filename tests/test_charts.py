@@ -200,3 +200,73 @@ def test_chart_draws_symptom_bands_and_new_state_marks(tmp_data, example_problem
     assert charts.WARNING in fills and charts.SERIOUS in fills
     alert = next(t for t in fig.data if t.name == "Alert")
     assert list(alert.marker.color) == [charts.CRITICAL]  # medical_urgency mark is red
+
+
+# --- metric conditions (issue #56). Synthetic baseline 62 ± 2 (n=3); fake thresholds ------
+
+def symptom_problems(*levels):
+    """One fake symptom whose level rules are the given conditions on heart_rate."""
+    return {"p": {"symptoms": {"s": {"name": "S", "levels": [
+        {"level": "concern", "when": {"indicator": "heart_rate", **cond}} for cond in levels]}}}}
+
+
+def ranges(monkeypatch, *levels, indicator="heart_rate"):
+    monkeypatch.setattr(charts.config, "load_problems", lambda: symptom_problems(*levels))
+    return [(b["low"], b["high"], b["direction"]) for b in charts.threshold_bands("a1", indicator)]
+
+
+@pytest.mark.parametrize("cond, expected", [
+    ({"metric": "baseline_fraction", "below": 0.8}, [(None, 49.6, "below")]),       # mu * t
+    ({"metric": "baseline_delta", "at_least": 20}, [(82.0, None, "above")]),        # mu + t
+    ({"metric": "baseline_delta", "at_least": 20, "below": 55},                      # ANDed bounds
+     [(82.0, 117.0, "between")]),
+    ({"metric": "z_score", "above": 2}, [(66.0, None, "above")]),                   # mu + t * sigma
+    ({"metric": "z_score", "at_most": -1.5}, [(None, 59.0, "below")]),
+    ({"metric": "abs_z_score", "at_least": 2}, [(None, 58.0, "below"), (66.0, None, "above")]),
+    ({"metric": "abs_z_score", "below": 1}, [(60.0, 64.0, "between")]),
+    ({"metric": "abs_z_score", "at_least": 2, "below": 3},
+     [(56.0, 58.0, "between"), (66.0, 68.0, "between")]),
+    ({"metric": "raw", "above": 100}, [(100.0, None, "above")]),
+    ({"above": 50, "at_most": 70}, [(50.0, 70.0, "between")]),                      # default raw
+])
+def test_metric_bounds_become_values_in_the_indicator_unit(tmp_data, monkeypatch, cond, expected):
+    add_preflight_60_62_64()
+    got = ranges(monkeypatch, cond)
+    assert [(pytest.approx(lo) if lo is not None else None,
+             pytest.approx(hi) if hi is not None else None, d) for lo, hi, d in got] == expected
+
+
+@pytest.mark.parametrize("cond", [
+    {"metric": "raw", "at_least": 5, "at_most": 3},                 # empty range
+    {"metric": "baseline_delta", "at_least": 20, "below": "TODO_EDU"},  # incomplete: skip all of it
+    {"metric": "not_a_metric", "above": 1},
+])
+def test_unusable_metric_conditions_give_no_band(tmp_data, monkeypatch, cond):
+    add_preflight_60_62_64()
+    assert ranges(monkeypatch, cond) == []
+
+
+def test_metric_needs_a_valid_baseline(tmp_data, monkeypatch):
+    conds = [{"metric": "z_score", "above": 2}, {"metric": "baseline_delta", "above": 5},
+             {"metric": "abs_z_score", "above": 2}, {"z_above": 2}, {"metric": "raw", "above": 70}]
+    assert ranges(monkeypatch, *conds) == [(70.0, None, "above")]   # no baseline: only raw
+    add("2027-03-01T08:00:00", 62, phase="preflight")                # n = 1: still not valid
+    assert ranges(monkeypatch, *conds) == [(70.0, None, "above")]
+
+
+def test_baseline_fraction_needs_a_positive_mean(tmp_data, monkeypatch):
+    for day, value in zip((1, 2, 3), (-2.0, -3.0, -4.0)):
+        add(f"2027-03-0{day}T08:00:00", value, phase="preflight")
+    assert ranges(monkeypatch, {"metric": "baseline_fraction", "below": 0.8}) == []
+    assert ranges(monkeypatch, {"metric": "baseline_delta", "below": -1}) == [(None, -4.0, "below")]
+
+
+def test_chart_draws_a_between_band_with_both_edges(tmp_data, monkeypatch):
+    add_preflight_60_62_64()
+    add("2027-04-10T08:00:00", 90)
+    monkeypatch.setattr(charts.config, "load_problems", lambda: symptom_problems(
+        {"metric": "baseline_delta", "at_least": 20, "below": 55}))
+    fig = charts.indicator_chart("a1", "heart_rate")
+    band = next(s for s in fig.layout.shapes if s.fillcolor == charts.SERIOUS)
+    assert (band.y0, band.y1) == (pytest.approx(82.0), pytest.approx(117.0))
+    assert fig.layout.yaxis.range[1] > 117
