@@ -86,11 +86,11 @@ def _check_condition_refs(cond, where: str, indicators: dict, symptoms) -> list:
     symptoms=None means symptom conditions are not allowed here.
     """
     errors = []
-    if isinstance(cond, dict) and "at_least" in cond:
+    if isinstance(cond, dict) and "count_at_least" in cond:
         if not isinstance(cond.get("of"), list) or not cond["of"]:
-            errors.append(f"{where}: 'at_least' needs a non-empty 'of' list")
-        elif isinstance(cond["at_least"], int) and not 1 <= cond["at_least"] <= len(cond["of"]):
-            errors.append(f"{where}: 'at_least' must be between 1 and the size of 'of'")
+            errors.append(f"{where}: 'count_at_least' needs a non-empty 'of' list")
+        elif isinstance(cond["count_at_least"], int) and not 1 <= cond["count_at_least"] <= len(cond["of"]):
+            errors.append(f"{where}: 'count_at_least' must be between 1 and the size of 'of'")
     for leaf in _leaf_conditions(cond):
         if "indicator" in leaf and leaf["indicator"] not in indicators:
             errors.append(f"{where}: unknown indicator '{leaf['indicator']}'")

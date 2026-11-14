@@ -67,10 +67,18 @@ def test_symptom_validator_catches_bad_levels_and_states():
     assert "unknown symptom level 'severe'" in errors
 
 
-def test_symptom_validator_catches_at_least_out_of_range():
+def test_symptom_validator_catches_count_at_least_out_of_range():
     problem = _symptom_problem()
-    problem["states"][1]["when"]["at_least"] = 3
-    assert any("'at_least' must be between" in e for e in _check(problem))
+    problem["states"][1]["when"]["count_at_least"] = 3
+    assert any("'count_at_least' must be between" in e for e in _check(problem))
+
+
+def test_inclusive_comparisons_are_valid_in_symptom_levels():
+    """at_least / at_most on an indicator are >= / <=, not the count_at_least operator."""
+    problem = _symptom_problem()
+    problem["symptoms"]["symptom_a"]["levels"][0]["when"] = {"indicator": "_example_indicator", "at_least": 30}
+    problem["symptoms"]["symptom_b"]["levels"][1]["when"] = {"indicator": "_example_indicator_2", "at_most": 1}
+    assert _check(problem) == []
 
 
 def test_symptom_levels_cannot_depend_on_other_symptoms():

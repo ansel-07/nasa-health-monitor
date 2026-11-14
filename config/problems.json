@@ -54,13 +54,13 @@
     },
     "states": [
       { "state": "medical_urgency", "when": { "any": [
-        { "at_least": 2, "of": [
+        { "count_at_least": 2, "of": [
           { "symptom": "symptom_a", "level_at_least": "concern" },
           { "symptom": "symptom_b", "level_at_least": "concern" }
         ] },
         { "all": [ { "symptom": "symptom_a", "level_is": "concern" }, { "environment_in": ["mars"] } ] }
       ] } },
-      { "state": "watch", "when": { "at_least": 1, "of": [
+      { "state": "watch", "when": { "count_at_least": 1, "of": [
         { "symptom": "symptom_a", "level_at_least": "watch" },
         { "symptom": "symptom_b", "level_at_least": "watch" }
       ] } }
