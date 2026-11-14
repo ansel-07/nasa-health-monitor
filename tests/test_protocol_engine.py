@@ -60,7 +60,8 @@ def test_initial_decision_uses_shared_evaluator_and_full_context(episode, monkey
     assert updated["current_node"] == "intro_mars"
     ctx = check.call_args.args[1]
     assert ctx == {"astronaut": "a1", "environment": "mars", "severity": "moderate",
-                   "vars": {}, "answers": {}, "latest": {"heart_rate": 60}}
+                   "vars": {}, "answers": {}, "latest": {"heart_rate": 60},
+                   "var_indicators": {"value_after": "_example_indicator"}}
     assert episode["current_node"] is None
 
 
