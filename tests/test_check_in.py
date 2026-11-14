@@ -8,7 +8,7 @@ import pytest
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
-from core import charts, config, data, episodes, mascot, mission, triggers
+from core import activity, charts, config, data, episodes, mascot, mission, triggers
 
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
@@ -17,7 +17,7 @@ PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
 @pytest.fixture
 def screen(monkeypatch):
     state = {"now": datetime(2027, 4, 10, 8), "open": None, "pending": [],
-             "calls": [], "speech": [], "chart_calls": []}
+             "calls": [], "speech": [], "chart_calls": [], "completions": [], "destinations": []}
     indicators = {key: {"name": f"Indicator {key}", "unit": "example units",
                         "how_to_measure": f"Example instructions for {key}.",
                         "why_it_matters": "Synthetic test content."}
@@ -25,6 +25,18 @@ def screen(monkeypatch):
     problems = {"problem_a": {"name": "Example alert A", "confirm_wait_min": 5,
                               "triggers": [{"severity": "mild", "when": {"indicator": "x", "above": 10}}]}}
     state.update(indicators=indicators, problems=problems)
+    state["checkins"] = {key: {"name": f"Check {key}", "indicators": [key], "bar_full_hours": 24}
+                         for key in ("x", "y")}
+    monkeypatch.setattr(config, "load_checkins", lambda: state["checkins"])
+    monkeypatch.setattr(activity, "bar_level", lambda *args: 0)
+    monkeypatch.setattr(activity, "complete", lambda *args: state["completions"].append(args))
+    import streamlit as st
+
+    def switch(destination):
+        state["destinations"].append(destination)
+        st.rerun()
+
+    monkeypatch.setattr(st, "switch_page", switch)
     monkeypatch.setattr(config, "load_indicators", lambda: indicators)
     monkeypatch.setattr(config, "load_problems", lambda: problems)
     monkeypatch.setattr(config, "load_environments", lambda: {"mars": {"name": "Mars"}, "iss": {"name": "ISS"}})
@@ -69,6 +81,7 @@ def screen(monkeypatch):
     app = AppTest.from_file(str(PAGE))
     app.session_state["astronaut"] = "a1"
     app.session_state["environment"] = "mars"
+    app.session_state["check_in_selected:a1:mars"] = "x"
     return app, state
 
 
@@ -97,7 +110,7 @@ def test_form_is_empty_unbounded_and_hides_fixtures(screen):
     app, state = screen
     app.run()
     assert not app.exception
-    assert app.selectbox[0].options == ["Indicator x", "Indicator y"]
+    assert app.selectbox[0].options == ["Indicator x"]
     assert app.number_input[0].value is None
     assert len(app.toggle) == 1
     assert state["chart_calls"][-1] == ("a1", "x", True, "mars")
@@ -122,7 +135,8 @@ def test_chart_is_right_of_mascot_and_controls_are_below_both(screen, status):
     assert all(not column.get("button") and not column.get("form") for column in columns)
     visual_row = next(index for index, node in app.main.children.items()
                       if hasattr(node, "children") and node.get("plotly_chart"))
-    controls = [index for index, node in app.main.children.items() if node.type in ("button", "form")]
+    controls = [index for index, node in app.main.children.items() if node.type in ("button", "form")
+                and getattr(node, "label", "") != "Back to check-ins"]
     assert controls and all(index > visual_row for index in controls)
     assert state["speech"][-1][2] == "small"
 
@@ -158,7 +172,8 @@ def test_selecting_indicator_changes_chart_and_submitted_unit(screen):
     app, state = screen
     state["indicators"]["y"]["unit"] = "other units"
     app.run()
-    app.selectbox[0].select("y").run()
+    button(app, "Back to check-ins").click().run()
+    button(app, "Check y").click().run()
     assert state["chart_calls"][-1] == ("a1", "y", True, "mars")
     assert "other units" in app.number_input[0].label
     app.number_input[0].set_value(12)
@@ -186,6 +201,7 @@ def test_chart_and_assessment_share_environment_after_home_selection_changes(scr
     if status:
         opened(state, status)
     app.session_state["environment"] = "iss"
+    app.session_state["check_in_selected:a1:iss"] = "x"
     assessment_environments = []
     original_assessment = triggers.assessment_issues
 
@@ -215,7 +231,8 @@ def test_ready_repeat_calls_confirm_and_offers_protocol(screen):
     assert not app.exception
     assert state["calls"][0][0:2] == ("confirm", "ep-0001")
     assert state["calls"][0][2]["indicator"] == "x"
-    assert button(app, "Open Protocol")
+    assert state["destinations"] == ["pages/2_Protocol.py"]
+    assert state["completions"] == [("a1", "check_in", "x")]
 
 
 def test_dismissal_is_shown_and_manual_form_returns(screen, monkeypatch):
@@ -486,3 +503,134 @@ def test_incomplete_assessments_have_focused_warnings_and_brief_mascot_guidance(
         assert not app.success
         assert app.warning[0].value == "Measurement recorded. Assessment is incomplete; see the warnings below."
         assert "standard deviation" not in state["speech"][-1][0]
+
+
+def test_list_cards_use_configured_groups_and_allow_full_bars(screen, monkeypatch):
+    app, state = screen
+    app.session_state['check_in_selected:a1:mars'] = None
+    calls = []
+    monkeypatch.setattr(activity, 'bar_level', lambda *args: calls.append(args) or 100)
+    app.run()
+    assert not app.exception
+    assert not app.number_input
+    assert [item.value for item in app.get('progress')] == [100, 100]
+    assert calls == [('a1', 'check_in', 'x'), ('a1', 'check_in', 'y')]
+    assert state['speech'][-1][2] == 'small'
+    assert not button(app, 'Check y').disabled
+    button(app, 'Check y').click().run()
+    assert state['chart_calls'][-1][1] == 'y'
+    button(app, 'Back to check-ins').click().run()
+    assert not app.number_input
+    assert state['calls'] == []
+
+
+def test_empty_checkin_list_is_honest(screen):
+    app, state = screen
+    state['checkins'].clear()
+    app.run()
+    assert not app.exception
+    assert any('No check-ins' in item.value for item in app.info)
+    assert not app.number_input
+
+
+def test_back_preserves_confirmation_and_can_resume(screen):
+    app, state = screen
+    opened(state)
+    before = deepcopy(state['open'])
+    app.run()
+    button(app, 'Back to check-ins').click().run()
+    assert not app.number_input
+    assert state['open'] == before
+    button(app, 'Continue repeat measurement').click().run()
+    assert button(app, 'Confirm repeat measurement').disabled
+    assert state['calls'] == []
+
+
+def group_xy(state):
+    state['checkins']['x']['indicators'] = ['x', 'y']
+    state['checkins'].pop('y')
+
+
+def test_group_requires_all_values_before_recording_any(screen):
+    app, state = screen
+    group_xy(state)
+    app.run()
+    assert len(app.number_input) == 2
+    app.number_input[0].set_value(20)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert state['calls'] == state['completions'] == []
+    assert 'every indicator' in app.error[0].value
+
+
+def test_group_saves_independent_values_and_completes_once(screen):
+    app, state = screen
+    group_xy(state)
+    state['indicators']['y']['unit'] = 'second units'
+    app.run()
+    app.number_input[0].set_value(2)
+    app.number_input[1].set_value(3)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert [(item[1]['indicator'], item[1]['value'], item[1]['unit']) for item in state['calls']] == [
+        ('x', 2, 'example units'), ('y', 3, 'second units')]
+    assert state['completions'] == [('a1', 'check_in', 'x')]
+    app.run()
+    button(app, 'Back to check-ins').click().run()
+    assert len(state['calls']) == 2 and len(state['completions']) == 1
+
+
+def test_group_retries_only_remaining_values_after_partial_failure(screen, monkeypatch):
+    app, state = screen
+    group_xy(state)
+    original = episodes.on_new_measurement
+    fail = [True]
+
+    def record(m, environment):
+        if m['indicator'] == 'y' and fail[0]:
+            fail[0] = False
+            raise OSError('Synthetic storage failure')
+        result = original(m, environment)
+        if m['indicator'] == 'x':
+            opened(state)
+            return state['open']
+        return result
+
+    monkeypatch.setattr(episodes, 'on_new_measurement', record)
+    app.run()
+    app.number_input[0].set_value(20)
+    app.number_input[1].set_value(30)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert len(state['calls']) == 1 and not state['completions']
+    assert len(app.number_input) == 2
+    state['now'] += timedelta(minutes=1)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert [item[1]['indicator'] for item in state['calls']] == ['x', 'y']
+    assert state['calls'][0][1]['timestamp'] == state['calls'][1][1]['timestamp']
+    assert not state['completions']
+    assert len(app.number_input) == 1
+    assert button(app, 'Confirm repeat measurement').disabled
+
+
+def test_completion_retry_does_not_record_values_again(screen, monkeypatch):
+    app, state = screen
+    attempts = [0]
+
+    def complete(*args):
+        attempts[0] += 1
+        if attempts[0] == 1:
+            raise OSError('Synthetic completion failure')
+        state['completions'].append(args)
+
+    monkeypatch.setattr(activity, 'complete', complete)
+    app.run()
+    app.number_input[0].set_value(2)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert len(state['calls']) == 1
+    assert button(app, 'Record measurement').disabled
+    button(app, 'Finish check-in').click().run()
+    assert not app.exception
+    assert len(state['calls']) == len(state['completions']) == 1

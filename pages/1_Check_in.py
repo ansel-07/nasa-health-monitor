@@ -10,7 +10,7 @@ from math import ceil, isfinite
 
 import streamlit as st
 
-from core import charts, config, data, episodes, mascot, mission, triggers
+from core import activity, charts, config, data, episodes, mascot, mission, triggers
 
 
 def _unfinished(value) -> bool:
@@ -97,7 +97,57 @@ def main() -> None:
         st.session_state[feedback_key] = {"level": level, "text": text}
         st.rerun()
 
-    confirmation = opened is not None and opened["status"] == "pending_confirmation"
+    checkins = config.load_checkins()
+    selection_key = f"check_in_selected:{astronaut}:{environment}"
+
+    def select_for(indicator_id: str) -> None:
+        st.session_state[selection_key] = next(
+            (key for key, item in checkins.items() if indicator_id in item["indicators"]), None,
+        )
+
+    if selection_key not in st.session_state:
+        st.session_state[selection_key] = None
+        if opened and opened["status"] == "pending_confirmation":
+            select_for(opened["trigger"]["indicator"])
+    selected = st.session_state[selection_key]
+
+    def waiting_alerts() -> None:
+        _waiting_alerts(astronaut, environment, opened, problems, indicators, blocked, report, select_for)
+
+    if selected not in checkins:
+        with mascot.beside(message if opened else "Choose a check-in to record your measurements.", mood):
+            st.caption("Bars show time since completion, not health status. You can measure at any time.")
+            if not checkins:
+                st.info("No check-ins are configured yet.")
+            for checkin_id, checkin in checkins.items():
+                with st.container(border=True):
+                    if st.button(checkin["name"], key=f"check_in_card:{checkin_id}", width="stretch"):
+                        st.session_state[selection_key] = checkin_id
+                        st.rerun()
+                    level = activity.bar_level(astronaut, "check_in", checkin_id)
+                    st.progress(level, text=f"Activity recency: {level}%")
+        if opened and opened["status"] == "pending_confirmation":
+            if st.button("Continue repeat measurement", width="stretch"):
+                select_for(opened["trigger"]["indicator"])
+                st.rerun()
+        elif opened and opened["status"] == "active":
+            if st.button("Open Protocol", width="stretch"):
+                st.switch_page("pages/2_Protocol.py")
+        waiting_alerts()
+        return
+
+    if st.button("Back to check-ins"):
+        st.session_state[selection_key] = None
+        st.rerun()
+    checkin = checkins[selected]
+    st.header(checkin["name"])
+    group = checkin["indicators"]
+    if not group or any(key not in indicators for key in group):
+        st.error("The indicators for this check-in are unavailable.")
+        return
+    draft_key = f"check_in_draft:{astronaut}:{environment}:{selected}"
+    confirmation = (opened is not None and opened["status"] == "pending_confirmation"
+                    and opened["trigger"]["indicator"] in group and draft_key not in st.session_state)
     if confirmation:
         indicator_id = opened["trigger"]["indicator"]
         st.subheader("Repeat measurement")
@@ -105,14 +155,18 @@ def main() -> None:
         st.write(f"Indicator: {'Unavailable indicator' if _unfinished(name) else name}")
     else:
         indicator_id = st.selectbox(
-            "Indicator", list(indicators),
+            "Indicator", group,
             format_func=lambda key: ("Unavailable indicator" if _unfinished(indicators[key]["name"])
                                      else indicators[key]["name"]),
-            key=f"check_in_indicator:{astronaut}:{environment}",
+            key=f"check_in_indicator:{astronaut}:{environment}:{selected}",
         )
     indicator = indicators[indicator_id]
+    field_ids = [indicator_id] if confirmation else group
     assessment_environment = opened["environment"] if confirmation else environment
-    issues = [] if blocked else triggers.assessment_issues(problems, astronaut, indicator_id, assessment_environment)
+    issues = [] if blocked else list(dict.fromkeys(
+        issue for key in field_ids
+        for issue in triggers.assessment_issues(problems, astronaut, key, assessment_environment)
+    ))
     if issues:
         for issue in issues:
             st.warning(issue)
@@ -146,8 +200,31 @@ def main() -> None:
     if opened and opened["status"] == "active":
         if st.button("Open Protocol", width="stretch"):
             st.switch_page("pages/2_Protocol.py")
+    elif opened and not confirmation:
+        if st.button("Continue repeat measurement", width="stretch"):
+            select_for(opened["trigger"]["indicator"])
+            st.rerun()
 
-    guidance_ready = _guidance(indicator)
+    completion_key = f"check_in_completion:{astronaut}:{environment}:{selected}"
+
+    def finish_session() -> None:
+        completion = st.session_state[completion_key]
+        try:
+            activity.complete(astronaut, "check_in", selected)
+        except (ValueError, KeyError, OSError) as error:
+            report("error", f"Measurements recorded, but completion could not be saved. Use Finish check-in to retry. {error}")
+        del st.session_state[completion_key]
+        st.session_state[feedback_key] = completion
+        if completion["redirect"]:
+            st.switch_page("pages/2_Protocol.py")
+            st.stop()
+        st.rerun()
+
+    completion_pending = completion_key in st.session_state
+    if completion_pending and st.button("Finish check-in", width="stretch"):
+        finish_session()
+    guidance_ready = all(not _unfinished(indicators[key].get(field))
+                         for key in field_ids for field in ("name", "unit", "how_to_measure", "why_it_matters"))
     ready = True
     if confirmation:
         wait = problems[opened["problem"]].get("confirm_wait_min")
@@ -183,38 +260,70 @@ def main() -> None:
 
     version_key = f"check_in_form_version:{astronaut}:{environment}"
     version = st.session_state.get(version_key, 0)
-    form_id = f"check_in_form:{astronaut}:{environment}:{opened['id'] if confirmation else 'manual'}:{indicator_id}:{version}"
+    draft = st.session_state.get(draft_key) if not confirmation else None
+    if draft:
+        st.warning("Recording is incomplete. Submit again to save the remaining readings.")
+    form_id = f"check_in_form:{astronaut}:{environment}:{opened['id'] if confirmation else 'manual'}:{selected}:{version}"
     with st.form(form_id, clear_on_submit=True):
-        value = st.number_input(
-            f"{'Repeat value' if confirmation else 'Value'} "
-            f"({'unit unavailable' if _unfinished(indicator.get('unit')) else indicator['unit']})", value=None,
-            placeholder="Enter your measured value", disabled=blocked or not guidance_ready or not ready,
-        )
+        values = {}
+        for key in field_ids:
+            metadata = indicators[key]
+            st.write(metadata["name"] if not _unfinished(metadata.get("name")) else "Unavailable indicator")
+            _guidance(metadata)
+            saved = next((item for item in draft["measurements"] if item["indicator"] == key), None) if draft else None
+            values[key] = st.number_input(
+                f"{'Repeat value' if confirmation else 'Value'} "
+                f"({'unit unavailable' if _unfinished(metadata.get('unit')) else metadata['unit']})",
+                value=saved["value"] if saved else None, key=f"{form_id}:{key}",
+                placeholder="Enter your measured value",
+                disabled=blocked or not guidance_ready or not ready or completion_pending or bool(draft),
+            )
         submitted = st.form_submit_button(
             "Confirm repeat measurement" if confirmation else "Record measurement",
-            disabled=blocked or not guidance_ready or not ready, width="stretch",
+            disabled=blocked or not guidance_ready or not ready or completion_pending, width="stretch",
         )
     if submitted:
-        if value is None or not isfinite(value):
-            report("error", "Enter a finite measured value before submitting.")
+        if any(value is None or not isfinite(value) for value in values.values()) and not draft:
+            report("error", "Enter a finite measured value for every indicator before submitting.")
         try:
-            m = _measurement(astronaut, indicator_id, indicator["unit"], value)
             if confirmation:
+                m = _measurement(astronaut, indicator_id, indicator["unit"], values[indicator_id])
                 result = episodes.confirm(opened["id"], m)
                 text = ("Repeat measurement recorded. The alert is confirmed; open Protocol to continue."
                         if result["status"] == "active" else "Repeat measurement recorded. The alert was not confirmed and has been dismissed.")
             else:
-                result = episodes.on_new_measurement(m, environment)
+                if not draft:
+                    draft = {"measurements": [_measurement(astronaut, key, indicators[key]["unit"], value)
+                                              for key, value in values.items()], "saved": 0}
+                    st.session_state[draft_key] = draft
+                result = opened
+                while draft["saved"] < len(draft["measurements"]):
+                    result = episodes.on_new_measurement(draft["measurements"][draft["saved"]], environment)
+                    draft["saved"] += 1
+                del st.session_state[draft_key]
                 text = ("Measurement recorded. No alert was opened." if result is None
                         else "Measurement recorded. Review the open alert and its next step on this page.")
-            issues = triggers.assessment_issues(problems, astronaut, indicator_id, assessment_environment)
+            issues = list(dict.fromkeys(issue for key in field_ids for issue in
+                                        triggers.assessment_issues(problems, astronaut, key, assessment_environment)))
             if issues:
                 text = "Measurement recorded. Assessment is incomplete; see the warnings below."
         except (ValueError, KeyError, OSError) as error:
             report("error", str(error))
         st.session_state[version_key] = version + 1
+        awaiting_repeat = (result is not None and result["status"] == "pending_confirmation"
+                           and result["trigger"]["indicator"] in group)
+        if not awaiting_repeat:
+            st.session_state[completion_key] = {
+                "level": "warning" if issues else "success", "text": text,
+                "redirect": confirmation and result["status"] == "active",
+            }
+            finish_session()
         report("warning" if issues else "success", text)
 
+    waiting_alerts()
+
+
+def _waiting_alerts(astronaut, environment, opened, problems, indicators, blocked, report, select_for):
     pending = [item for item in episodes.get_pending(astronaut) if item["problem"] in problems]
     if pending:
         st.subheader("Waiting alerts")
@@ -236,6 +345,8 @@ def main() -> None:
                     result = episodes.accept_pending(astronaut, environment)
                 except (ValueError, KeyError, OSError) as error:
                     report("error", str(error))
+                if result is not None:
+                    select_for(result["trigger"]["indicator"])
                 report("info", "The next alert is ready for a repeat measurement after its confirmation wait."
                        if result is not None else "There are no waiting alerts to review.")
 

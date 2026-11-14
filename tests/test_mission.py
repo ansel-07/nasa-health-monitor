@@ -120,22 +120,22 @@ def test_advance_and_detect_sends_every_revealed_row(crew):
     add("2027-04-01T08:00:00", 90, astronaut="a2")
     add("2027-04-02T08:00:00", 95)                      # next day: not yet
     result = mission.advance_and_detect(24, "mars")
-    assert result == {"revealed": 2, "new_alerts": ["a2"]}
+    assert result == {"revealed": 2, "new_alerts": ["a2"], "recovered": 0}
     assert crew == [("a1", 61.0, "mars"), ("a2", 90.0, "mars")]
     assert mission.now() == datetime(2027, 4, 2)
 
-    assert mission.advance_and_detect(24, "iss") == {"revealed": 1, "new_alerts": ["a1"]}
+    assert mission.advance_and_detect(24, "iss") == {"revealed": 1, "new_alerts": ["a1"], "recovered": 0}
     assert crew[-1] == ("a1", 95.0, "iss")
 
 
 def test_advance_and_detect_ignores_episodes_already_open(crew):
     data.save_episode({"id": "ep-old", "astronaut": "a1", "problem": "p", "status": "active"})
     add("2027-04-01T08:00:00", 61)
-    assert mission.advance_and_detect(24, "mars") == {"revealed": 1, "new_alerts": []}
+    assert mission.advance_and_detect(24, "mars") == {"revealed": 1, "new_alerts": [], "recovered": 0}
 
 
 def test_advance_and_detect_with_nothing_to_reveal(crew):
-    assert mission.advance_and_detect(12, "mars") == {"revealed": 0, "new_alerts": []}
+    assert mission.advance_and_detect(12, "mars") == {"revealed": 0, "new_alerts": [], "recovered": 0}
     assert mission.now() == datetime(2027, 4, 1, 12)
     assert crew == []
 
@@ -156,3 +156,128 @@ def test_advance_and_detect_lets_detection_errors_through(crew, monkeypatch):
     add("2027-04-01T08:00:00", 61)
     with pytest.raises(KeyError):
         mission.advance_and_detect(24, "mars")
+
+
+# --- recovery after a failed detection (issue #77) -------------------------------------------
+
+def stored_state(tmp_files):
+    return json.loads((tmp_files / "mission_state.json").read_text(encoding="utf-8"))
+
+
+def fail_on(calls_to_fail, monkeypatch, after_processing=False):
+    """Wrap the current detection so the given call numbers (1-based) raise OSError once."""
+    from core import episodes
+    real = episodes.on_new_measurement
+    seen = {"n": 0}
+
+    def flaky(measurement, environment):
+        seen["n"] += 1
+        if seen["n"] in calls_to_fail and not after_processing:
+            raise OSError("synthetic storage failure")
+        real(measurement, environment)
+        if seen["n"] in calls_to_fail and after_processing:
+            raise OSError("synthetic failure after the row was processed")
+
+    monkeypatch.setattr(episodes, "on_new_measurement", flaky)
+
+
+def day1_rows():
+    add("2027-04-01T08:00:00", 61)
+    add("2027-04-01T08:00:00", 90, astronaut="a2")
+    add("2027-04-02T08:00:00", 95)
+
+
+def test_failure_before_the_first_row_keeps_every_revealed_row(crew, tmp_files, monkeypatch):
+    day1_rows()
+    fail_on({1}, monkeypatch)
+    with pytest.raises(OSError):
+        mission.advance_and_detect(24, "mars")
+    assert mission.now() == datetime(2027, 4, 2)               # the clock moved...
+    state = stored_state(tmp_files)
+    assert [(m["astronaut"], m["value"]) for m in state["unprocessed"]] == [("a1", 61.0), ("a2", 90.0)]
+    assert crew == []                                           # ...but nothing was processed
+
+    result = mission.advance_and_detect(24, "mars")             # detection works again
+    assert result == {"revealed": 1, "new_alerts": ["a1", "a2"], "recovered": 2}
+    assert crew == [("a1", 61.0, "mars"), ("a2", 90.0, "mars"), ("a1", 95.0, "mars")]
+    assert "unprocessed" not in stored_state(tmp_files)
+    assert mission.now() == datetime(2027, 4, 3)
+
+
+def test_failure_mid_batch_keeps_only_the_rest(crew, tmp_files, monkeypatch):
+    day1_rows()
+    fail_on({2}, monkeypatch)
+    with pytest.raises(OSError):
+        mission.advance_and_detect(24, "mars")
+    assert crew == [("a1", 61.0, "mars")]                       # first row done once
+    assert [m["value"] for m in stored_state(tmp_files)["unprocessed"]] == [90.0]
+
+    assert mission.advance_and_detect(24, "mars")["recovered"] == 1
+    assert crew == [("a1", 61.0, "mars"), ("a2", 90.0, "mars"), ("a1", 95.0, "mars")]  # no repeats
+
+
+def test_failure_on_leftovers_does_not_advance_again(crew, tmp_files, monkeypatch):
+    day1_rows()
+    fail_on({1, 2}, monkeypatch)
+    with pytest.raises(OSError):
+        mission.advance_and_detect(24, "mars")                  # fails on call 1
+    with pytest.raises(OSError):
+        mission.advance_and_detect(24, "mars")                  # leftover fails again (call 2)
+    assert mission.now() == datetime(2027, 4, 2)                # no second advance
+    assert len(stored_state(tmp_files)["unprocessed"]) == 2
+
+
+def test_bad_hours_never_touch_the_leftovers(crew, tmp_files, monkeypatch):
+    day1_rows()
+    fail_on({1}, monkeypatch)
+    with pytest.raises(OSError):
+        mission.advance_and_detect(24, "mars")
+    with pytest.raises(ValueError):
+        mission.advance_and_detect(0, "mars")
+    assert len(stored_state(tmp_files)["unprocessed"]) == 2
+
+
+def test_advance_alone_marks_revealed_rows_as_unprocessed(crew, tmp_files):
+    day1_rows()
+    revealed = mission.advance(24)
+    assert stored_state(tmp_files)["unprocessed"] == revealed
+    assert mission.advance_and_detect(24, "mars")["recovered"] == 2   # nothing is skipped
+
+
+def test_reset_demo_clears_unprocessed_rows(crew, tmp_files, monkeypatch):
+    seed = tmp_files / "seed"
+    seed.mkdir()
+    (seed / "mission_state.json").write_text(json.dumps({"now": START.isoformat()}))
+    monkeypatch.setattr(models, "SEED_DIR", seed)
+    monkeypatch.setattr(models, "DATA_DIR", tmp_files)
+    day1_rows()
+    mission.advance(24)
+    data.reset_demo()
+    assert stored_state(tmp_files) == {"now": START.isoformat()}
+
+
+def test_replaying_a_processed_row_with_real_detection_creates_no_duplicates(tmp_files, monkeypatch):
+    """Crash AFTER a row was processed: the recovery re-sends it; the real episodes code must
+    not duplicate the CSV row, the episode or pending items (synthetic values, not clinical)."""
+    from core import episodes
+    (tmp_files / "astronauts.csv").write_text("id,name,role\na1,A,Commander\n")
+    monkeypatch.setattr(models, "ASTRONAUTS_FILE", tmp_files / "astronauts.csv")
+    monkeypatch.setattr(models, "EPISODES_FILE", tmp_files / "episodes.json")
+    def trt(timestamp, value, phase):
+        data.add_measurement({"timestamp": timestamp, "astronaut": "a1", "indicator": "peripapillary_trt_left",
+                              "value": value, "unit": "µm", "phase": phase, "source": "simulated"})
+    for day, value in ((28, 298), (29, 300), (30, 302)):     # synthetic baseline 300 ± 2
+        trt(f"2027-03-{day}T08:00:00", value, "preflight")
+    trt("2027-04-01T08:00:00", 360, "mission")                # synthetic +60 above it
+    fail_on({1}, monkeypatch, after_processing=True)
+    with pytest.raises(OSError):
+        mission.advance_and_detect(24, "mars")
+    rows_after_first = len(data.load_measurements())
+    episodes_after_first = data.load_episodes()
+    pending_after_first = data.load_pending()
+    assert len(episodes_after_first) == 1                     # the real detection opened it
+
+    assert mission.advance_and_detect(24, "mars")["recovered"] == 1   # the row is sent again
+    assert len(data.load_measurements()) == rows_after_first
+    assert data.load_episodes() == episodes_after_first
+    assert data.load_pending() == pending_after_first

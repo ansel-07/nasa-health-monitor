@@ -60,6 +60,8 @@ def workspace(tmp_path, monkeypatch):
     for filename, content in {
         "mission.json": {"start": START.isoformat(), "environment": "mars"},
         "indicators.json": indicators, "problems.json": problems,
+        "checkins.json": {key: {"name": f"Check {key}", "indicators": [key], "bar_full_hours": 24} for key in ("x", "y")},
+        "subjective_issues.json": {"settings": {"persistence_days": 3, "speed_multiplier": 2}, "issues": {}},
         "environments.json": {key: {"name": key.upper(), "comm_delay_min": 0, "gravity_g": 1}
                               for key in ("iss", "moon", "mars")},
     }.items():
@@ -126,7 +128,7 @@ def test_menu_confirmation_protocol_and_next_alert(workspace, environment):
     app.number_input[0].set_value(20)
     click(app, "Confirm repeat measurement")
     assert data.get_open_episode("a1")["status"] == "active"
-    click(app, "Open Protocol")
+    assert [item.value for item in app.title] == ["Protocol"]
     click(app, "Continue")
     assert data.get_open_episode("a1") is None
     assert data.load_episodes()[0]["status"] == "resolved"

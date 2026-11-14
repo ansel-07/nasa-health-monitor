@@ -9,7 +9,7 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 ## Links
 
-- Live app: TODO
+- Live app: https://nasa-health-monitor-jyjqxq9oyta7gece258ben.streamlit.app/
 - Slides (7 slides, live demo): TODO
 - Space Apps project page: TODO
 
@@ -25,7 +25,7 @@ The astronaut chooses who they are and where the mission is (ISS, Moon or Mars).
 
 1. Choose **Astronaut A** and **International Space Station**, then **NEXT**. In Main Menu → *Demo controls*, press **Reset demo**. You will explore fictional, synthetic measurements.
 2. Press **Advance mission 24 h** to reveal an ocular measurement alert. Open **Check-in** to compare it with your personal pre-flight baseline.
-3. Use **Simulate wait** and repeat the flagged measurement with the demo value to confirm the anomaly.
+3. Use **Simulate wait** and repeat the flagged measurement with the demo value (**360** µm) to confirm the anomaly.
 4. Open **Protocols** and follow the guidance through to medical follow-up. SpaceDoc guides you; it does not diagnose.
 
 ## Meet the mascot
@@ -51,7 +51,9 @@ TODO: every external dataset, code, text and image used, with its source.
 
 ## AI usage
 
-TODO: which AI tools were used, by whom and for what (code generation, review, text). AI-generated code is marked with a header comment in each file.
+AI-generated code is marked with an `AI-assisted` header comment in each file. Which AI tools each team member used, and for what:
+
+- **Fran (data and trends):** Claude Code for code and tests of the data layer, mission clock, charts, Trends page, activity bars and data generator, and for drafting GitHub issues; every change was reviewed and run by Fran before merging.
 
 ## Run locally
 

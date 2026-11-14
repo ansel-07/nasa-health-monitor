@@ -1,9 +1,9 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
 """Data layer: measurements, baseline, astronauts and episodes. Owner: Fran.
 
-Signatures are fixed by AGENTS.md, section 7. Functions still marked STUB return fake
-data in the right format so the rest of the app can be built.
-File paths always come from core.models (read at call time, so tests can redirect them).
+Signatures are fixed by AGENTS.md, section 7.
+File paths always come from core.models through models.data_file() (read at call time, so
+tests can redirect them and each browser session has its own copy, AGENTS.md 5.5).
 """
 import csv
 import json

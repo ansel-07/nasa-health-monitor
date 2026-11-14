@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from core import charts, config, episodes, models
+from core import charts, config, models
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "3_Trends.py"
 
@@ -45,131 +45,64 @@ def write_measurements(folder, rows):
     (folder / "measurements.csv").write_text(HEADER + "".join(f"{r}\n" for r in rows))
 
 
-def metrics(app):
-    return {m.label: m.value for m in app.metric}
-
-
 def test_needs_an_astronaut():
     app = AppTest.from_file(str(PAGE)).run()
     assert app.warning[0].value == "Choose an astronaut on the Home page first."
 
 
-def test_indicator_list_hides_fixtures_and_todo_names(screen):
+def preflight_and_mission(folder, extra=()):
+    write_measurements(folder, [
+        "2027-03-28T08:00:00,a1,x,60,u,preflight,simulated",
+        "2027-03-29T08:00:00,a1,x,62,u,preflight,simulated",
+        "2027-03-30T08:00:00,a1,x,64,u,preflight,simulated",
+        "2027-04-01T08:00:00,a1,x,66,u,mission,manual",
+        *extra,
+    ])
+
+
+def test_no_measurements_shows_an_empty_state(screen):
     app, calls, _ = screen
     app.run()
     assert not app.exception
-    box = app.selectbox[0]
-    assert box.options == ["Indicator X", "y"]
+    assert [i.value for i in app.info] == ["No measurements yet."]
+    assert len(app.expander) == 0
+    assert calls == []
+
+
+def test_one_card_per_indicator_with_data_and_no_demo_controls(screen):
+    app, calls, folder = screen
+    preflight_and_mission(folder, extra=[
+        "2027-04-01T08:00:00,a1,y,7,u,mission,manual",                 # TODO name -> id
+        "2027-04-01T08:00:00,a1,_example_indicator,9,u,mission,manual",  # fixture: hidden
+        "2027-04-01T08:00:00,a2,x,99,u,mission,manual",                # another astronaut
+    ])
+    app.run()
+    assert not app.exception
+    assert [e.label for e in app.expander] == ["Indicator X · latest 66.0 u", "y · latest 7.0 u"]
     assert app.caption[0].value == "Astronaut A · Mars"
-    assert calls[-1] == ("a1", "x", False, "mars")  # full chart, with the environment
+    assert sorted(calls) == [("a1", "x", False, "mars"), ("a1", "y", False, "mars")]  # full charts
+    assert not [b for b in app.button if "Advance" in b.label]       # moved to the Main Menu (#94)
 
 
-def test_metrics_without_data(screen):
-    app, _, _ = screen
-    app.run()
-    assert metrics(app) == {"Latest value": "—", "Personal baseline (pre-flight)": "—",
-                            "Distance from baseline (z)": "—"}
-
-
-def test_metrics_with_data(screen):
+def test_card_shows_latest_baseline_and_z(screen):
     app, _, folder = screen
-    write_measurements(folder, [
-        "2027-03-01T08:00:00,a1,x,60,u,preflight,simulated",
-        "2027-03-02T08:00:00,a1,x,62,u,preflight,simulated",
-        "2027-03-03T08:00:00,a1,x,64,u,preflight,simulated",
-        "2027-04-10T08:00:00,a1,x,66,u,mission,manual",
-    ])
+    preflight_and_mission(folder)
     app.run()
-    assert metrics(app) == {"Latest value": "66.0 u", "Personal baseline (pre-flight)": "62.0 ± 2.0 u",
-                            "Distance from baseline (z)": "+2.0"}
+    card = app.expander[0]
+    assert {m.label: m.value for m in card.metric} == {
+        "Latest value": "66.0 u", "Personal baseline (pre-flight)": "62.0 ± 2.0 u",
+        "Distance from baseline (z)": "+2.0"}
+    assert not [c for c in card.caption if "Not enough pre-flight" in c.value]
 
 
-def test_changing_indicator_redraws_chart(screen):
-    app, calls, _ = screen
-    app.run()
-    app.selectbox[0].select("y").run()
-    assert not app.exception
-    assert calls[-1] == ("a1", "y", False, "mars")
-
-
-# --- Demo controls: advance mission ------------------------------------------------------
-
-def simulated(folder):
-    """Day-1 and day-2 mission rows (fake values), hidden until the clock reaches them."""
-    write_measurements(folder, [
-        "2027-03-30T08:00:00,a1,x,60,u,preflight,simulated",
-        "2027-04-01T08:00:00,a1,x,61,u,mission,simulated",
-        "2027-04-01T08:00:00,a2,x,90,u,mission,simulated",
-        "2027-04-02T08:00:00,a1,x,62,u,mission,simulated",
-    ])
-
-
-@pytest.fixture
-def detection(monkeypatch):
-    """Fake episode detection: records calls; opens an episode for values above 80."""
-    calls = []
-
-    def on_new(measurement, environment):
-        calls.append((measurement["astronaut"], measurement["value"], environment))
-        if measurement["value"] > 80:
-            from core import data
-            data.save_episode({"id": f"ep-{len(calls)}", "astronaut": measurement["astronaut"],
-                               "problem": "p", "status": "pending_confirmation"})
-
-    monkeypatch.setattr(episodes, "on_new_measurement", on_new)
-    return calls
-
-
-def advance_button(app):
-    return next(b for b in app.button if b.label == "Advance 24 h")
-
-
-def test_demo_controls_show_mission_time(screen):
-    app, _, _ = screen
-    app.run()
-    assert not app.exception
-    assert any("2027-04-01 00:00" in m.value and "day 1" in m.value for m in app.markdown)
-
-
-def test_advance_reveals_a_day_and_sends_it_to_detection(screen, detection):
+def test_card_without_valid_baseline_says_so(screen):
     app, _, folder = screen
-    simulated(folder)
+    write_measurements(folder, ["2027-03-30T08:00:00,a1,x,60,u,preflight,simulated",   # n = 1
+                                "2027-04-01T08:00:00,a1,x,66,u,mission,manual"])
     app.run()
-    advance_button(app).click().run()
-    assert not app.exception
-    assert any("2027-04-02 00:00" in m.value and "day 2" in m.value for m in app.markdown)
-    assert detection == [("a1", 61.0, "mars"), ("a2", 90.0, "mars")]  # every astronaut, day 1 only
-    assert "2 new simulated measurement(s)" in app.warning[0].value
-    assert "New alert for: Astronaut B." in app.warning[0].value
-    assert "Go to Check-in" not in [b.label for b in app.button]  # the alert is not ours
-
-    advance_button(app).click().run()
-    assert detection[-1] == ("a1", 62.0, "mars")
-    assert app.info[0].value.endswith("1 new simulated measurement(s).")
-
-
-def test_alert_for_current_astronaut_offers_check_in(screen, detection, monkeypatch):
-    app, _, folder = screen
-    simulated(folder)
-    app.session_state["astronaut"] = "a2"
-    app.run()
-    advance_button(app).click().run()
-    assert "New alert for: Astronaut B." in app.warning[0].value
-    assert "Go to Check-in" in [b.label for b in app.button]
-
-
-def test_detection_error_is_reported(screen, monkeypatch):
-    app, _, folder = screen
-    simulated(folder)
-
-    def broken(measurement, environment):
-        raise ValueError("problem config incomplete")
-
-    monkeypatch.setattr(episodes, "on_new_measurement", broken)
-    app.run()
-    advance_button(app).click().run()
-    assert not app.exception
-    assert "detection failed: problem config incomplete" in app.error[0].value
+    card = app.expander[0]
+    assert {m.label: m.value for m in card.metric}["Distance from baseline (z)"] == "—"
+    assert any("Not enough pre-flight measurements" in c.value for c in card.caption)
 
 
 # --- Alert history -------------------------------------------------------------------------
@@ -178,7 +111,7 @@ def test_history_without_alerts(screen):
     app, _, _ = screen
     app.run()
     assert not app.exception
-    assert [s.value for s in app.subheader] == ["Alert history"]
+    assert [s.value for s in app.subheader] == ["Measurements", "Alert history"]
     assert any(c.value == "No alerts yet for this astronaut." for c in app.caption)
     assert len(app.dataframe) == 0
 
