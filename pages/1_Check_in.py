@@ -112,12 +112,17 @@ def main() -> None:
         )
     indicator = indicators[indicator_id]
     assessment_environment = opened["environment"] if confirmation else environment
-    issues = [] if blocked else triggers._assessment_issues(problems, astronaut, indicator_id, assessment_environment)
+    issues = [] if blocked else triggers.assessment_issues(problems, astronaut, indicator_id, assessment_environment)
     if issues:
         for issue in issues:
             st.warning(issue)
         if not feedback or feedback["level"] != "error":
-            message, mood = " ".join(issues) + " Any open alert still needs its next step.", "worried"
+            message = "Some assessments are incomplete. See the warnings below."
+            if opened:
+                next_step = ("Repeat the indicated measurement to confirm the alert." if confirmation
+                             else "Your alert is confirmed; open Protocol to continue.")
+                message = next_step + " Some assessments are incomplete; see the warnings below."
+            mood = "worried"
     if any(_unfinished(indicator.get(key)) for key in ("name", "unit", "how_to_measure", "why_it_matters")):
         message, mood = "Measurement guidance is not available yet. This indicator cannot be submitted.", "serious"
     chart_col, mascot_col = st.columns([4, 1])
@@ -201,9 +206,9 @@ def main() -> None:
                 result = episodes.on_new_measurement(m, environment)
                 text = ("Measurement recorded. No alert was opened." if result is None
                         else "Measurement recorded. Review the open alert and its next step on this page.")
-            issues = triggers._assessment_issues(problems, astronaut, indicator_id, assessment_environment)
+            issues = triggers.assessment_issues(problems, astronaut, indicator_id, assessment_environment)
             if issues:
-                text = "Measurement recorded. Assessment is incomplete. " + " ".join(issues)
+                text = "Measurement recorded. Assessment is incomplete; see the warnings below."
         except (ValueError, KeyError, OSError) as error:
             report("error", str(error))
         st.session_state[version_key] = version + 1

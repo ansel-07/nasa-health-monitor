@@ -379,3 +379,35 @@ def test_symptom_state_and_detection_snapshot_are_displayed(screen):
     assert not app.exception
     assert any("Problem state: watch" in text.value for text in app.markdown)
     assert app.dataframe[0].value.iloc[0]["Symptom"] == "Synthetic symptom"
+
+
+@pytest.mark.parametrize("status", [None, "pending_confirmation", "active"])
+def test_incomplete_assessments_have_focused_warnings_and_brief_mascot_guidance(screen, monkeypatch, status):
+    app, state = screen
+    if status:
+        opened(state, status)
+    rules = state["problems"]["problem_a"]["triggers"]
+    rules[0]["when"] = {"indicator": "x", "metric": "baseline_delta", "above": 5}
+    rules.extend({"severity": "mild", "when": {"indicator": key, "above": 5}}
+                 for key in ("unmeasured_a", "unmeasured_b", "unmeasured_c"))
+    monkeypatch.setattr(data, "get_baseline", lambda *args: None)
+    app.run()
+
+    assert not app.exception
+    assert len(app.warning) == 2
+    assert "Cannot evaluate x: no valid pre-flight baseline" in app.warning[0].value
+    assert app.warning[1].value == "3 other indicators have incomplete assessments."
+    narration = state["speech"][-1][0]
+    assert "incomplete" in narration
+    assert "standard deviation" not in narration
+    assert "unmeasured_" not in narration
+    if status == "active":
+        assert "open Protocol" in narration
+    elif status == "pending_confirmation":
+        assert "Repeat" in narration
+    else:
+        app.number_input[0].set_value(20)
+        button(app, "Record measurement").click().run()
+        assert not app.success
+        assert app.warning[0].value == "Measurement recorded. Assessment is incomplete; see the warnings below."
+        assert "standard deviation" not in state["speech"][-1][0]

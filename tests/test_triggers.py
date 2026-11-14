@@ -57,6 +57,47 @@ def test_result_contract_and_no_mutation(setup, monkeypatch):
     assert (measurement, problems, latest) == original
 
 
+@pytest.mark.parametrize("symptoms", [False, True])
+def test_assessment_issues_focuses_selected_indicator_and_counts_unique_others(setup, monkeypatch, symptoms):
+    _, problems, latest = setup
+    latest.clear()
+    latest["x"] = 20
+    rules = [rule(when={"indicator": "x", "metric": "baseline_delta", "above": 5}),
+             rule(when={"all": [{"indicator": "x", "above": 5}, {"indicator": "y", "above": 5}]}),
+             rule(when={"indicator": "y", "above": 10}),
+             rule(when={"any": [{"indicator": "z", "above": 5}, {"environment_in": ["mars"]}]}),
+             rule(when={"indicator": "moon_only", "above": 5}, environments=["moon"])]
+    problems["problem_a"] = ({"symptoms": {str(i): {"levels": [{"level": "watch", **r}]}
+                                            for i, r in enumerate(rules)}} if symptoms else {"triggers": rules})
+    problems["unrelated"] = {"triggers": [rule(when={"indicator": "unrelated", "above": 5})]}
+    problems["_example"] = {"triggers": [rule(when={"all": [
+        {"indicator": "x", "above": 5}, {"indicator": "fixture", "above": 5}]})]}
+    monkeypatch.setattr(triggers.data, "get_baseline", lambda *args: None)
+    before = deepcopy((problems, latest))
+
+    issues = triggers.assessment_issues(problems, "a1", "x", "mars")
+
+    assert len(issues) == 2
+    assert "Cannot evaluate x: no valid pre-flight baseline" in issues[0]
+    assert issues[1] == "2 other indicators have incomplete assessments."
+    assert (problems, latest) == before
+
+
+def test_assessment_issues_does_not_call_selected_indicator_unevaluable_when_only_another_is_missing(setup):
+    _, problems, _ = setup
+    problems["problem_a"]["triggers"].append(rule(when={"indicator": "missing", "above": 5}))
+    assert triggers.assessment_issues(problems, "a1", "x", "mars") == [
+        "1 other indicator has an incomplete assessment."]
+
+
+def test_assessment_issues_only_selected_missing_and_complete_readings(setup):
+    _, problems, latest = setup
+    assert triggers.assessment_issues(problems, "a1", "x", "mars") == []
+    del latest["x"]
+    assert triggers.assessment_issues(problems, "a1", "x", "mars") == [
+        "Cannot evaluate x: a measurement is unavailable."]
+
+
 def test_highest_severity_per_problem_and_configuration_order(setup):
     measurement, problems, _ = setup
     problems["problem_a"]["triggers"] = [rule("moderate"), rule("severe"), rule("mild")]
