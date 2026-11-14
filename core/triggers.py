@@ -77,6 +77,42 @@ def _symptom_levels(problem: dict, ctx: dict) -> dict:
     return levels
 
 
+def _condition_evidence(cond: dict, ctx: dict) -> set[str]:
+    """Indicators in true branches of an already validated, matching condition."""
+    if not conditions.check(cond, ctx):
+        return set()
+    for operator in ("all", "any", "of"):
+        if operator in cond:
+            return set().union(*(_condition_evidence(child, ctx)
+                                 for child in cond[operator]))
+    if "indicator" in cond:
+        return {cond["indicator"]}
+    return set()
+
+
+def _supports_symptom_alert(problem: dict, ctx: dict, levels: dict, indicator: str) -> bool:
+    """The incoming indicator must feed a matching positive symptom level.
+
+    A newly revealed normal row must not open or queue a confirmation based on
+    another indicator's positive symptom. Only true branches of the first
+    matching level rule supply evidence. The problem state still uses all latest
+    symptom levels, including those supplied by other indicators.
+    """
+    for sid, symptom in problem["symptoms"].items():
+        if levels[sid] == SYMPTOM_LEVELS[0] or not any(
+            indicator in _indicator_ids(rule["when"]) for rule in symptom["levels"]
+        ):
+            continue
+        for rule in symptom["levels"]:
+            if "environments" in rule and ctx["environment"] not in rule["environments"]:
+                continue
+            if conditions.check(rule["when"], ctx):
+                if indicator in _condition_evidence(rule["when"], ctx):
+                    return True
+                break
+    return False
+
+
 def assessment_issues(problems: dict, astronaut: str, indicator: str, environment: str) -> list[str]:
     """Read-only warnings for the selected indicator and related incomplete assessments.
 
@@ -146,7 +182,9 @@ def evaluate(measurement: dict, environment: str) -> list[dict]:
     Callers supply only new mission measurements, including newly revealed
     simulated ones. History is never scanned here. Only rules referencing the
     new indicator are evaluated, using latest values for the other indicators.
-    In an any condition, another indicator's branch may supply the match.
+    Symptom alerts require positive evidence from the incoming indicator's
+    matching level rule. State still uses all latest values. Legacy any rules
+    retain their existing behavior, including another indicator's matching branch.
     Results follow configuration order and describe the incoming measurement.
     Invalid configuration raises ValueError; missing baselines yield z=None.
     """
@@ -181,7 +219,7 @@ def evaluate(measurement: dict, environment: str) -> list[dict]:
                 state_ctx = {**ctx, "symptoms": levels}
                 state = next((rule["state"] for rule in problem["states"]
                               if conditions.check(rule["when"], state_ctx)), PROBLEM_STATES[0])
-                if state != PROBLEM_STATES[0]:
+                if state != PROBLEM_STATES[0] and _supports_symptom_alert(problem, ctx, levels, indicator):
                     results.append({"problem": problem_id, "severity": state, "indicator": indicator,
                                     "value": value, "z": None, "symptoms": levels})
             except ValueError as error:

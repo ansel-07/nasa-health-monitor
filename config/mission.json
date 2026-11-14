@@ -1,5 +1,5 @@
 {
-  "name": "TODO: mission name",
+  "name": "Health Trip",
   "start": "2027-04-01T00:00:00",
   "environment": "iss",
   "astronauts": ["a1", "a2", "a3"]

@@ -8,16 +8,34 @@ from core import config, data, episodes, mascot, protocol_engine
 from core.models import OUTCOMES
 
 
-def show_pending(astronaut: str) -> None:
-    """Show the severity-ordered queue; Check-in starts its confirmation (episodes.accept_pending)."""
+def problem_name(problems: dict, problem_id: str) -> str:
+    name = problems.get(problem_id, {}).get("name", "")
+    return name if isinstance(name, str) and name and not name.startswith("TODO") else "Pending issue"
+
+
+def show_pending(astronaut: str, active: dict | None = None) -> None:
+    """List the active protocol and every pending alert, most severe first (spec screen 6).
+
+    Pending alerts keep their queue (episodes.get_pending order); Check-in starts their
+    confirmation (episodes.accept_pending). Status is written in words, not only colour.
+    """
     problems = config.load_problems()
     pending = [item for item in episodes.get_pending(astronaut) if item["problem"] in problems]
+    if not pending and not active:
+        return
+    st.divider()
+    st.subheader("Your protocols")
+    if active:
+        st.markdown(f"- **{problem_name(problems, active['problem'])}** · Severity: "
+                    f"{readable(active['severity'])} · **In progress** (shown above)")
     if pending:
         next_item = pending[0]
-        name = problems[next_item["problem"]]["name"]
-        if name.startswith("TODO"):
-            name = "Pending issue"
-        st.info(f"{len(pending)} issue(s) awaiting confirmation. Next: {name} ({readable(next_item['severity'])}).")
+        st.info(f"{len(pending)} issue(s) awaiting confirmation. "
+                f"Next: {problem_name(problems, next_item['problem'])} ({readable(next_item['severity'])}).")
+        st.markdown("\n".join(
+            f"{number}. **{problem_name(problems, item['problem'])}** · Severity: {readable(item['severity'])}"
+            " · Waiting for a repeat measurement" for number, item in enumerate(pending, 1)))
+        st.caption("Most severe first. One protocol runs at a time; the next one starts with a repeat measurement in Check-in.")
         st.page_link("pages/1_Check_in.py", label="Go to Check-in")
 
 
@@ -163,6 +181,8 @@ def main() -> None:
                 advance(episode, {"answer": answer})
     else:
         st.error("This protocol step is unavailable. Please ask the mission team for help.")
+
+    show_pending(astronaut, active=episode)
 
 
 main()

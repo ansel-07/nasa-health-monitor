@@ -238,3 +238,14 @@ def test_flowchart_is_focused_by_default_and_whole_on_request(context):
     for node_id in protocol_engine.load_protocol("_example")["nodes"]:
         assert f'"{node_id}" [' in whole
     assert current_in_chart(app) == "intro"
+
+
+def test_lists_active_protocol_and_all_pending_by_severity(context):
+    # get_pending already returns the queue most severe first (episodes.get_pending).
+    context["pending"] = [{"problem": "test_issue", "severity": "severe"},
+                          {"problem": "test_issue", "severity": "mild"}]
+    app = page()
+    assert any(item.value == "Your protocols" for item in app.subheader)
+    text = "\n".join(item.value for item in app.markdown)
+    assert "In progress" in text
+    assert text.index("Severity: Severe · Waiting") < text.index("Severity: Mild · Waiting")
