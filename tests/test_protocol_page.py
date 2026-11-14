@@ -156,7 +156,8 @@ def test_contact_delay_is_readable_and_zero_is_valid(context, monkeypatch, one_w
     monkeypatch.setattr(protocol_engine, "load_environments", lambda: {"iss": {"comm_delay_min": one_way}})
     app = page()
     assert not app.error
-    assert any(item.value == f"Estimated response delay: {shown}." for item in app.caption)
+    assert any(item.value == f"Signal round trip to Earth: {shown}. A clinical answer can take longer."
+               for item in app.caption)
     assert button(app, "Continue")
 
 
@@ -257,3 +258,15 @@ def test_cannot_is_hidden_when_the_step_has_no_route(context, monkeypatch):
     app = page()
     labels = [item.label for item in app.button]
     assert "Done" in labels and "I can't" not in labels
+
+
+@pytest.mark.parametrize("environment", ["mars", "iss", "moon"])
+def test_local_medical_officer_shows_no_earth_delay(context, monkeypatch, environment):
+    # #141: the crew medical officer is on board; only Earth contacts show signal time.
+    context["episode"].update(current_node="contact_crew", environment=environment)
+    monkeypatch.setattr(protocol_engine, "load_environments", lambda: {environment: {"comm_delay_min": 22}})
+    app = page()
+    assert not app.error
+    captions = [item.value for item in app.caption]
+    assert "On board: no Earth signal delay." in captions
+    assert not any("Signal round trip" in text or "minutes" in text for text in captions)

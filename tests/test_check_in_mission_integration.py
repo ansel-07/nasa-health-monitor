@@ -269,7 +269,7 @@ def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_wor
     assert "needs a repeat measurement" in speech[-1]
     app.number_input[0].set_value(16)
     button(app, "Confirm repeat measurement").click().run()
-    assert "alert is confirmed" in app.success[0].value
+    assert not app.success
     assert speech[-1] == "Your alert is confirmed. Open Protocol to continue with the guided steps."
 
     if finish == "protocol":
@@ -289,7 +289,7 @@ def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_wor
     assert data.get_open_episode("a1") is None
     assert not app.success
     assert all(item.label != "Open Protocol" for item in app.button)
-    assert speech[-1] == "Choose an indicator and record a new measurement."
+    assert speech[-1] == "Choose a check-in to record your measurements."
     assert disk_snapshot() == before
 
 

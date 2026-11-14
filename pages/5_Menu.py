@@ -7,7 +7,7 @@ has an active episode or pending alerts. The top-left back button (to Welcome) c
 """
 import streamlit as st
 
-from core import config, data, episodes, mascot, mission
+from core import activity, config, data, episodes, mascot, mission
 
 if "astronaut" not in st.session_state or "environment" not in st.session_state:
     st.switch_page("pages/0_Home.py")
@@ -22,8 +22,19 @@ _, voice_col = st.columns([5, 1])
 with voice_col:
     mascot.voice_toggle()
 
+# Urgent subjective symptoms (docs/sintomas_subjetivos_atrofia_SANS.md section 3) prevail and stay
+# visible until the astronaut marks them resolved in Check-in; they never close by themselves.
+definitions = config.load_subjective_issues().get("issues", {})
+try:
+    alarms = [definitions[item["issue"]] for item in activity.active_issues(astronaut)
+              if definitions.get(item["issue"], {}).get("alarm")]
+except (ValueError, KeyError, OSError):
+    alarms = []
+
 # Placeholder lines: final wording and moods are still to be decided by the team.
-if open_episode and open_episode["status"] == "active":
+if alarms:
+    text, mood = "You reported an urgent symptom. Stop the risky task and contact the crew medical officer now.", "serious"
+elif open_episode and open_episode["status"] == "active":
     text, mood = f"{names[astronaut]}, you have a protocol to follow.", "worried"
 elif open_episode:
     text, mood = f"{names[astronaut]}, an alert needs a repeat measurement in Check-in.", "worried"
@@ -31,6 +42,10 @@ elif pending:
     text, mood = f"{names[astronaut]}, {len(pending)} alert(s) are waiting for you.", "thinking"
 else:
     text, mood = f"Hi {names[astronaut]}! What would you like to do?", "happy"
+
+for alarm in alarms:
+    st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
+             "When it is no longer present, mark it as resolved in Check-in → Subjective issues.")
 
 CARDS = [("Check-in", "pages/1_Check_in.py"), ("Trends", "pages/3_Trends.py"),
          ("Tutorials", "pages/4_Tutorials.py")]

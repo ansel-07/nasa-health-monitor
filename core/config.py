@@ -282,6 +282,11 @@ def validate_activities(indicators: dict, problems: dict) -> list:
         for cid in issue.get("check_ins", []):
             if cid not in checkins:
                 errors.append(f"{where}: unknown check-in '{cid}'")
+        if issue.get("alarm"):
+            if not issue.get("action"):
+                errors.append(f"{where}: an alarm needs an 'action'")
+            if issue.get("check_ins"):
+                errors.append(f"{where}: an alarm is not linked to check-ins")
     for pid, problem in problems.items():
         if "tutorial_bar_full_days" in problem and not _positive_or_todo(problem["tutorial_bar_full_days"]):
             errors.append(f"problems.json[{pid}]: 'tutorial_bar_full_days' must be a positive number")
