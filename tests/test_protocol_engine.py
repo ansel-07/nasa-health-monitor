@@ -380,3 +380,62 @@ def test_legacy_problem_decisions_get_no_symptoms(episode, monkeypatch):
     engine.submit(episode, None)
     assert "symptoms" not in check.call_args.args[1]
     engine.triggers.symptom_levels.assert_not_called()
+
+
+# Flowchart DOT for the Protocol page (#69), from the _example fixture.
+def node_line(dot: str, node_id: str) -> str:
+    return next(line for line in dot.splitlines() if line.startswith(f'"{node_id}" ['))
+
+
+def edge_line(dot: str, source: str, target: str) -> str:
+    return next(line for line in dot.splitlines() if line.startswith(f'"{source}" -> "{target}" '))
+
+
+def test_flowchart_highlights_current_and_marks_visited_route(episode):
+    episode.update(current_node="symptoms", log=[{"at": "t", "node": "route", "input": None},
+                                                {"at": "t", "node": "intro_mars", "input": "continue"}])
+    dot = engine.flowchart_dot(episode)
+    assert 'fillcolor="#fef3c7"' in node_line(dot, "symptoms") and "penwidth=2.5" in node_line(dot, "symptoms")
+    for visited in ("route", "intro_mars"):
+        assert 'fillcolor="#dcfce7"' in node_line(dot, visited)
+    assert 'fillcolor="#f1f5f9"' in node_line(dot, "intro")
+    assert "penwidth=2.5" in edge_line(dot, "route", "intro_mars")
+    assert "penwidth=2.5" in edge_line(dot, "intro_mars", "symptoms")
+    assert "penwidth=1" in edge_line(dot, "route", "intro")
+
+
+def test_flowchart_starts_at_the_start_node_and_draws_the_whole_protocol(episode):
+    protocol = engine.load_protocol("_example")
+    dot = engine.flowchart_dot(episode)
+    assert 'fillcolor="#fef3c7"' in node_line(dot, protocol["start"])
+    for node_id in protocol["nodes"]:
+        node_line(dot, node_id)
+    assert dot.count(" -> ") == sum(len(engine._edges(node)) for node in protocol["nodes"].values())
+
+
+def test_flowchart_labels_are_short_and_readable(episode):
+    dot = engine.flowchart_dot(episode)
+    assert 'label="Check", shape=diamond' in node_line(dot, "route")
+    assert 'label="Contact flight\\nsurgeon"' in node_line(dot, "contact_now")
+    assert 'label="End: Handed over"' in node_line(dot, "handed_over")
+    assert 'label="Severity: Severe"' in node_line(dot, "escalate")
+    expected = {("route", "contact_now"): "Severe or worse", ("route", "intro_mars"): "Mars",
+                ("route", "intro"): "Otherwise", ("symptoms", "do_action"): "No",
+                ("do_action", "contact_crew"): "I can't", ("check", "escalate"): "Value > 20"}
+    for (source, target), label in expected.items():
+        assert f'[label="{label}"' in edge_line(dot, source, target)
+    full_text = engine.load_protocol("_example")["nodes"]["intro_mars"]["text"]
+    assert full_text not in dot
+    assert "…" in dot and "\\u2026" not in dot
+
+
+def test_flowchart_ignores_wait_entries_and_marks_a_finished_protocol(episode):
+    episode.update(status="handed_over", current_node="handed_over", log=[
+        {"at": "t", "node": "do_action", "input": "wait_started"},
+        {"at": "t", "node": "do_action", "input": "cannot"},
+        {"at": "t", "node": "contact_crew", "input": "continue"},
+        {"at": "t", "node": "handed_over", "input": None}])
+    dot = engine.flowchart_dot(episode)
+    assert '"do_action" -> "do_action"' not in dot
+    assert "penwidth=2.5" in edge_line(dot, "do_action", "contact_crew")
+    assert 'fillcolor="#fef3c7"' in node_line(dot, "handed_over")

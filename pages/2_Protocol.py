@@ -113,7 +113,10 @@ def main() -> None:
         show_result(episode, step, astronaut)
         return
 
-    mascot.say(step["text"], "neutral", size="large")
+    # Mascot small on the left, the whole protocol on the right, controls below (AGENTS.md 8).
+    with mascot.beside(step["text"], "neutral"):
+        st.graphviz_chart(protocol_engine.flowchart_dot(episode), width="stretch",
+                          alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
     st.caption(f"Severity: {readable(episode['severity'])} · Environment: {environment_name(episode['environment'])}")
     # Log length distinguishes repeated visits to the same node, clearing old
     # form values when a protocol loops back for another measurement or answer.

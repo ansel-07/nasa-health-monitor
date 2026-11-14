@@ -71,12 +71,12 @@ def test_manual_empty_and_confirmation_scenarios():
 
 def test_visualizer_tracks_live_current_node_and_route():
     app = preview()
-    graph = app.get("graphviz_chart")[0].proto.spec
+    graph = app.get("graphviz_chart")[-1].proto.spec
     assert "CURRENT | intro" in graph
     assert '"route" -> "intro" [label="Otherwise", color="#15803d", penwidth=3]' in graph
     button(app, "Continue").click().run()
     assert not app.exception
-    graph = app.get("graphviz_chart")[0].proto.spec
+    graph = app.get("graphviz_chart")[-1].proto.spec
     assert "CURRENT | symptoms" in graph
     assert "VISITED | intro" in graph
     assert '"intro" -> "symptoms" [label="Continue", color="#15803d", penwidth=3]' in graph
@@ -119,7 +119,7 @@ def test_visualizer_marks_final_node_after_completion():
     button(app, "Load / restart scenario").click().run()
     button(app, "Continue").click().run()
     assert not app.exception
-    graph = app.get("graphviz_chart")[0].proto.spec
+    graph = app.get("graphviz_chart")[-1].proto.spec
     assert "FINAL | handed_over" in graph
     assert "CURRENT |" not in graph
 
