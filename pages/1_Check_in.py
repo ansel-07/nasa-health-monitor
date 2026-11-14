@@ -63,11 +63,24 @@ def _subjective_issues(astronaut: str, source: str, report) -> None:
             st.caption(f"{definitions[item['issue']]['label']}: {state}, since {item['since']}.")
         version_key = f"check_in_issues_version:{astronaut}"
         version = st.session_state.get(version_key, 0)
+        routine = [key for key, item in definitions.items() if not item.get("alarm")]
+        alarms = [key for key, item in definitions.items() if item.get("alarm")]
         with st.form(f"{source}:issues:{astronaut}:{version}"):
-            selected = st.multiselect("Issues you are experiencing", list(definitions),
-                                      default=[key for key in definitions if key in previous],
-                                      format_func=lambda key: definitions[key]["label"])
+            picked = st.multiselect("Issues you are experiencing", routine,
+                                    default=[key for key in routine if key in previous],
+                                    format_func=lambda key: definitions[key]["label"],
+                                    help="\n\n".join(f"**{definitions[k]['label']}**: {definitions[k].get('question', '')}"
+                                                       for k in routine))
+            picked_alarms = []
+            if alarms:
+                st.markdown("**Urgent symptoms** — report them at once; they need medical attention now.")
+                picked_alarms = st.multiselect("Urgent symptoms you have now", alarms,
+                                               default=[key for key in alarms if key in previous],
+                                               format_func=lambda key: definitions[key]["label"],
+                                               help="\n\n".join(f"**{definitions[k]['label']}**: {definitions[k].get('question', '')}"
+                                                                  for k in alarms))
             saved = st.form_submit_button("Save issues", width="stretch")
+        selected = picked + picked_alarms
         if saved:
             try:
                 if selected:
@@ -77,6 +90,11 @@ def _subjective_issues(astronaut: str, source: str, report) -> None:
             except (ValueError, KeyError, OSError) as error:
                 report("error", f"Issue changes could not be fully saved. Review your selection and retry. {error}")
             st.session_state[version_key] = version + 1
+            urgent = [definitions[key] for key in picked_alarms]
+            if urgent:
+                # docs/sintomas_subjetivos_atrofia_SANS.md section 3: an alarm prevails; act now.
+                report("error", "Urgent symptom reported. " + " ".join(
+                    f"{item['label']}: {item['action']}" for item in urgent))
             report("success", "Subjective issues updated." if previous or selected else "No subjective issues selected.")
 
 
