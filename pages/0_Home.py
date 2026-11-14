@@ -51,5 +51,5 @@ with center:
     with st.expander("Try it in 1 minute"):
         st.markdown("1. " + 'Choose **Astronaut A** and **International Space Station**, then **NEXT**. In Main Menu → *Demo controls*, press **Reset demo**. You will explore fictional, synthetic measurements.')
         st.markdown("2. " + 'Press **Advance mission 24 h** to reveal an ocular measurement alert. Open **Check-in** to compare it with your personal pre-flight baseline.')
-        st.markdown("3. " + 'Use **Simulate wait** and repeat the flagged measurement with the demo value to confirm the anomaly.')
+        st.markdown("3. " + 'Use **Simulate wait** and repeat the flagged measurement with the demo value (**360** µm) to confirm the anomaly.')
         st.markdown("4. " + 'Open **Protocols** and follow the guidance through to medical follow-up. SpaceDoc guides you; it does not diagnose.')
