@@ -14,7 +14,9 @@ Owner: Ansel. Written at the v1 cut-off for the coding agent that works tonight.
 - **If a merge breaks something, revert it at once** with `git revert` in a new PR (not a force push), then continue.
 - **Never invent medical content**: thresholds, symptoms, intervals, protocol steps and sources come from Edu (`AGENTS.md` 11). Tasks marked **[Edu content]** below need his input; an agent may only prepare the structure and ask.
 - Keep the contracts (`AGENTS.md` 7) and the per-session data rules (5.5). New public functions go into section 7.
-- **Nobody can answer questions tonight.** If a task needs a decision that is not already written in `AGENTS.md`, the spec or this file (medical content, a product choice, a breaking contract change), do not decide it: write it under "Decisions for the morning" at the end of this file and move on to the next task.
+- **Nobody can answer questions tonight, so decide like a senior engineer.**
+  - **If one option is clearly better** (simpler, safer, consistent with `AGENTS.md` and the spec, easy to undo), **take it and carry on**; record it in one line in the night log ("decided X because Y").
+  - **Leave it for the morning only if the decision is important for the team to make**: medical or health content (Edu), a product or demo choice the team cares about, a contract change that breaks other owners' code, or anything hard to undo. Then write it under "Decisions for the morning" (task, question, options, your recommendation) and move on to the next task.
 - You may edit any owner's file tonight (nobody else is working), but keep the contracts of `AGENTS.md` 7; if you add a public function, document it there.
 
 ### Self-review checklist before merging your own PR
@@ -78,12 +80,12 @@ Removing the legacy `triggers` / severity format; a full "not evaluable" model; 
 
 ## 8. Decisions for the morning
 
-Questions the agent could not decide alone (one line each: task, question, options).
+Only decisions that are important for the team to make (see section 1); one line each: task, question, options, recommendation.
 
 - (none yet)
 
 ## 9. Night log
 
-What the agent merged tonight (one line per PR: number, what, tests).
+What the agent merged tonight (one line per PR: number, what, tests) and the minor decisions it took on its own (what and why).
 
 - (none yet)
