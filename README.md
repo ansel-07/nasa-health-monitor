@@ -10,7 +10,7 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 ## Links
 
 - Live app: TODO
-- Demo (30 s video or 7 slides): TODO
+- Slides (7 slides, live demo): TODO
 - Space Apps project page: TODO
 
 ## The problem
