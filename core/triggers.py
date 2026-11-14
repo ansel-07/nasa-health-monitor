@@ -103,3 +103,15 @@ def evaluate(measurement: dict, environment: str) -> list[dict]:
         for result in results:
             result["z"] = z
     return results
+
+
+def symptom_levels(problem_id: str, astronaut: str, environment: str) -> dict:
+    """Current level of each symptom of a symptom-based problem: {symptom_id: level}.
+
+    Contract: AGENTS.md, sections 5.3 and 7. Uses only the latest value of each
+    indicator. Levels come from SYMPTOM_LEVELS; "not_present" when no rule matches.
+    """
+    # STUB (Juan Carlos): evaluate each symptom's `levels` (first match wins,
+    # respecting `environments`) with ctx["latest"] = data.latest_values(astronaut).
+    problem = config.load_problems(include_examples=True)[problem_id]
+    return {symptom_id: "not_present" for symptom_id in problem.get("symptoms", {})}

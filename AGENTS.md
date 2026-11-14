@@ -84,8 +84,11 @@ For each astronaut and indicator: mean and standard deviation of the `preflight`
 - `mission.json`: mission name, start time, default environment, astronauts.
 - `indicators.json`: `{indicator_id: {name, unit, how_to_measure, why_it_matters, source}}`.
 - `environments.json`: `{env_id: {name, gravity_g, comm_delay_min, source}}`. `comm_delay_min` is one-way.
-- `problems.json`: `{problem_id: {name, description, hrp_risk, confirm_wait_min, protocol, triggers, source}}`.
-  - `triggers`: list of `{severity, when, environments?}`. `when` is a condition (section 6). If `environments` is present, the trigger only applies there. If several triggers of the same problem match, the **highest severity** wins.
+- `problems.json`: `{problem_id: {name, description, hrp_risk, confirm_wait_min, protocol, symptoms, states, source}}`. A problem is a set of **symptoms**; each symptom has a **level**, and the levels decide the **state** of the problem:
+  - `symptoms`: `{symptom_id: {name, levels}}`. `levels` is a list of `{level, when, environments?}` with `level` in `SYMPTOM_LEVELS` (`watch`, `concern`). `when` is a condition on **indicators only** (section 6), evaluated with the **latest value** of each indicator. If `environments` is present, the rule only applies there. **The first matching rule wins**, so write them from most to least serious; no match = `not_present`.
+  - `states`: list of `{state, when}` with `state` in `PROBLEM_STATES` (`watch`, `medical_urgency`). `when` is a condition on **symptoms** (`symptom` + `level_at_least` / `level_is`, `count_at_least` + `of`), optionally with `environment_in`. **The first matching rule wins**; no match = `no_concern`. Only the symptom level matters (no weights or scores).
+  - The problem state is the episode **severity**: an episode opens when the state is `watch` or worse.
+  - **TRANSITION** (until every owner has migrated): the old `triggers` list (`{severity, when, environments?}`, highest severity wins) and the old `SEVERITIES` names still work. New content uses `symptoms` + `states` only. `_example` has both formats.
 - `protocols/<problem_id>.json`: `{problem, start, nodes}` (section 9).
 
 Problem ids starting with `_` (like `_example`) are **test fixtures**, never shown as real health content.
@@ -120,16 +123,21 @@ One evaluator for **both** triggers and protocol decisions. A condition is a JSO
 
 | Keys | True when |
 |---|---|
-| `indicator` + `above` / `below` | latest value of that indicator is above / below the number |
+| `indicator` + `above` / `below` | latest value of that indicator is above / below the number (strict: > / <) |
+| `indicator` + `at_least` / `at_most` | latest value of that indicator is ≥ / ≤ the number |
 | `indicator` + `z_above` / `z_below` | its z-score against the astronaut's baseline is above / below |
-| `var` + `above` / `below` / `z_above` / `z_below` | same, for a value stored by a `measure` node (`save_as`) |
+| `var` + `above` / `below` / `at_least` / `at_most` / `z_above` / `z_below` | same, for a value stored by a `measure` node (`save_as`) |
 | `severity_at_least` / `severity_is` | current episode severity (order in `core/models.py`) |
 | `environment_in` | current environment is in the list |
 | `answer` + `equals` | the answer stored by a `question` node equals the value |
 | `all` / `any` | list of conditions, combined with AND / OR |
+| `count_at_least` + `of` | at least N of the conditions in the `of` list are true |
+| `symptom` + `level_at_least` / `level_is` | current level of that symptom of the problem (order in `SYMPTOM_LEVELS`) |
 
 `ctx` passed to `check(cond, ctx)`:
-`{"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}}`.
+`{"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}, "symptoms": {symptom_id: level}, "var_indicators": {save_as: indicator}}`.
+`var_indicators` is built by the protocol engine from its `measure` nodes; it is required only for `var` + `z_above` / `z_below`.
+`symptoms` comes from `triggers.symptom_levels()`; symptom conditions are allowed in `states` and in protocol `decision` nodes, never inside a symptom's own `levels`.
 
 ## 7. Function contracts
 
@@ -137,7 +145,7 @@ Do not change a signature without asking Ansel. Until a function is implemented 
 
 ```python
 # core/models.py  (Ansel)
-SEVERITIES, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES, MOODS
+SEVERITIES, SYMPTOM_LEVELS, PROBLEM_STATES, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES, MOODS
 severity_rank(s) -> int
 max_severity(a, b) -> str
 
@@ -173,16 +181,20 @@ now() -> datetime
 advance(hours: int = 24) -> list[dict]             # new simulated measurements now visible
 
 # core/charts.py  (Fran)
-indicator_chart(astronaut: str, indicator: str, compact: bool = False) -> plotly.graph_objects.Figure
+indicator_chart(astronaut: str, indicator: str, compact: bool = False,
+                environment: str | None = None) -> plotly.graph_objects.Figure
 # One indicator over time: personal baseline, colour bands, episode marks.
 # compact=True is the small version shown inside Check-in. Pages draw it with st.plotly_chart(fig).
+# environment: the current environment; adds the bands of rules that only apply there (None: only general bands).
 
 # core/conditions.py  (Juan Carlos)
 check(cond: dict, ctx: dict) -> bool
 
 # core/triggers.py  (Juan Carlos)
 evaluate(measurement: dict, environment: str) -> list[dict]
-# one item per matching problem: {"problem", "severity", "indicator", "value", "z"}
+# one item per matching problem: {"problem", "severity", "indicator", "value", "z", "symptoms"?}
+# For symptom-based problems: "severity" is the problem state, "symptoms" is {symptom_id: level}.
+symptom_levels(problem_id: str, astronaut: str, environment: str) -> dict   # {symptom_id: level}, latest values only
 
 # core/episodes.py  (Juan Carlos)
 on_new_measurement(measurement: dict, environment: str) -> dict | None
@@ -208,7 +220,7 @@ Streamlit session state (created by `app.py`): `st.session_state["astronaut"]`, 
   ```python
   chart_col, mascot_col = st.columns([4, 1])
   with chart_col:
-      st.plotly_chart(charts.indicator_chart(astronaut, indicator, compact=True))
+      st.plotly_chart(charts.indicator_chart(astronaut, indicator, compact=True, environment=environment))
   with mascot_col:
       mascot.say(text, mood, size="small")
   ```
@@ -236,6 +248,7 @@ Streamlit session state (created by `app.py`): `st.session_state["astronaut"]`, 
 | `end` | Closes the episode | `outcome: resolved \| monitoring \| handed_over`, `text` |
 
 Severity and environment do **not** create separate files: they are branches (`decision` nodes) inside one protocol per problem.
+For symptom-based problems, `decision` nodes can also branch on symptom levels (section 6), and `set_severity` / `severity_at_least` use the `PROBLEM_STATES` names.
 `config/protocols/_example.json` uses every node type and is the fixture for building and testing the engine.
 
 ## 10. Behaviour rules

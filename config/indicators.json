@@ -54,5 +54,12 @@
     "how_to_measure": "Type any number.",
     "why_it_matters": "Used only to test the engine.",
     "source": "none"
+  },
+  "_example_indicator_2": {
+    "name": "Second example indicator (test fixture, not health data)",
+    "unit": "units",
+    "how_to_measure": "Type any number.",
+    "why_it_matters": "Used only to test symptom-based problems.",
+    "source": "none"
   }
 }
