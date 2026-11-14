@@ -29,11 +29,13 @@ def test_find_todos():
 
 
 def _documented_block() -> dict:
-    """The parameter block of docs/DEMO_DATA_HANDOFF.md (parsed as literals, never executed)."""
+    """The "Complete generator input" block of docs/DEMO_DATA_HANDOFF.md (section 2), the same one
+    tests/test_demo_data_handoff.py reads; parsed as literals, never executed."""
     import ast
     from pathlib import Path
     doc = Path(__file__).resolve().parents[1] / "docs" / "DEMO_DATA_HANDOFF.md"
-    block = doc.read_text(encoding="utf-8").split("```python\n", 1)[1].split("```", 1)[0]
+    text = doc.read_text(encoding="utf-8").split("## 2. Complete generator input", 1)[1]
+    block = text.split("```python\n", 1)[1].split("```", 1)[0]
     return {node.targets[0].id: ast.literal_eval(node.value) for node in ast.parse(block).body}
 
 

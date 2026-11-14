@@ -34,23 +34,18 @@ from core.models import MEASUREMENT_COLUMNS, TODO_MARK
 
 # --- Parameters ------------------------------------------------------------------------------
 
-# Synthetic demonstration benchmark proposed by Edu: docs/DEMO_DATA_HANDOFF.md, section 2
-# (#36, #83). Copied exactly and in the same order (the documented baselines depend on it);
+# Synthetic demonstration benchmark accepted by Edu: docs/DEMO_DATA_HANDOFF.md, section 2
+# "Complete generator input" (#36, #89), all 14 indicators of SANS and muscle atrophy.
+# Copied exactly and in the same order (the documented baselines depend on it);
 # tests/test_generate_data.py checks this block still matches the document.
-# These are software benchmark values from worked examples, NOT healthy-astronaut norms,
-# daily variability or disease trends; only these 3 indicators have fully specified values.
+# Synthetic benchmark observations, NOT healthy-astronaut norms, daily variability or disease
+# trends: see the document for the meaning and limits of every value.
 SEED = 2027
-PREFLIGHT_DAYS = 14   # software sampling window, not a validated baseline duration
-MISSION_DAYS = 10     # test horizon, not a claim that SANS or atrophy develop in ten days
-DEMO_DAY = 1          # mission day of the demo anomaly, revealed by one Advance click (story: Gonzalo, #34)
-MEASURE_HOUR = 8      # every simulated measurement is taken at 08:00
+PREFLIGHT_DAYS = 14
+MISSION_DAYS = 10
+DEMO_DAY = 1
+MEASURE_HOUR = 8
 
-# Per indicator (keys of config/indicators.json):
-#   mean, sd:        parameters of the synthetic observations (not empirical astronaut statistics)
-#   person_sd:       offset between astronauts; 0 = fixed benchmark design (optional, default 0)
-#   trend_per_day:   change per mission day; 0 = stationary background on purpose (optional)
-#   min / max:       optional clipping; omitted, no clinical bounds are asserted
-#   decimals:        output precision of the fixture, not instrument accuracy
 INDICATOR_PARAMS = {
     "peripapillary_trt_left": {
         "mean": 300.0,
@@ -73,23 +68,39 @@ INDICATOR_PARAMS = {
         "trend_per_day": 0.0,
         "decimals": 1,
     },
+    "optic_disc_edema_grade_left": {"mean": 0, "sd": 0, "person_sd": 0, "trend_per_day": 0, "min": 0, "max": 0, "decimals": 0},
+    "optic_disc_edema_grade_right": {"mean": 0, "sd": 0, "person_sd": 0, "trend_per_day": 0, "min": 0, "max": 0, "decimals": 0},
+    "refraction_left": {"mean": -1.0, "sd": 0.05, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "refraction_right": {"mean": -1.0, "sd": 0.05, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "visual_acuity_left": {"mean": 0.0, "sd": 0.03, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "visual_acuity_right": {"mean": 0.0, "sd": 0.03, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "muscle_area": {"mean": 10.0, "sd": 0.2, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "muscle_power": {"mean": 186.0, "sd": 8.0, "person_sd": 0, "trend_per_day": 0, "decimals": 1},
+    "muscle_endurance": {"mean": 14.4, "sd": 1.0, "person_sd": 0, "trend_per_day": 0, "min": 0, "decimals": 0},
+    "muscle_tone": {"mean": 16.3, "sd": 0.4, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "muscle_stiffness": {"mean": 294.0, "sd": 8.0, "person_sd": 0, "trend_per_day": 0, "decimals": 1},
 }
 
-# Synthetic anomalies (Edu's benchmark): on that mission day (1 = first day) the simulated value
-# is replaced by `value`. 360 um is above the +55 um TRT boundary; 390 N is below 80% of baseline.
 ANOMALIES = [
-    {
-        "astronaut": "a1",
-        "indicator": "peripapillary_trt_left",
-        "day": 1,
-        "value": 360.0,
-    },
-    {
-        "astronaut": "a2",
-        "indicator": "muscle_strength",
-        "day": 2,
-        "value": 390.0,
-    },
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 1, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 2, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 3, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 4, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 5, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 6, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 7, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 8, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 9, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 10, "value": 360.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 2, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 3, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 4, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 5, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 6, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 7, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 8, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 9, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 10, "value": 390.0},
 ]
 
 
