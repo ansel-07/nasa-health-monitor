@@ -43,17 +43,15 @@ indicators occur exactly once across the nine cards.
 
 ## Scope and remaining #98 work
 
-This resolves the grouping review only. Existing `bar_full_hours = 24` values
-remain v1 placeholders permitted by Ansel's latest #98 comment. They are not
-approved universal medical testing frequencies. The new endurance card inherits
-that same placeholder; no medical interval is inferred from a study's rest period.
+The grouping review is complete. Synthetic, non-clinical bar timers are now
+specified per test and protocol in [CHECK_IN_INTERVALS.md](CHECK_IN_INTERVALS.md).
+They replace the provisional universal 24-hour values under Edu's explicit
+approval. They do not prescribe a real measurement schedule.
 
-Per-test intervals and their basis, sourced subjective-issue links, protocol
-practice intervals and environment naming remain separate parts of #98. No
-subjective links, clinical advice, thresholds or public function signatures change
+Sourced subjective-issue links remain separate work, excluded from this change.
+No subjective links, clinical advice, thresholds or public function signatures change
 here. Existing check-in IDs are retained; the endurance check-in adds one ID
 under the existing configuration format. Old completion of the combined card
 cannot establish completion of the newly separate endurance test.
 
-Validation: `python -m core.config`; `python -m pytest`. Strict validation may
-still report the separate, unresolved #98 content placeholders.
+Validation: `python -m core.config`; `python -m pytest`. Strict validation checks for unresolved configuration placeholders.
