@@ -27,6 +27,8 @@ def mission_workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "MEASUREMENTS_FILE", tmp_path / "measurements.csv")
     monkeypatch.setattr(models, "EPISODES_FILE", tmp_path / "episodes.json")
     monkeypatch.setattr(models, "MISSION_STATE_FILE", tmp_path / "mission_state.json")
+    monkeypatch.setattr(models, "ASTRONAUTS_FILE", tmp_path / "astronauts.csv")
+    models.ASTRONAUTS_FILE.write_text("id,name,role\na1,Synthetic A,Test\na2,Synthetic B,Test\n", encoding="utf-8")
     monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
     indicators = {key: {"name": f"Synthetic indicator {key}", "unit": "test units",
                         "how_to_measure": "Synthetic test input.", "why_it_matters": "Test fixture.",
@@ -121,6 +123,22 @@ def test_render_and_rerun_do_not_process_history_or_reveal_future(mission_worksp
     assert data.load_episodes() == [] and data.load_pending() == []
     assert 20 not in data.load_measurements(indicator="y")["value"].tolist()
     assert 40 not in data.load_measurements(indicator="x")["value"].tolist()
+
+
+def test_shared_wait_detects_other_astronaut_without_duplicate_rows(mission_workspace):
+    data.add_measurement({**reading("y", 20, START + timedelta(minutes=30)), "astronaut": "a2"})
+    count = len(stored_rows())
+    app, initial = record_and_wait()
+    other = data.get_open_episode("a2")
+    assert other["problem"] == "synthetic_b"
+    assert other["status"] == "pending_confirmation"
+    assert other["environment"] == "mars"
+    assert data.get_open_episode("a1") == initial
+    assert len(stored_rows()) == count + 1  # Only the explicitly submitted manual reading is added.
+    before = disk_snapshot()
+    app.run()
+    assert not app.exception
+    assert disk_snapshot() == before
 
 
 @pytest.mark.parametrize("repeat_value,status", [(16, "active"), (0, "dismissed")])
