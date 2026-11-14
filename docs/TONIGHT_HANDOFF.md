@@ -46,7 +46,7 @@ Welcome → Main Menu → Check-in (9 grouped check-ins with bars, multi-field f
 
 ## 4. Live demo script (30 seconds)
 
-**Before the pitch starts** (Advance takes 8-10 s on the deployed app, see task 1): open the app, choose Astronaut A + International Space Station (NEXT until the Welcome buttons of task 3 are merged) → Main Menu → Demo controls → **Reset demo**, then **Advance mission 24 h**, and wait until the mascot says an alert needs a repeat measurement. Turn **Voice** on (browsers need one click before audio).
+**Before the pitch starts** (Advance took 8-10 s on the deployed app before #158; still do it before the pitch so the demo needs no wait): open the app, choose Astronaut A + International Space Station (NEXT until the Welcome buttons of task 3 are merged) → Main Menu → Demo controls → **Reset demo**, then **Advance mission 24 h**, and wait until the mascot says an alert needs a repeat measurement. Turn **Voice** on (browsers need one click before audio).
 
 **On stage:** Main Menu (alert waiting) → **Check-in** (chart with the personal baseline) → **Simulate wait** → enter **360** → **Confirm** → Protocols opens → answer **No** to the symptom question → stop at *"Ask the crew medical officer for priority medical review"*.
 
@@ -54,7 +54,7 @@ Welcome → Main Menu → Check-in (9 grouped check-ins with bars, multi-field f
 
 ### P0
 
-1. **Make "Advance mission 24 h" fast** (Juan Carlos: detection; Fran: data) — the task for the strongest model. It processes 42 rows one by one and each call re-reads the CSV, baselines and config: 8-10 s on the deployed app. Goal: under 2 s, same results. Ideas: read config, latest values and baselines once per batch and pass them down; avoid rewriting `measurements.csv` per row. Detection semantics, tests and contracts must not change (`advance_and_detect()` keeps its signature and its `revealed` / `new_alerts` / `recovered` keys).
+1. **Finish making "Advance mission 24 h" fast** (detection: Juan Carlos's files; config: Ansel's). The data part is **done** (#158, Fran): CSV parsed once per content, baselines cached, one clock write per batch; locally 3.4 s → 0.7 s with identical results. What is left, from `docs/CODE_REVIEW.md`: **PERF-2** (cache the `config/*.json` loads, invalidated when a file changes, so edits still show up on rerun) and **PERF-3/4** (detection re-validates the same rules for every row; validate once per batch). Same constraints: no change to results, signatures, contracts or `advance_and_detect()` keys; measure before and after with the real seed.
 2. **Check-in texts with an active alarm** (Juan Carlos): the mascot still says "Choose a check-in…" while an urgent symptom is active (the Main Menu already says it), and the caption "objective measurements determine alerts" is no longer exact for alarms.
 3. **Mascot-first layout** (Ansel's decisions, all taken): big centred mascot with word-by-word subtitles, small on the left with an animation only beside a chart or flowchart, conversational full-viewport Welcome, no mascot on Trends and Tutorials. Full specification: [`FRONTEND_MASCOT_LAYOUT.md`](FRONTEND_MASCOT_LAYOUT.md). Start it after tasks 1 and 2.
 
