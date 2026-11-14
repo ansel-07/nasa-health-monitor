@@ -112,30 +112,41 @@ def advance(hours: int = 24) -> list[dict]:
     return revealed
 
 
-def _mark_processed(row: dict) -> None:
-    """Remove one row from the stored "unprocessed" list; the stored time is kept as it is.
+def _mark_processed(rows: list[dict]) -> None:
+    """Remove these rows from the stored "unprocessed" list; the stored time is kept as it is.
 
-    Nothing is written when the row is not in the list (for example rows given by a caller).
+    Nothing is written when none of them is in the list (for example rows given by a caller).
     """
+    if not rows:
+        return
     state = _state()
     pending = state.get("unprocessed", [])
-    if row not in pending:
-        return
-    pending.remove(row)
-    _save(datetime.fromisoformat(state["now"]) if "now" in state else _start(), pending)
+    removed = False
+    for row in rows:
+        if row in pending:
+            pending.remove(row)
+            removed = True
+    if removed:
+        _save(datetime.fromisoformat(state["now"]) if "now" in state else _start(), pending)
 
 
 def _detect_in_order(rows: list[dict], environment: str) -> None:
-    """Send rows to detection one by one; each success is removed from "unprocessed" at once.
+    """Send rows to detection one by one, then remove the processed ones from "unprocessed".
 
-    If detection raises, the failing row and every later one stay in the file and the error
-    propagates, so the next advance_and_detect() starts with them.
+    The file is written once at the end, or as soon as detection raises: then the rows already
+    processed are removed, the failing row and every later one stay, and the error propagates,
+    so the next advance_and_detect() starts with them (#77). If the process were killed in the
+    middle, the whole batch would be sent again, which is safe: detection is idempotent.
     """
     from core import episodes  # here, not at the top: core.episodes imports this module
 
-    for row in rows:
-        episodes.on_new_measurement(row, environment)
-        _mark_processed(row)
+    done = 0
+    try:
+        for row in rows:
+            episodes.on_new_measurement(row, environment)
+            done += 1
+    finally:
+        _mark_processed(rows[:done])
 
 
 def advance_and_detect(hours: int, environment: str) -> dict:
