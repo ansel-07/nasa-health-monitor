@@ -33,9 +33,9 @@ def screen(monkeypatch):
     monkeypatch.setattr(mascot, "say", lambda text, mood="neutral", size="large": state["speech"].append((text, mood, size)))
     original_chart = charts.indicator_chart
 
-    def chart(astronaut, indicator, compact=False):
-        state["chart_calls"].append((astronaut, indicator, compact))
-        return original_chart(astronaut, indicator, compact)
+    def chart(astronaut, indicator, compact=False, environment=None):
+        state["chart_calls"].append((astronaut, indicator, compact, environment))
+        return original_chart(astronaut, indicator, compact, environment=environment)
 
     monkeypatch.setattr(charts, "indicator_chart", chart)
 
@@ -97,7 +97,7 @@ def test_form_is_empty_unbounded_and_hides_fixtures(screen):
     assert app.selectbox[0].options == ["Indicator x", "Indicator y"]
     assert app.number_input[0].value is None
     assert len(app.toggle) == 1
-    assert state["chart_calls"][-1] == ("a1", "x", True)
+    assert state["chart_calls"][-1] == ("a1", "x", True, "mars")
     assert state["speech"][-1][2] == "small"
     assert state["calls"] == []
 
@@ -133,7 +133,7 @@ def test_selecting_indicator_changes_chart_and_submitted_unit(screen):
     state["indicators"]["y"]["unit"] = "other units"
     app.run()
     app.selectbox[0].select("y").run()
-    assert state["chart_calls"][-1] == ("a1", "y", True)
+    assert state["chart_calls"][-1] == ("a1", "y", True, "mars")
     assert "other units" in app.number_input[0].label
     app.number_input[0].set_value(12)
     button(app, "Record measurement").click().run()
@@ -296,7 +296,7 @@ def test_review_pending_starts_confirmation_and_does_not_repeat_on_rerun(screen)
     assert not app.exception
     assert state["calls"] == [("accept", "a1", "mars")]
     assert not app.selectbox
-    assert state["chart_calls"][-1] == ("a1", "y", True)
+    assert state["chart_calls"][-1] == ("a1", "y", True, "mars")
     assert button(app, "Confirm repeat measurement").disabled
     assert state["open"]["status"] == "pending_confirmation"
     app.run()
