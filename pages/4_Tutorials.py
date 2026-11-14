@@ -6,10 +6,11 @@ protocol with the same engine and flowchart on an in-memory episode ("practice":
 nothing is saved (no measurement, detection or episode). It can start only when
 activity.can_repeat_tutorial(); reaching the end node refills its bar (activity.complete).
 The bar never blocks a real protocol.
+No mascot and no voice on this screen (docs/FRONTEND_MASCOT_LAYOUT.md 6).
 """
 import streamlit as st
 
-from core import activity, config, mascot, protocol_engine
+from core import activity, config, protocol_engine
 from core.models import OUTCOMES
 
 RUN = "tutorial_run"   # the in-memory practice episode while a tutorial is open
@@ -31,11 +32,13 @@ def available(astronaut: str, problem_id: str, environment: str) -> bool:
 
 def show_list(astronaut: str, environment: str) -> None:
     problems = config.load_problems()
-    with mascot.beside("Practise each protocol here, so you know it before you need it. Nothing you enter is saved.", "neutral"):
-        if not problems:
-            st.info("No protocols are configured yet.")
-        for problem_id, problem in problems.items():
-            level = activity.bar_level(astronaut, "tutorial", problem_id)
+    st.write("Practise each protocol here, so you know it before you need it. Nothing you enter is saved.")
+    if not problems:
+        st.info("No protocols are configured yet.")
+    grid = st.columns(3)
+    for index, (problem_id, problem) in enumerate(problems.items()):
+        level = activity.bar_level(astronaut, "tutorial", problem_id)
+        with grid[index % 3]:
             with st.container(border=True):
                 st.markdown(f"**{problem['name']}**")
                 st.progress(level / 100, text=f"Review bar: {level}%" if level else "Review bar: 0% (due)")
@@ -81,15 +84,15 @@ def show_practice(astronaut: str, episode: dict) -> None:
     st.caption(f"Practice: {name} · Nothing you enter is saved.")
 
     if episode["status"] in OUTCOMES:
-        mascot.say(step["text"], "happy", size="large")
+        st.success(step["text"])
         st.success("Tutorial completed. Its review bar is full again.")
         close_button("Back to Tutorials")
         return
 
-    with mascot.beside(step["text"], "neutral"):
-        whole = st.toggle("Show whole protocol", key="tutorial_whole")
-        st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=whole), width="stretch",
-                          alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
+    st.subheader(step["text"])
+    whole = st.toggle("Show whole protocol", key="tutorial_whole")
+    st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=whole), width="stretch",
+                      alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
     key = f"tutorial_{episode['problem']}_{step['id']}_{len(episode.get('log', []))}"
     kind = step["type"]
     if kind in ("info", "contact"):
@@ -130,7 +133,6 @@ astronaut = st.session_state["astronaut"]
 environment = st.session_state["environment"]
 
 st.title("Tutorials")
-mascot.voice_toggle()
 run = st.session_state.get(RUN)
 if run and run["astronaut"] != astronaut:   # astronaut changed on the Welcome screen
     st.session_state.pop(RUN, None)

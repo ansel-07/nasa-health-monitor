@@ -52,3 +52,13 @@ def test_practice_run_saves_nothing_and_refills_the_bar(storage):
     assert [path.name for path in storage.iterdir()] == ["activity.json"]
     assert activity.bar_level("a1", "tutorial", "_example") == 100
     assert button(app, "Back to Tutorials")
+
+
+def test_no_mascot_and_no_voice_on_tutorials(storage):
+    """docs/FRONTEND_MASCOT_LAYOUT.md 6: the list and the practice run have no mascot."""
+    app = page()
+    assert not app.get("iframe") and all(item.label != "Voice" for item in app.toggle)
+    button(app, "Start tutorial").click().run()
+    assert not app.exception
+    assert not app.get("iframe") and all(item.label != "Voice" for item in app.toggle)
+    assert app.subheader and app.get("graphviz_chart")
