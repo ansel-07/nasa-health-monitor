@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
+import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from core import config, data, episodes, mascot, mission, models, protocol_engine
+from core import activity, config, data, episodes, mascot, mission, models, protocol_engine
 
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
@@ -31,6 +32,7 @@ def mission_workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "ASTRONAUTS_FILE", tmp_path / "astronauts.csv")
     models.ASTRONAUTS_FILE.write_text("id,name,role\na1,Synthetic A,Test\na2,Synthetic B,Test\n", encoding="utf-8")
     monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
+    monkeypatch.setattr(st, "switch_page", lambda destination: st.rerun())
     indicators = {key: {"name": f"Synthetic indicator {key}", "unit": "test units",
                         "how_to_measure": "Synthetic test input.", "why_it_matters": "Test fixture.",
                         "source": "none"} for key in ("x", "y")}
@@ -89,7 +91,7 @@ def button(app, label):
 
 
 def disk_snapshot():
-    paths = (models.MEASUREMENTS_FILE, models.EPISODES_FILE, models.MISSION_STATE_FILE)
+    paths = (models.MEASUREMENTS_FILE, models.EPISODES_FILE, models.MISSION_STATE_FILE, models.ACTIVITY_FILE)
     return tuple(path.read_bytes() if path.exists() else None for path in paths)
 
 
@@ -105,6 +107,7 @@ def record_and_wait():
     assert not app.exception
     initial = data.get_open_episode("a1")
     assert initial["problem"] == "synthetic_a" and initial["status"] == "pending_confirmation"
+    assert activity.bar_level("a1", "check_in", "x") == 0
     assert button(app, "Confirm repeat measurement").disabled
     assert mission.now() == START
     before_count = len(stored_rows())
@@ -154,6 +157,7 @@ def test_real_wait_repeat_and_fresh_session_preserve_state(mission_workspace, re
     result = data.load_episodes()[0]
     assert result["id"] == initial["id"] and result["status"] == status
     assert result["severity"] == "watch"
+    assert activity.bar_level("a1", "check_in", "x") == 100
     assert len(stored_rows()) == 11
     assert len(data.load_measurements()) == 10  # One future simulated row is still hidden.
     assert len([row for row in stored_rows() if row["source"] == "manual"]) == 2
@@ -286,4 +290,25 @@ def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_wor
     assert not app.success
     assert all(item.label != "Open Protocol" for item in app.button)
     assert speech[-1] == "Choose an indicator and record a new measurement."
+    assert disk_snapshot() == before
+
+
+def test_grouped_submission_uses_real_detection_and_keeps_other_alert_pending(mission_workspace):
+    path = config.CONFIG_DIR / 'checkins.json'
+    path.write_text(json.dumps({'x': {'name': 'Synthetic paired test', 'indicators': ['x', 'y'],
+                                     'bar_full_hours': 24}}), encoding='utf-8')
+    app = screen()
+    assert len(app.number_input) == 2
+    app.number_input[0].set_value(16)
+    app.number_input[1].set_value(20)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert data.get_open_episode('a1')['problem'] == 'synthetic_a'
+    assert [item['problem'] for item in data.load_pending('a1')] == ['synthetic_b']
+    assert [(row['indicator'], row['value']) for row in stored_rows() if row['source'] == 'manual'] == [
+        ('x', '16.0'), ('y', '20.0')]
+    assert len(app.number_input) == 1
+    assert activity.bar_level('a1', 'check_in', 'x') == 0
+    before = disk_snapshot()
+    app.run()
     assert disk_snapshot() == before
