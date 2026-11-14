@@ -6,7 +6,20 @@ from math import isfinite
 
 from core import conditions, data, mission
 from core.config import load_environments, load_indicators, load_protocol
-from core.models import NODE_TYPES, OUTCOMES, SEVERITIES
+from core.models import NODE_TYPES, OUTCOMES, SEVERITIES, TODO_MARK
+
+
+def _require_complete(value, path: str = "protocol") -> None:
+    """Reject placeholders anywhere in a protocol before any execution effects."""
+    if isinstance(value, str) and value.startswith(TODO_MARK):
+        raise ValueError(f"{path}: still has TODO content.")
+    if isinstance(value, dict):
+        for key, child in value.items():
+            _require_complete(key, f"{path} key")
+            _require_complete(child, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            _require_complete(child, f"{path}[{index}]")
 
 
 def _remaining_wait(node: dict, episode: dict, at: datetime) -> float:
@@ -28,6 +41,7 @@ def current_step(episode: dict) -> dict:
     include response_delay_min; measure steps include their configured unit.
     """
     protocol = load_protocol(episode["problem"])
+    _require_complete(protocol)
     node_id = episode.get("current_node") or protocol["start"]
     node = {**deepcopy(protocol["nodes"][node_id]), "id": node_id}
     if node["type"] == "action":
@@ -69,6 +83,7 @@ def submit(episode: dict, user_input: dict | None) -> dict:
 
     updated = deepcopy(episode)
     protocol = load_protocol(updated["problem"])
+    _require_complete(protocol)
     updated["current_node"] = updated.get("current_node") or protocol["start"]
     updated.setdefault("vars", {})
     updated.setdefault("answers", {})
