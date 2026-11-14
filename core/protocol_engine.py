@@ -58,8 +58,9 @@ def _remaining_wait(node: dict, episode: dict, at: datetime) -> float:
 def current_step(episode: dict) -> dict:
     """Return a detached node for display, without changing or saving the episode.
 
-    Call submit(episode, None) first to process automatic nodes. Contact steps
-    include response_delay_min; measure steps include their configured unit.
+    Call submit(episode, None) first to process automatic nodes. Flight surgeon
+    contacts include response_delay_min (round-trip signal time; crew medical officer
+    contacts are on board and have none); measure steps include their configured unit.
     """
     protocol = load_protocol(episode["problem"])
     _require_complete(protocol)
@@ -74,7 +75,8 @@ def current_step(episode: dict) -> dict:
         node.setdefault("text", f"Measure {indicator['name']} ({indicator['unit']}).")
     else:
         node.setdefault("text", "")
-    if node["type"] == "contact":
+    if node["type"] == "contact" and node.get("target") == "flight_surgeon":
+        # Earth signal travel time only (#141): the crew medical officer is on board, no delay.
         delay = load_environments()[episode["environment"]]["comm_delay_min"]
         if isinstance(delay, bool) or not isinstance(delay, (int, float)) or not isfinite(delay) or delay < 0:
             raise ValueError("Contact response delay is missing or invalid in config/environments.json.")

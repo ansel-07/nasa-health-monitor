@@ -99,11 +99,12 @@ def show_practice(astronaut: str, episode: dict) -> None:
         if st.button("Continue", key=f"{key}_continue", use_container_width=True):
             advance(astronaut, episode, {"action": "continue"})
     elif kind == "action":
-        done_col, cannot_col = st.columns(2)
+        # "I can't" only when the protocol has a route for it; never a dead button.
+        can_refuse = "next_if_cannot" in step
+        done_col, cannot_col = st.columns(2) if can_refuse else (st.container(), None)
         if done_col.button("Done", key=f"{key}_done", use_container_width=True):
             advance(astronaut, episode, {"action": "done"})
-        if cannot_col.button("I can't", disabled="next_if_cannot" not in step, key=f"{key}_cannot",
-                             use_container_width=True):
+        if can_refuse and cannot_col.button("I can't", key=f"{key}_cannot", use_container_width=True):
             advance(astronaut, episode, {"action": "cannot"})
     elif kind == "measure":
         with st.form(f"{key}_measure"):

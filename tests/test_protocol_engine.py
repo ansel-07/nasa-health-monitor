@@ -68,6 +68,14 @@ def test_contact_shows_round_trip_delay(episode, monkeypatch, environment, delay
     assert engine.current_step(episode)["response_delay_min"] == expected
 
 
+@pytest.mark.parametrize("delay", [22, "TODO_EDU", None])
+def test_local_medical_officer_contact_has_no_earth_delay(episode, monkeypatch, delay):
+    # #141: on-board contact, so no signal delay, and a missing Earth delay does not block it.
+    monkeypatch.setattr(engine, "load_environments", lambda: {"mars": {"comm_delay_min": delay}})
+    episode["current_node"] = "contact_crew"
+    assert "response_delay_min" not in engine.current_step(episode)
+
+
 def test_initial_decision_uses_shared_evaluator_and_full_context(episode, monkeypatch):
     check = Mock(side_effect=[False, True])
     monkeypatch.setattr(engine.conditions, "check", check)

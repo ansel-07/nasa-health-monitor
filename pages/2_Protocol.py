@@ -146,7 +146,11 @@ def main() -> None:
         if kind == "contact":
             targets = {"crew_medical_officer": "Crew medical officer", "flight_surgeon": "Flight surgeon"}
             st.write(f"Contact: {targets[step['target']]}")
-            st.caption(f"Estimated response delay: {format_delay(step['response_delay_min'])}.")
+            if "response_delay_min" in step:   # Earth contact: round-trip signal time only (#141)
+                st.caption(f"Signal round trip to Earth: {format_delay(step['response_delay_min'])}. "
+                           "A clinical answer can take longer.")
+            else:
+                st.caption("On board: no Earth signal delay.")
         if st.button("Continue", key=f"{key}_continue"):
             advance(episode, {"action": "continue"})
     elif kind == "action":
@@ -155,10 +159,12 @@ def main() -> None:
             st.info(f"Wait remaining: {remaining:.2f} mission minutes.")
             if st.button("Refresh wait", key=f"{key}_refresh"):
                 st.rerun()
-        done_col, cannot_col = st.columns(2)
-        if done_col.button("Done", disabled=remaining > 0, key=f"{key}_done"):
+        # "I can't" only when the protocol has a route for it; never a dead button.
+        can_refuse = "next_if_cannot" in step
+        done_col, cannot_col = st.columns(2) if can_refuse else (st.container(), None)
+        if done_col.button("Done", disabled=remaining > 0, key=f"{key}_done", use_container_width=True):
             advance(episode, {"action": "done"})
-        if cannot_col.button("I can't", disabled="next_if_cannot" not in step, key=f"{key}_cannot"):
+        if can_refuse and cannot_col.button("I can't", key=f"{key}_cannot", use_container_width=True):
             advance(episode, {"action": "cannot"})
     elif kind == "measure":
         with st.form(f"{key}_measure"):
