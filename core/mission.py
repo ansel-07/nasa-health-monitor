@@ -25,7 +25,7 @@ def _start() -> datetime:
 
 def now() -> datetime:
     """Current simulated mission time."""
-    path = models.MISSION_STATE_FILE
+    path = models.data_file(models.MISSION_STATE_FILE)
     if not path.exists() or path.stat().st_size == 0:
         return _start()
     with path.open(encoding="utf-8") as f:
@@ -34,7 +34,7 @@ def now() -> datetime:
 
 def _save(moment: datetime) -> None:
     """Write the clock safely: temporary file first, then replace the old one."""
-    path = models.MISSION_STATE_FILE
+    path = models.data_file(models.MISSION_STATE_FILE)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".mission-", suffix=".tmp")
     try:
