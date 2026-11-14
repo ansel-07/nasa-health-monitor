@@ -66,7 +66,8 @@ def current_step(episode: dict) -> dict:
     node_id = episode.get("current_node") or protocol["start"]
     node = {**deepcopy(protocol["nodes"][node_id]), "id": node_id}
     if node["type"] == "action":
-        node["remaining_wait_min"] = _remaining_wait(node, episode, mission.now())
+        # Practice runs do not wait: no mission time passes in a tutorial (AGENTS.md 16.4).
+        node["remaining_wait_min"] = 0.0 if episode.get("practice") else _remaining_wait(node, episode, mission.now())
     if node["type"] == "measure":
         indicator = load_indicators()[node["indicator"]]
         node["unit"] = indicator["unit"]
@@ -100,6 +101,11 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     suppressed, other problems go to pending, even if this submit then ends.
     Only newly accepted readings are routed; submit(None) never replays one.
     The caller must use the returned episode on subsequent submissions.
+
+    Practice mode (tutorials, AGENTS.md 16.4): if episode["practice"] is true the
+    same flow runs in memory only. Nothing is saved: no episode, no measurement,
+    no detection. Measured values only go to vars and the decision context, and
+    action waits are not enforced. Symptom levels still come from stored data.
     """
     if episode["status"] in OUTCOMES:
         return deepcopy(episode)
@@ -109,6 +115,7 @@ def submit(episode: dict, user_input: dict | None) -> dict:
         raise ValueError("Protocol input must be a dictionary or None.")
 
     updated = deepcopy(episode)
+    practice = bool(updated.get("practice"))
     protocol = load_protocol(updated["problem"])
     _require_complete(protocol)
     var_indicators = _var_indicators(protocol)
@@ -159,7 +166,7 @@ def submit(episode: dict, user_input: dict | None) -> dict:
             break
         else:
             if kind == "action":
-                remaining = _remaining_wait({**node, "id": node_id}, updated, at)
+                remaining = 0.0 if practice else _remaining_wait({**node, "id": node_id}, updated, at)
                 if remaining > 0:
                     log = updated["log"]
                     if not log or log[-1]["node"] != node_id or log[-1]["input"] != "wait_started":
@@ -197,15 +204,16 @@ def submit(episode: dict, user_input: dict | None) -> dict:
                 unit = indicator["unit"]
                 if unit.startswith("TODO"):
                     raise ValueError("Measurement unit is still TODO in config/indicators.json.")
-                # Detection suppresses the problem of the astronaut's open episode, so
-                # that stored episode must be this one; otherwise it could reopen it.
-                stored_open = data.get_open_episode(updated["astronaut"])
-                if not stored_open or stored_open["id"] != updated["id"]:
-                    raise ValueError("This episode is not the astronaut's open episode in storage.")
-                episodes.on_new_measurement({
-                    "timestamp": timestamp, "astronaut": updated["astronaut"],
-                    "indicator": node["indicator"], "value": value, "unit": unit,
-                    "phase": "mission", "source": "protocol"}, updated["environment"])
+                if not practice:
+                    # Detection suppresses the problem of the astronaut's open episode, so
+                    # that stored episode must be this one; otherwise it could reopen it.
+                    stored_open = data.get_open_episode(updated["astronaut"])
+                    if not stored_open or stored_open["id"] != updated["id"]:
+                        raise ValueError("This episode is not the astronaut's open episode in storage.")
+                    episodes.on_new_measurement({
+                        "timestamp": timestamp, "astronaut": updated["astronaut"],
+                        "indicator": node["indicator"], "value": value, "unit": unit,
+                        "phase": "mission", "source": "protocol"}, updated["environment"])
                 updated["vars"][node["save_as"]] = value
                 latest[node["indicator"]] = value
                 recorded_input = value
@@ -216,7 +224,8 @@ def submit(episode: dict, user_input: dict | None) -> dict:
         updated["log"].append({"at": timestamp, "node": node_id, "input": recorded_input})
         updated["current_node"] = target
 
-    data.save_episode(updated)
+    if not practice:
+        data.save_episode(updated)
     return updated
 
 
