@@ -206,7 +206,8 @@ def on_new_measurement(measurement: dict, environment: str) -> dict | None:
     m = _measurement(measurement, now)
     stored = data.load_episodes()
     opened = _open(stored, m["astronaut"])
-    matches = triggers.evaluate(m, environment)
+    matches = [match for match in triggers.evaluate(m, environment)
+               if triggers._measurement_supports_match(m, environment, match)]
     # Replaying the evidence that originally opened an episode must not reopen it.
     matches = [match for match in matches if not any(
         e["astronaut"] == m["astronaut"] and e["problem"] == match["problem"]
@@ -269,7 +270,9 @@ def confirm(episode_id: str, measurement: dict) -> dict:
     else:
         updated.update(status="dismissed", closed_at=now.isoformat())
     pending = data.load_pending()
-    new_pending = _pending_items(pending, matches, m, episode["problem"])
+    supported = [item for item in matches if item["problem"] != episode["problem"]
+                 and triggers._measurement_supports_match(m, episode["environment"], item)]
+    new_pending = _pending_items(pending, supported, m, episode["problem"])
     _save_measurement_once(m)
     data.save_episode(updated)
     if new_pending != pending:
