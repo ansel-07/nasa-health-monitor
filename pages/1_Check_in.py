@@ -168,13 +168,14 @@ def main() -> None:
                 st.caption(f"For the demo, Simulate wait advances mission time by {hours} hour(s).")
                 if st.button("Simulate wait", disabled=blocked, width="stretch"):
                     try:
-                        new_measurements = mission.advance(hours=hours)
+                        mission.advance_and_detect(hours=hours, environment=environment)
                         if mission.now() <= now:
                             raise ValueError("The mission clock did not advance. The confirmation wait is still pending.")
-                        for new_measurement in new_measurements:
-                            episodes.on_new_measurement(new_measurement, environment)
                     except (ValueError, KeyError, OSError) as error:
-                        report("error", str(error))
+                        text = str(error)
+                        if mission.now() > now:
+                            text = "Mission time advanced, but detection could not finish. " + text
+                        report("error", text)
                     report("info", "Mission time advanced. Check the remaining wait before repeating the measurement.")
 
     version_key = f"check_in_form_version:{astronaut}:{environment}"
