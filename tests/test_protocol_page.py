@@ -127,6 +127,15 @@ def test_contact_displays_configured_delay_and_finishes(context, monkeypatch):
     assert app.success[0].value == "Protocol completed: Handed over"
 
 
+def test_zero_contact_delay_is_valid(context, monkeypatch):
+    context["episode"].update(current_node="contact_now", environment="iss")
+    monkeypatch.setattr(protocol_engine, "load_environments", lambda: {"iss": {"comm_delay_min": 0}})
+    app = page()
+    assert not app.error
+    assert any("0 minutes" in item.value for item in app.caption)
+    assert button(app, "Continue")
+
+
 def test_cannot_during_wait_routes_to_crew(context, monkeypatch):
     context["episode"]["current_node"] = "do_action"
     monkeypatch.setattr(protocol_engine, "load_environments", lambda: {"mars": {"comm_delay_min": 7}})
@@ -138,7 +147,10 @@ def test_cannot_during_wait_routes_to_crew(context, monkeypatch):
     assert context["episode"]["status"] == "monitoring"
 
 
-def test_missing_contact_delay_blocks_controls(context):
+@pytest.mark.parametrize("mars", [{"comm_delay_min": "TODO_EDU"}, {}])
+def test_missing_contact_delay_blocks_controls(context, monkeypatch, mars):
+    # Fixture environments, so the test does not depend on the real values in config/.
+    monkeypatch.setattr(protocol_engine, "load_environments", lambda: {"mars": mars})
     context["episode"]["current_node"] = "contact_now"
     app = page()
     assert app.error

@@ -45,12 +45,20 @@ def test_optional_measure_text(episode, monkeypatch):
     assert engine.current_step(episode)["text"].startswith("Measure Example indicator")
 
 
-def test_contact_requires_configured_delay(episode, monkeypatch):
+@pytest.mark.parametrize("delay", ["TODO_EDU", None, -1, float("nan"), True])
+def test_contact_requires_configured_delay(episode, monkeypatch, delay):
+    # Fixture environments, so the test does not depend on the real values in config/.
+    monkeypatch.setattr(engine, "load_environments", lambda: {"mars": {"comm_delay_min": delay}})
     episode["current_node"] = "contact_now"
     with pytest.raises(ValueError, match="delay"):
         engine.current_step(episode)
-    monkeypatch.setattr(engine, "load_environments", lambda: {"mars": {"comm_delay_min": 7}})
-    assert engine.current_step(episode)["response_delay_min"] == 14
+
+
+@pytest.mark.parametrize("environment,delay,expected", [("mars", 7, 14), ("iss", 0, 0), ("moon", 1.27 / 60, 2 * 1.27 / 60)])
+def test_contact_shows_round_trip_delay(episode, monkeypatch, environment, delay, expected):
+    monkeypatch.setattr(engine, "load_environments", lambda: {environment: {"comm_delay_min": delay}})
+    episode.update(current_node="contact_now", environment=environment)
+    assert engine.current_step(episode)["response_delay_min"] == expected
 
 
 def test_initial_decision_uses_shared_evaluator_and_full_context(episode, monkeypatch):
