@@ -293,7 +293,7 @@ def test_missing_baseline_cannot_dismiss_original_problem(state):
     with pytest.raises(ValueError, match="baseline"):
         repeat(state, initial)
     assert data.load_episodes() == [initial]
-    assert len(data.load_measurements()) == 1
+    assert len(data.load_measurements()) == 2
 
 
 @pytest.mark.parametrize("z,status", [(3, "active"), (0, "dismissed")])
@@ -361,6 +361,42 @@ def test_true_any_branch_allows_confirmation_despite_missing_baseline(state):
         {"indicator": "x", "above": 10}, {"indicator": "x", "z_above": 2},
     ]}}]
     assert repeat(state, initial)["status"] == "active"
+
+
+@pytest.mark.parametrize("symptoms", [False, True])
+@pytest.mark.parametrize("baseline", [None, {"mean": 10, "std": 0, "n": 3},
+                                     {"mean": 10, "std": 2, "n": 1}])
+def test_unevaluable_metric_repeat_is_retained_without_dismissing_or_consuming_pending(state, monkeypatch, symptoms, baseline):
+    clock, problems = state
+    initial = open_episode(state)
+    cond = {"indicator": "x", "metric": "baseline_delta", "above": 5}
+    if symptoms:
+        problems["problem_a"] = {"confirm_wait_min": 5,
+            "symptoms": {"reading": {"levels": [{"level": "concern", "when": cond}]}},
+            "states": [{"state": "watch", "when": {"symptom": "reading", "level_at_least": "watch"}}]}
+    else:
+        problems["problem_a"]["triggers"] = [{"severity": "mild", "when": cond}]
+    monkeypatch.setattr(data, "get_baseline", lambda *args: baseline)
+    pending = [{"astronaut": "a2", "problem": "other"}]
+    data.save_pending(pending)
+    clock[0] += timedelta(minutes=5)
+    m = measurement(clock, value=0)
+    for _ in range(2):
+        with pytest.raises(ValueError, match="Repeat measurement recorded.*baseline"):
+            episodes.confirm(initial["id"], m)
+    assert data.load_episodes() == [initial]
+    assert data.load_pending() == pending
+    assert len(data.load_measurements()) == 2
+
+
+@pytest.mark.parametrize("value,status", [(14, "dismissed"), (16, "active")])
+def test_metric_confirmation_with_valid_baseline(state, monkeypatch, value, status):
+    _, problems = state
+    initial = open_episode(state)
+    problems["problem_a"]["triggers"] = [{"severity": "mild", "when": {
+        "indicator": "x", "metric": "baseline_delta", "above": 5}}]
+    monkeypatch.setattr(data, "get_baseline", lambda *args: {"mean": 10, "std": 2, "n": 3})
+    assert repeat(state, initial, value=value)["status"] == status
 
 
 @pytest.mark.parametrize("extra", [

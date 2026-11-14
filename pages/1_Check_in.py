@@ -10,7 +10,7 @@ from math import ceil, isfinite
 
 import streamlit as st
 
-from core import charts, config, data, episodes, mascot, mission
+from core import charts, config, data, episodes, mascot, mission, triggers
 
 
 def _unfinished(value) -> bool:
@@ -76,7 +76,7 @@ def main() -> None:
         st.error("Check-in submissions are unavailable: problem names, detection rules or confirmation waits are unfinished.")
 
     feedback_key = f"check_in_feedback:{astronaut}:{environment}"
-    feedback = st.session_state.get(feedback_key)
+    feedback = st.session_state.pop(feedback_key, None)
     message, mood = "Choose an indicator and record a new measurement.", "neutral"
     if opened:
         problem_name = problems[opened["problem"]]["name"]
@@ -90,8 +90,8 @@ def main() -> None:
         message, mood = "Check-in submissions are unavailable until the measurement configuration is complete.", "serious"
     if feedback:
         getattr(st, feedback["level"])(feedback["text"])
-        message = feedback["text"]
-        mood = "worried" if feedback["level"] == "error" else mood
+        if feedback["level"] == "error":
+            message, mood = feedback["text"], "worried"
 
     def report(level: str, text: str) -> None:
         st.session_state[feedback_key] = {"level": level, "text": text}
@@ -111,6 +111,13 @@ def main() -> None:
             key=f"check_in_indicator:{astronaut}:{environment}",
         )
     indicator = indicators[indicator_id]
+    assessment_environment = opened["environment"] if confirmation else environment
+    issues = [] if blocked else triggers._assessment_issues(problems, astronaut, indicator_id, assessment_environment)
+    if issues:
+        for issue in issues:
+            st.warning(issue)
+        if not feedback or feedback["level"] != "error":
+            message, mood = " ".join(issues) + " Any open alert still needs its next step.", "worried"
     if any(_unfinished(indicator.get(key)) for key in ("name", "unit", "how_to_measure", "why_it_matters")):
         message, mood = "Measurement guidance is not available yet. This indicator cannot be submitted.", "serious"
     chart_col, mascot_col = st.columns([4, 1])
@@ -194,10 +201,13 @@ def main() -> None:
                 result = episodes.on_new_measurement(m, environment)
                 text = ("Measurement recorded. No alert was opened." if result is None
                         else "Measurement recorded. Review the open alert and its next step on this page.")
+            issues = triggers._assessment_issues(problems, astronaut, indicator_id, assessment_environment)
+            if issues:
+                text = "Measurement recorded. Assessment is incomplete. " + " ".join(issues)
         except (ValueError, KeyError, OSError) as error:
             report("error", str(error))
         st.session_state[version_key] = version + 1
-        report("success", text)
+        report("warning" if issues else "success", text)
 
     pending = [item for item in episodes.get_pending(astronaut) if item["problem"] in problems]
     if pending:

@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from core import config, data, mascot, mission, models
+from core import config, data, episodes, mascot, mission, models, protocol_engine
 
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
@@ -172,4 +172,95 @@ def test_next_pending_starts_fresh_wait_and_reveals_only_new_rows(mission_worksp
     assert len(stored_rows()) == count + 1
     before = disk_snapshot()
     screen()
+    assert disk_snapshot() == before
+
+
+@pytest.mark.parametrize("confirmation", [False, True])
+def test_missing_baseline_keeps_reading_and_shows_incomplete_assessment(mission_workspace, confirmation):
+    app = screen()
+    initial = None
+    if confirmation:
+        app, initial = record_and_wait()
+    # Remove this indicator's reference only, retaining the other indicator's rows.
+    rows = [row for row in stored_rows() if not (row["indicator"] == "x" and row["phase"] == "preflight")]
+    with models.MEASUREMENTS_FILE.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=models.MEASUREMENT_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+    path = config.CONFIG_DIR / "problems.json"
+    problems = json.loads(path.read_text(encoding="utf-8"))
+    problems["synthetic_a"]["symptoms"]["reading"]["levels"] = [
+        {"level": "concern", "when": {"indicator": "x", "metric": "baseline_delta", "above": 5}}]
+    path.write_text(json.dumps(problems), encoding="utf-8")
+    app.run()
+    assert any("Cannot evaluate x: no valid pre-flight baseline" in item.value for item in app.warning)
+    count = len(stored_rows())
+    app.number_input[0].set_value(0)
+    button(app, "Confirm repeat measurement" if confirmation else "Record measurement").click().run()
+    assert not app.exception
+    assert len(stored_rows()) == count + 1
+    assert not app.success
+    if confirmation:
+        assert "Repeat measurement recorded" in app.error[0].value
+        assert data.get_open_episode("a1") == initial
+    else:
+        assert any("Assessment is incomplete" in item.value for item in app.warning)
+        assert data.get_open_episode("a1") is None
+    before = disk_snapshot()
+    app.run()
+    assert not app.exception
+    assert disk_snapshot() == before
+    assert any("Cannot evaluate x" in item.value for item in app.warning)
+
+
+def test_new_mission_alert_replaces_previous_no_alert_feedback(mission_workspace, monkeypatch):
+    speech = []
+    monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))
+    app = screen()
+    app.number_input[0].set_value(0)
+    button(app, "Record measurement").click().run()
+    assert "No alert was opened" in app.success[0].value
+
+    for measurement in mission.advance(hours=1):
+        episodes.on_new_measurement(measurement, "mars")
+    before = disk_snapshot()
+    app.run()
+
+    assert not app.exception
+    assert not app.success
+    assert "needs a repeat measurement" in speech[-1]
+    assert button(app, "Confirm repeat measurement").disabled
+    assert data.get_open_episode("a1")["problem"] == "synthetic_b"
+    assert disk_snapshot() == before
+
+
+@pytest.mark.parametrize("finish", ["protocol", "reset"])
+def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_workspace, monkeypatch, finish):
+    speech = []
+    monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))
+    app, _ = record_and_wait()
+    assert "needs a repeat measurement" in speech[-1]
+    app.number_input[0].set_value(16)
+    button(app, "Confirm repeat measurement").click().run()
+    assert "alert is confirmed" in app.success[0].value
+    assert speech[-1] == "Your alert is confirmed. Open Protocol to continue with the guided steps."
+
+    if finish == "protocol":
+        result = protocol_engine.submit(data.get_open_episode("a1"), {"action": "continue"})
+        assert result["status"] == "resolved"
+    else:
+        seed = mission_workspace / "seed"
+        seed.mkdir()
+        (seed / "episodes.json").write_text(json.dumps({"episodes": [], "pending": []}), encoding="utf-8")
+        monkeypatch.setattr(models, "DATA_DIR", mission_workspace)
+        monkeypatch.setattr(models, "SEED_DIR", seed)
+        data.reset_demo()
+    before = disk_snapshot()
+    app.run()
+
+    assert not app.exception
+    assert data.get_open_episode("a1") is None
+    assert not app.success
+    assert all(item.label != "Open Protocol" for item in app.button)
+    assert speech[-1] == "Choose an indicator and record a new measurement."
     assert disk_snapshot() == before

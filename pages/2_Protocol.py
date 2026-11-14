@@ -31,6 +31,17 @@ def advance(episode: dict, response: dict) -> None:
     st.rerun()
 
 
+def format_delay(minutes: float) -> str:
+    """Readable response delay: seconds under one minute (e.g. the Moon), minutes above."""
+    seconds = round(minutes * 60)
+    if seconds < 1:
+        return "less than 1 second"
+    if seconds < 60:
+        return f"about {seconds} second{'s' if seconds != 1 else ''}"
+    rounded = round(minutes, 1)
+    return f"{rounded:g} minute{'s' if rounded != 1 else ''}"
+
+
 def show_result(episode: dict, step: dict, astronaut: str) -> None:
     mascot.say(step["text"], "neutral", size="large")
     labels = {"resolved": "Resolved", "monitoring": "Monitoring", "handed_over": "Handed over"}
@@ -46,7 +57,7 @@ def main() -> None:
     astronaut = st.session_state.get("astronaut")
     if not astronaut:
         mascot.say("Choose an astronaut on the Home page first.", "neutral", size="large")
-        st.page_link("app.py", label="Go to Home")
+        st.page_link("pages/0_Home.py", label="Go to Home")
         return
 
     episode = data.get_open_episode(astronaut)
@@ -96,7 +107,7 @@ def main() -> None:
         if kind == "contact":
             targets = {"crew_medical_officer": "Crew medical officer", "flight_surgeon": "Flight surgeon"}
             st.write(f"Contact: {targets[step['target']]}")
-            st.caption(f"Estimated response delay: {step['response_delay_min']:g} minutes.")
+            st.caption(f"Estimated response delay: {format_delay(step['response_delay_min'])}.")
         if st.button("Continue", key=f"{key}_continue"):
             advance(episode, {"action": "continue"})
     elif kind == "action":

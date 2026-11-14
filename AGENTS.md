@@ -21,7 +21,7 @@ The app **guides, it does not diagnose**.
 |---|---|---|
 | Gonzalo | Product, coordination and testing (does not code) | User stories, UI texts, demo story, test issues |
 | Edu | Science and health | Every health value, rule, protocol and source in `config/` |
-| Ansel | Architecture, integration and mascot | Repo, contracts, reviews and merges, `app.py`, `core/models.py`, `core/config.py`, `core/mascot.py` |
+| Ansel | Architecture, integration and mascot | Repo, contracts, reviews and merges, `app.py`, `pages/0_Home.py`, `core/models.py`, `core/config.py`, `core/mascot.py` |
 | Fran | Data and trends | `core/data.py`, `core/mission.py`, `core/charts.py`, `pages/3_Trends.py`, data generator |
 | Juan Carlos | Detection | `core/conditions.py`, `core/triggers.py`, `core/episodes.py`, `pages/1_Check_in.py` |
 | Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py` |
@@ -32,7 +32,7 @@ The app **guides, it does not diagnose**.
 - Always work inside the project virtual environment (`.venv`). Use Python 3.12: newer versions (3.14) may fail to install some packages.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
-- Multipage Streamlit app: `app.py` + `pages/`.
+- Multipage Streamlit app: `app.py` is the entry point and only sets the navigation (`st.navigation`); every screen is a file in `pages/`. **A new page must be added to the list in `app.py`**, or it will not appear.
 - Mascot: SVG/CSS/JS inside `streamlit.components.v1.html`. No image files, no external services.
 
 ## 4. Repository layout and owners
@@ -40,7 +40,8 @@ The app **guides, it does not diagnose**.
 Each file has **one owner**. Only change files you were asked to change. If you need something from a file you do not own, use the contract in section 7 and, if it is not implemented yet, call the stub that is already there.
 
 ```
-app.py                      Ansel        Home ("login"): pick astronaut and environment, mascot greeting, Reset demo
+app.py                      Ansel        Entry point: page config and navigation (sidebar names); things shown on every screen
+pages/0_Home.py             Ansel        Home ("login"): pick astronaut and environment, mascot greeting, Reset demo
 pages/1_Check_in.py         Juan Carlos  Measurement form, trigger alert, confirmation step (with mascot)
 pages/2_Protocol.py         Javi         Active protocol, step by step (with mascot)
 pages/3_Trends.py           Fran         History charts with colour bands and personal baseline (no mascot)
@@ -232,7 +233,7 @@ submit(episode: dict, user_input: dict | None) -> dict
 # stores measurements (source="protocol"), updates severity, closes on `end`, saves the episode.
 ```
 
-Streamlit session state (created by `app.py`): `st.session_state["astronaut"]`, `st.session_state["environment"]`, `st.session_state["voice_on"]`.
+Streamlit session state (created by the Home, `pages/0_Home.py`): `st.session_state["astronaut"]`, `st.session_state["environment"]`, `st.session_state["voice_on"]`.
 
 ## 8. The mascot
 
@@ -289,7 +290,7 @@ For symptom-based problems, `decision` nodes can also branch on symptom levels (
 - **Small changes.** One feature or fix per request. Do not rewrite whole files. Do not reorganise the project.
 - **Keep the contracts** in section 7. Do not rename functions, parameters, JSON keys or CSV columns.
 - Runtime data is read and written **only by `core/data.py` and `core/mission.py`, through `models.data_file()`** (section 5.5).
-- Pages (`app.py`, `pages/`) **never read or write files directly**: they only call `core/`. Charts come from `core/charts.py`, the mascot from `core/mascot.py`.
+- Pages (`app.py` and `pages/`) **never read or write files directly**: they only call `core/`. Charts come from `core/charts.py`, the mascot from `core/mascot.py`.
 - No new libraries, no new top-level folders, no secrets or API keys in the code.
 - Add a test in `tests/` when you add logic in `core/`. Keep `python -m pytest` green.
 - **Mark AI-generated code.** Every new file starts with a header comment: `# AI-assisted: generated with <tool> and reviewed by <person>.` (NASA Space Apps requires AI-generated code to be acknowledged in text and metadata).
