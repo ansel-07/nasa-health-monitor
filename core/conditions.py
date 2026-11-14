@@ -3,15 +3,21 @@
 
 Condition language: AGENTS.md, section 6.
 ctx = {"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}}
+Numeric indicator and variable conditions also accept at_least (>=) and
+at_most (<=). These compare raw values, not percentages, baseline deltas or z-scores.
 """
 from math import isfinite
 from numbers import Real
+from operator import ge, gt, le, lt
 
 from core import data
 from core.models import SEVERITIES, severity_rank
 
 
-_COMPARISONS = {"above", "below", "z_above", "z_below"}
+_COMPARISONS = {
+    "above": gt, "below": lt, "at_least": ge, "at_most": le,
+    "z_above": gt, "z_below": lt,
+}
 
 
 def _is_number(value) -> bool:
@@ -37,7 +43,7 @@ def _validate(cond: dict) -> None:
             return
     if "indicator" in cond or "var" in cond:
         selectors = keys & {"indicator", "var"}
-        comparisons = keys & _COMPARISONS
+        comparisons = keys & _COMPARISONS.keys()
         if len(selectors) != 1 or not comparisons or keys != selectors | comparisons:
             raise ValueError("Use one indicator or var with numeric comparisons only.")
         _validate_name(cond[next(iter(selectors))])
@@ -82,19 +88,17 @@ def _evaluate(cond: dict, ctx: dict) -> bool:
         if not _is_number(value):
             return False
         z = None
-        if _COMPARISONS.intersection(cond) & {"z_above", "z_below"}:
+        comparisons = _COMPARISONS.keys() & cond.keys()
+        if comparisons & {"z_above", "z_below"}:
             astronaut = ctx.get("astronaut")
             if not astronaut:
                 return False
             z = data.z_score(astronaut, name, value)
             if not _is_number(z):
                 return False
-        for operator in _COMPARISONS.intersection(cond):
+        for operator in comparisons:
             actual = z if operator.startswith("z_") else value
-            if operator.endswith("above"):
-                if not actual > cond[operator]:
-                    return False
-            elif not actual < cond[operator]:
+            if not _COMPARISONS[operator](actual, cond[operator]):
                 return False
         return True
     if "severity_is" in cond or "severity_at_least" in cond:
