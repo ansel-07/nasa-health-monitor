@@ -126,3 +126,25 @@ def test_unknown_data_is_allowed_when_it_cannot_change_state(symptom_state):
     problem["symptoms"]["b"]["levels"][0]["when"] = {"indicator": "y", "z_above": 2}
     clock[0] += timedelta(minutes=5)
     assert episodes.confirm(initial["id"], measurement(clock))["severity"] == "watch"
+
+
+def test_normal_repeat_is_dismissed_even_when_another_symptom_stays_positive(symptom_state):
+    clock, _ = symptom_state
+    initial = episodes.on_new_measurement(measurement(clock), "mars")
+    clock[0] += timedelta(minutes=5)
+    data.add_measurement(measurement(clock, indicator="y", value=20))
+    assert episodes.confirm(initial["id"], measurement(clock, value=0))["status"] == "dismissed"
+
+
+def test_unknown_repeat_baseline_cannot_be_dismissed_by_another_known_positive(symptom_state):
+    clock, problems = symptom_state
+    initial = episodes.on_new_measurement(measurement(clock), "mars")
+    clock[0] += timedelta(minutes=5)
+    data.add_measurement(measurement(clock, indicator="y", value=20))
+    problem = problems["synthetic"]
+    problem["states"] = [problem["states"][1]]
+    problem["symptoms"]["a"]["levels"] = [
+        {"level": "watch", "when": {"indicator": "x", "metric": "baseline_delta", "above": 5}}]
+    with pytest.raises(ValueError, match="baseline"):
+        episodes.confirm(initial["id"], measurement(clock, value=0))
+    assert data.get_open_episode("a1") == initial
