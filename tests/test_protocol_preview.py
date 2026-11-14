@@ -122,3 +122,14 @@ def test_visualizer_marks_final_node_after_completion():
     graph = app.get("graphviz_chart")[0].proto.spec
     assert "FINAL | handed_over" in graph
     assert "CURRENT |" not in graph
+
+
+def test_starting_severity_offers_the_previewed_problem_states(monkeypatch):
+    from scripts import preview_protocol as sandbox
+    protocol = sandbox.fixture_protocol()
+    assert sandbox.severity_options(protocol) == ["mild", "moderate", "severe"]
+    assert select(preview(), "Starting severity").options == ["mild", "moderate", "severe"]
+    protocol["nodes"]["escalate"]["severity"] = "medical_urgency"
+    protocol["nodes"]["route"]["branches"][0]["if"] = {"severity_is": "medical_urgency"}
+    monkeypatch.setattr(config, "load_problems", lambda include_examples=False: {"_example": {"symptoms": {}}})
+    assert sandbox.severity_options(protocol) == ["watch", "medical_urgency"]

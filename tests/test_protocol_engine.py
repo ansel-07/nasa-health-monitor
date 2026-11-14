@@ -24,7 +24,11 @@ def dependencies(monkeypatch):
     monkeypatch.setattr(engine.data, "add_measurement", measured)
     monkeypatch.setattr(engine.data, "latest_values", lambda astronaut: {"heart_rate": 60})
     monkeypatch.setattr(engine.mission, "now", lambda: datetime(2027, 4, 10, 8))
+    monkeypatch.setattr(engine.triggers, "symptom_levels", Mock(return_value=dict(SYMPTOMS_NONE)))
     return saved, measured
+
+
+SYMPTOMS_NONE = {"symptom_a": "not_present", "symptom_b": "not_present"}
 
 
 def test_current_step_is_detached_and_uses_start(episode):
@@ -61,7 +65,8 @@ def test_initial_decision_uses_shared_evaluator_and_full_context(episode, monkey
     ctx = check.call_args.args[1]
     assert ctx == {"astronaut": "a1", "environment": "mars", "severity": "moderate",
                    "vars": {}, "answers": {}, "latest": {"heart_rate": 60},
-                   "var_indicators": {"value_after": "_example_indicator"}}
+                   "var_indicators": {"value_after": "_example_indicator"}, "symptoms": SYMPTOMS_NONE}
+    engine.triggers.symptom_levels.assert_called_with("_example", "a1", "mars")
     assert episode["current_node"] is None
 
 
@@ -297,3 +302,68 @@ def test_todo_in_nested_branch_is_rejected_before_execution(episode, monkeypatch
     assert episode == before
     for mock in dependencies:
         mock.assert_not_called()
+
+
+# Symptom-based problems (AGENTS.md 5.3 and 9): synthetic protocols, real condition evaluator.
+def symptom_protocol(start: str = "route") -> dict:
+    return {"problem": "_example", "start": start, "nodes": {
+        "measure": {"type": "measure", "indicator": "_example_indicator", "save_as": "value_after",
+                    "next": "route"},
+        "route": {"type": "decision", "default": "keep_watching", "branches": [
+            {"if": {"symptom": "symptom_a", "level_at_least": "concern"}, "next": "escalate"}]},
+        "escalate": {"type": "set_severity", "severity": "medical_urgency", "next": "handover"},
+        "handover": {"type": "end", "outcome": "handed_over", "text": "Synthetic handover."},
+        "keep_watching": {"type": "end", "outcome": "monitoring", "text": "Synthetic monitoring."}}}
+
+
+@pytest.mark.parametrize("level,severity,outcome", [
+    ("concern", "medical_urgency", "handed_over"), ("watch", "watch", "monitoring"),
+    ("not_present", "watch", "monitoring")])
+def test_decision_branches_on_symptom_level_and_sets_problem_state(episode, monkeypatch, level, severity, outcome):
+    monkeypatch.setattr(engine, "load_protocol", lambda _: symptom_protocol())
+    monkeypatch.setattr(engine.triggers, "symptom_levels", Mock(return_value={**SYMPTOMS_NONE, "symptom_a": level}))
+    episode.update(severity="watch", severity_initial="watch")
+    updated = engine.submit(episode, None)
+    assert (updated["severity"], updated["status"], updated["outcome"]) == (severity, outcome, outcome)
+    assert updated["severity_initial"] == "watch"
+
+
+def test_symptom_levels_are_recomputed_after_a_new_measurement(episode, monkeypatch, dependencies):
+    saved, measured = dependencies
+    monkeypatch.setattr(engine, "load_protocol", lambda _: symptom_protocol(start="measure"))
+
+    def levels(problem, astronaut, environment):
+        # The reading must already be stored, since symptom_levels reads the latest values.
+        assert measured.call_count == 1
+        return {**SYMPTOMS_NONE, "symptom_a": "concern"}
+
+    monkeypatch.setattr(engine.triggers, "symptom_levels", Mock(side_effect=levels))
+    episode.update(severity="watch", severity_initial="watch")
+    updated = engine.submit(episode, {"value": 25})
+    engine.triggers.symptom_levels.assert_called_once_with("_example", "a1", "mars")
+    assert updated["severity"] == "medical_urgency"
+    saved.assert_called_once_with(updated)
+
+
+@pytest.mark.parametrize("problem,severity", [
+    ({"triggers": []}, "medical_urgency"), ({"symptoms": {}, "states": []}, "severe")])
+def test_set_severity_uses_the_problem_vocabulary(episode, monkeypatch, dependencies, problem, severity):
+    protocol = symptom_protocol(start="escalate")
+    protocol["nodes"]["escalate"]["severity"] = severity
+    monkeypatch.setattr(engine, "load_protocol", lambda _: protocol)
+    monkeypatch.setattr(engine, "load_problems", lambda include_examples=False: {"_example": problem})
+    before = deepcopy(episode)
+    with pytest.raises(ValueError, match="severity"):
+        engine.submit(episode, None)
+    assert episode == before
+    for mock in dependencies:
+        mock.assert_not_called()
+
+
+def test_legacy_problem_decisions_get_no_symptoms(episode, monkeypatch):
+    check = Mock(return_value=False)
+    monkeypatch.setattr(engine.conditions, "check", check)
+    monkeypatch.setattr(engine, "load_problems", lambda include_examples=False: {"_example": {"triggers": []}})
+    engine.submit(episode, None)
+    assert "symptoms" not in check.call_args.args[1]
+    engine.triggers.symptom_levels.assert_not_called()
