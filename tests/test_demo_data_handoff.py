@@ -53,7 +53,7 @@ def test_documented_parameters_are_complete_and_reproducible(spec, generated):
                      | frame.indicator.str.startswith("peripapillary_trt_")]
     assert (positive.value > 0).all()
     grades = frame[frame.indicator.str.startswith("optic_disc_edema_grade_")]
-    assert (grades.value == 0).all()  # Selected no-visible-edema scenario, no fake grade noise.
+    assert (grades.value == 0).all()  # Selected grade-0 appearance, not proof that OCT edema is absent.
     endurance = frame[frame.indicator == "muscle_endurance"]
     assert (endurance.value % 1 == 0).all()
     assert (frame[frame.indicator.str.startswith("refraction_")].value < 0).all()
@@ -186,3 +186,22 @@ def test_bulk_advance_attributes_sans_to_the_abnormal_indicator(tmp_path, monkey
     episode = data.get_open_episode("a1")
     assert episode["trigger"]["indicator"] == "peripapillary_trt_left"
     assert episode["trigger"]["value"] == 360
+
+
+def test_scripted_abnormalities_preserve_eye_and_task_identity(spec, generated):
+    """Persistent scenario overrides must stay on the selected eye and force task."""
+    frame, _ = generated
+    scripted = spec["ANOMALIES"]
+    assert {(row["astronaut"], row["indicator"]) for row in scripted} == {
+        ("a1", "peripapillary_trt_left"), ("a2", "muscle_strength")}
+    assert all(1 <= row["day"] <= spec["MISSION_DAYS"] for row in scripted)
+    assert len({(row["astronaut"], row["indicator"], row["day"]) for row in scripted}) == len(scripted)
+    # Every fictional astronaut retains a separate preflight reference per eye/site.
+    preflight = frame[frame.phase == "preflight"]
+    for astronaut in preflight.astronaut.unique():
+        for prefix in ("peripapillary_trt", "refraction", "visual_acuity"):
+            eyes = [preflight[(preflight.astronaut == astronaut)
+                             & (preflight.indicator == f"{prefix}_{eye}")].value
+                    for eye in ("left", "right")]
+            assert all(len(values) == spec["PREFLIGHT_DAYS"] for values in eyes)
+            assert not np.array_equal(eyes[0].to_numpy(), eyes[1].to_numpy())

@@ -371,7 +371,7 @@ longer recovery and specialised facilities.
 | muscle_tone | Right rectus femoris at rest, fixed MyotonPRO site/posture | 16.3 / 0.4 Hz | Lukas Table 9 healthy-control dominant-side mean 16.28 Hz supports this scale; no daily variance or right-side population norm is inferred. |
 | muscle_stiffness | Same right rectus femoris site/method as tone | 294 / 8 N/m | Lukas Table 9 healthy-control dominant-side mean 294 N/m supports this scale; not a stand-alone atrophy diagnosis. |
 | peripapillary_trt_left/right | OCT BMO-to-250-micrometre annulus, separate eye references | 300 / 5 micrometres each | Existing synthetic anchor and Patel observed-scale comparison. |
-| optic_disc_edema_grade_left/right | Expert Fris?n grade, each eye separately | 0 / 0 grade each, fixed 0 | Selected absence of visible disc edema. Brunstetter 2024 reported grade 0 even with substantial TRT change. No Gaussian grade noise or invented positive SD is added. |
+| optic_disc_edema_grade_left/right | Expert Fris?n grade, each eye separately | 0 / 0 grade each, fixed 0 | Selected Fris?n grade 0 appearance; this does not establish absence of edema. Brunstetter 2024 reported grade 0 despite objective edema and substantial TRT change. No Gaussian grade noise or invented positive SD is added. |
 | refraction_left/right | Cycloplegic spherical-equivalent refraction in D, same instrument/method per eye | -1 / 0.05 D each | Brunstetter's preflight -1 D establishes a plausible mild-myopic magnitude, not a population distribution. Continuous output represents a numeric refraction estimate, not a spectacle prescription rounded to lens steps. |
 | visual_acuity_left/right | Corrected monocular computer-estimated logMAR threshold, fixed FrACT-style task/settings | 0 / 0.03 logMAR each | 0 corresponds to 20/20; a continuous threshold estimate permits hundredths and negative values (better acuity). Bach supports the method/output scale; our chosen noise is not its published limits of agreement. |
 
@@ -402,3 +402,44 @@ values and persistence are unchanged; all fourteen parameter entries are now
 present. Fran's integrated generator still supplies the earlier three-indicator
 block; expanding it and regenerating the seed remains owner integration work. The initial dataset has
 1008 rows (3 astronauts times 14 indicators times 24 observation dates).
+
+
+## 9. Accepted synthetic scope and biological interpretation
+
+Edu explicitly authorizes synthetic observations for this handoff, subject to
+biological plausibility (2026-11-14). Section 2 is the complete fourteen-indicator
+delivery; the earlier three-indicator block records the currently integrated
+version only. No new clinical threshold, advice or repeat interval is introduced.
+
+Interpret the ten dates as an observation window during an unspecified stage of
+an ongoing mission. Day 1 means the first observation revealed by this software
+scenario, not the first day after launch. Preflight rows are frozen reference
+observations; their compact storage dates do not model the elapsed time between
+preflight assessment, launch and the observation window. No launch date or onset
+duration is supplied by this dataset. The abrupt change between reference and
+first observed abnormal value is an unobserved interval, not a one-day biological
+transition. The last generated day is not a recovery endpoint.
+
+The scripted TRT and grip findings persist through the remaining window. Exact
+repetition of 360 micrometres or 390 N is a deterministic software control, not a
+claim of zero instrument noise or a literal patient time series. Stationary
+background channels and independent noise are simplifying assumptions; they do
+not imply that strength, area, power and endurance must change together across
+different muscles, or that every ocular finding must coexist. Grade 0 must not
+be narrated as proof of absent edema. A normal right-eye channel must not inherit
+a left-eye alert or reference.
+
+The source comparisons in sections 7-8 support the selected numerical scales,
+not a joint physiological model. The grip comparison describes selected adult
+profiles and is not a sex-, age- or task-independent astronaut normal range.
+The generator's noise SDs are explicitly synthetic. Do not infer diagnostic
+accuracy, disease prevalence or a false-alert rate from these fixed records.
+
+Integration acceptance: Fran copies section 2 without changing units, indicator
+order, measurement definitions or persistence, regenerates both seed and script
+data, and runs the existing generator checks plus this handoff suite. Public
+wording remains: "Synthetic demonstration data. These fictional measurements
+demonstrate the software workflow; they are not astronaut reference values or
+a validated model of physiology or disease progression." Ansel reviews/merges;
+Gonzalo owns presentation timing. The configured estimated confirmation delays
+remain a separate scientific-source task (#43).
