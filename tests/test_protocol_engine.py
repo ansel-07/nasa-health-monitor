@@ -52,12 +52,20 @@ def test_optional_measure_text(episode, monkeypatch):
     assert engine.current_step(episode)["text"].startswith("Measure Example indicator")
 
 
-def test_contact_requires_configured_delay(episode, monkeypatch):
+@pytest.mark.parametrize("delay", ["TODO_EDU", None, -1, float("nan"), True])
+def test_contact_requires_configured_delay(episode, monkeypatch, delay):
+    # Fixture environments, so the test does not depend on the real values in config/.
+    monkeypatch.setattr(engine, "load_environments", lambda: {"mars": {"comm_delay_min": delay}})
     episode["current_node"] = "contact_now"
     with pytest.raises(ValueError, match="delay"):
         engine.current_step(episode)
-    monkeypatch.setattr(engine, "load_environments", lambda: {"mars": {"comm_delay_min": 7}})
-    assert engine.current_step(episode)["response_delay_min"] == 14
+
+
+@pytest.mark.parametrize("environment,delay,expected", [("mars", 7, 14), ("iss", 0, 0), ("moon", 1.27 / 60, 2 * 1.27 / 60)])
+def test_contact_shows_round_trip_delay(episode, monkeypatch, environment, delay, expected):
+    monkeypatch.setattr(engine, "load_environments", lambda: {environment: {"comm_delay_min": delay}})
+    episode.update(current_node="contact_now", environment=environment)
+    assert engine.current_step(episode)["response_delay_min"] == expected
 
 
 def test_initial_decision_uses_shared_evaluator_and_full_context(episode, monkeypatch):
@@ -255,9 +263,11 @@ def test_reentering_timed_action_starts_new_wait(episode, monkeypatch):
         engine.submit(updated, {"action": "done"})
 
 
-@pytest.mark.parametrize("problem", ["problem_1", "problem_2"])
-def test_placeholder_protocol_cannot_close_episode(episode, dependencies, problem):
-    episode["problem"] = problem
+def test_placeholder_protocol_cannot_close_episode(episode, monkeypatch, dependencies):
+    # Same shape as an unwritten protocol, built here so no test depends on real problem ids.
+    placeholder = {"problem": "_example", "start": "todo", "nodes": {"todo": {
+        "type": "end", "outcome": "resolved", "text": "TODO_EDU: write this protocol."}}}
+    monkeypatch.setattr(engine, "load_protocol", lambda _: deepcopy(placeholder))
     before = deepcopy(episode)
     with pytest.raises(ValueError, match="TODO"):
         engine.submit(episode, None)

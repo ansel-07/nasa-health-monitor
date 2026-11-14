@@ -128,3 +128,75 @@ def test_single_value_has_a_visible_range(tmp_data):
     add("2027-04-10T08:00:00", 70)
     low, high = charts.indicator_chart("a1", "heart_rate").layout.yaxis.range
     assert low < 70 < high
+
+
+# --- Symptom-based problems (issue #37), with the _example fixture -------------------------
+
+@pytest.fixture
+def example_problems(monkeypatch):
+    """Load the _example fixture too (the app never shows it as health content)."""
+    load = charts.config.load_problems
+    monkeypatch.setattr(charts.config, "load_problems", lambda: load(include_examples=True))
+
+
+def test_example_symptom_levels_give_watch_and_concern_bands(tmp_data, example_problems):
+    bands = charts.threshold_bands("a1", "_example_indicator")
+    assert [(b["severity"], b["direction"], b["value"], b["symptom"]) for b in bands] == [
+        ("watch", "above", 10.0, "symptom_a"),
+        ("concern", "above", 30.0, "symptom_a"),
+    ]  # symptoms win over the legacy triggers of the same problem: no duplicate bands
+    assert bands[0]["label"] == "Watch · Example symptom A (test fixture)"
+
+
+def test_example_mars_only_level(tmp_data, example_problems):
+    bands = charts.threshold_bands("a1", "_example_indicator", environment="mars")
+    assert sorted((b["severity"], b["value"]) for b in bands) == [
+        ("concern", 30.0), ("watch", 5.0), ("watch", 10.0)]
+    assert len(charts.threshold_bands("a1", "_example_indicator", environment="iss")) == 2
+
+
+def test_example_second_symptom_uses_its_own_indicator(tmp_data, example_problems):
+    bands = charts.threshold_bands("a1", "_example_indicator_2")
+    assert [(b["severity"], b["value"], b["symptom"]) for b in bands] == [
+        ("watch", 10.0, "symptom_b"), ("concern", 20.0, "symptom_b")]
+
+
+def test_symptom_bands_inclusive_z_todo_and_compound(tmp_data, monkeypatch):
+    add_preflight_60_62_64()  # baseline 62 ± 2
+    problems = {"p": {"symptoms": {
+        "s1": {"name": "TODO_EDU", "levels": [
+            {"level": "concern", "when": {"indicator": "heart_rate", "at_least": 100}},
+            {"level": "watch", "when": {"indicator": "heart_rate", "z_above": 2}},
+            {"level": "watch", "when": {"indicator": "heart_rate", "at_most": 40}},
+        ]},
+        "s2": {"name": "Skipped", "levels": [
+            {"level": "watch", "when": {"indicator": "heart_rate", "above": "TODO_EDU"}},
+            {"level": "concern", "when": {"all": [{"indicator": "heart_rate", "above": 1}]}},
+            {"level": "not_present", "when": {"indicator": "heart_rate", "above": 1}},
+        ]},
+    }}}
+    monkeypatch.setattr(charts.config, "load_problems", lambda: problems)
+    bands = charts.threshold_bands("a1", "heart_rate")
+    assert [(b["severity"], b["direction"], b["value"], b["label"]) for b in bands] == [
+        ("watch", "above", 66.0, "Watch"),      # z_above 2 -> 62 + 2 * 2; TODO name -> no name
+        ("watch", "below", 40.0, "Watch"),      # at_most
+        ("concern", "above", 100.0, "Concern"),  # at_least
+    ]
+
+
+def test_chart_draws_symptom_bands_and_new_state_marks(tmp_data, example_problems):
+    data.add_measurement({"timestamp": "2027-04-10T08:00:00", "astronaut": "a1",
+                          "indicator": "_example_indicator", "value": 12, "unit": "units",
+                          "phase": "mission", "source": "manual"})
+    data.save_episode({"id": "ep-0001", "astronaut": "a1", "problem": "_example",
+                       "status": "active", "severity_initial": "medical_urgency",
+                       "trigger": {"indicator": "_example_indicator", "value": 12,
+                                   "measured_at": "2027-04-10T08:00:00"}})
+    fig = charts.indicator_chart("a1", "_example_indicator")
+    labels = {a.text for a in fig.layout.annotations}
+    assert {"Watch · Example symptom A (test fixture)",
+            "Concern · Example symptom A (test fixture)"} <= labels
+    fills = [s.fillcolor for s in fig.layout.shapes]
+    assert charts.WARNING in fills and charts.SERIOUS in fills
+    alert = next(t for t in fig.data if t.name == "Alert")
+    assert list(alert.marker.color) == [charts.CRITICAL]  # medical_urgency mark is red

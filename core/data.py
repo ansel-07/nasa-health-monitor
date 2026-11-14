@@ -29,7 +29,7 @@ def _empty_measurements() -> pd.DataFrame:
 
 def load_astronauts() -> pd.DataFrame:
     """All astronauts from data/astronauts.csv (columns: id, name, role)."""
-    path = models.ASTRONAUTS_FILE
+    path = models.data_file(models.ASTRONAUTS_FILE)
     if not path.exists() or path.stat().st_size == 0:
         return pd.DataFrame(columns=ASTRONAUT_COLUMNS)
     return pd.read_csv(path, dtype=str)[ASTRONAUT_COLUMNS]
@@ -42,7 +42,7 @@ def load_measurements(astronaut=None, indicator=None, phase=None) -> pd.DataFram
     Simulated measurements after the mission clock (core.mission.now()) are hidden until
     mission.advance() reveals them; manual and protocol measurements are always shown.
     """
-    path = models.MEASUREMENTS_FILE
+    path = models.data_file(models.MEASUREMENTS_FILE)
     if not path.exists() or path.stat().st_size == 0:
         return _empty_measurements()
     df = pd.read_csv(path, dtype={"astronaut": str, "indicator": str, "unit": str,
@@ -87,7 +87,7 @@ def add_measurement(m: dict) -> None:
     if hasattr(timestamp, "isoformat"):
         row["timestamp"] = timestamp.isoformat(timespec="seconds")
 
-    path = models.MEASUREMENTS_FILE
+    path = models.data_file(models.MEASUREMENTS_FILE)
     write_header = not path.exists() or path.stat().st_size == 0
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", newline="", encoding="utf-8") as f:
@@ -134,7 +134,7 @@ def latest_values(astronaut: str) -> dict:
 
 def _read_episodes_file() -> dict:
     """Whole content of data/episodes.json; empty lists if the file is missing or empty."""
-    path = models.EPISODES_FILE
+    path = models.data_file(models.EPISODES_FILE)
     if not path.exists() or path.stat().st_size == 0:
         return {"episodes": [], "pending": []}
     with path.open(encoding="utf-8") as f:
@@ -146,7 +146,7 @@ def _read_episodes_file() -> dict:
 
 def _write_episodes_file(content: dict) -> None:
     """Write data/episodes.json safely: temporary file first, then replace the old one."""
-    path = models.EPISODES_FILE
+    path = models.data_file(models.EPISODES_FILE)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".episodes-", suffix=".tmp")
     try:
@@ -210,12 +210,14 @@ def save_pending(items: list[dict]) -> None:
 def reset_demo() -> None:
     """Restore the demo: copy every file in data/seed/ over the one with the same name in data/.
 
-    Files in data/ that are not in data/seed/ are left untouched.
+    Inside the app, "data/" is the current session's folder (models.data_dir()), so only
+    this browser session is reset. Files that are not in data/seed/ are left untouched.
     Raises FileNotFoundError if data/seed/ does not exist or has no files.
     """
     seed_files = [p for p in models.SEED_DIR.glob("*") if p.is_file()] if models.SEED_DIR.is_dir() else []
     if not seed_files:
         raise FileNotFoundError(f"No seed files in {models.SEED_DIR}")
-    models.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    target = models.data_dir()
+    target.mkdir(parents=True, exist_ok=True)
     for seed_file in seed_files:
-        shutil.copyfile(seed_file, models.DATA_DIR / seed_file.name)
+        shutil.copyfile(seed_file, target / seed_file.name)

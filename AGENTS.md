@@ -13,6 +13,8 @@ The astronaut-facing screens are narrated by an animated **mascot**: a simple fa
 
 The app **guides, it does not diagnose**.
 
+**How it will be judged** (details in section 15): a 3-minute pitch with at most 7 slides and a **~30-second demo**, so the demo path must take very few clicks; and the judges then try the **deployed app** on their own, so the app must be **complete and self-explanatory**. Every judge works on their own copy of the data (section 5.5).
+
 ## 2. Team
 
 | Person | Role | Owns |
@@ -29,7 +31,7 @@ The app **guides, it does not diagnose**.
 - Python 3.12, Streamlit, pandas, Plotly, numpy. pytest for tests (always run as `python -m pytest`).
 - Always work inside the project virtual environment (`.venv`). Use Python 3.12: newer versions (3.14) may fail to install some packages.
 - **Do not add any other library without asking Ansel.**
-- Storage: CSV and JSON files in `data/`. No database server.
+- Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
 - Multipage Streamlit app: `app.py` + `pages/`.
 - Mascot: SVG/CSS/JS inside `streamlit.components.v1.html`. No image files, no external services.
 
@@ -54,7 +56,7 @@ core/episodes.py            Juan Carlos  Open, confirm, dismiss, pending list, o
 core/protocol_engine.py     Javi         Current step and advance with the astronaut's input
 config/*.json               Edu          Health content (format owned by Ansel)
 config/protocols/*.json     Edu          Protocol flowcharts (format owned by Ansel)
-data/                       Fran         Runtime data; data/seed/ is the clean copy for Reset demo
+data/                       Fran         data/seed/ = demo starting point, copied into every new browser session (5.5); data/*.csv|json = used by scripts only
 scripts/generate_data.py    Fran         Generates pre-flight and simulated mission data
 tests/                      Ansel        Each builder adds tests for their own part
 ```
@@ -78,6 +80,11 @@ timestamp,astronaut,indicator,value,unit,phase,source
 ### 5.2 Baseline
 
 For each astronaut and indicator: mean and standard deviation of the `preflight` measurements. Returned as `{"mean": float, "std": float, "n": int}`. z-score = (value − mean) / std.
+
+- It is the **only** reference for baseline-relative conditions (section 6). It is frozen by construction: pre-flight rows do not change during the mission.
+- A baseline is **valid** only with `n >= 2` and `std > 0` (and `mean > 0` for `baseline_fraction`).
+- **Never pool sites:** one indicator id per eye and per muscle/site/method (e.g. `refraction_left`, `refraction_right`), so every baseline compares like with like.
+- **Not evaluable** (no valid baseline, or a value missing): the condition is not satisfied, **but the result is never shown as normal**: Check-in keeps the measurement and says the indicator cannot be evaluated yet (no valid pre-flight baseline), and a confirmation never dismisses an episode because of it. No new API or episode status. A full "not evaluable" model (three-valued API, reference metadata, re-evaluation) is out of scope for the hackathon (README, future work).
 
 ### 5.3 Config files (in `config/`)
 
@@ -116,6 +123,17 @@ Values still to be written by a person start with `TODO` (`TODO_EDU`, `TODO_GONZ
 ```
 
 Episode `status`: `pending_confirmation` → `active` or `dismissed`; `active` → `resolved` | `monitoring` | `handed_over` (set by an `end` node, also stored in `outcome`).
+Symptom-based problems also store `"symptoms": {symptom_id: level}` on the episode: the levels at the last detection (opening or confirmation).
+
+### 5.5 Per-session data (deployed app)
+
+The app is deployed on Streamlit, so all judges use **one server**. To keep them from seeing or resetting each other's data:
+
+- Inside the app, every **browser session** works on its own folder in the system temp directory, created as a copy of `data/seed/` the first time it is used. Reset demo copies `data/seed/` again **into that session only**. A browser refresh or a new tab starts a fresh session. Folders older than 24 hours are deleted.
+- Outside the app (scripts, tests) there is no session: files are read and written in `data/` as before.
+- **Only `core/data.py` and `core/mission.py` touch data files**, and always through `models.data_file(models.<X>_FILE)` / `models.data_dir()`; never use `models.<X>_FILE` directly to read or write.
+- So `data/seed/` **is the demo**: what a new session sees first. To change the demo starting point, regenerate `data/seed/` (`scripts/generate_data.py`); the app never writes to it.
+- Tests: `tests/conftest.py` turns session data off (`models.SESSION_DATA = False`), so tests keep patching `models.<X>_FILE`. `tests/test_session_data.py` covers the per-session behaviour.
 
 ## 6. Condition language (`core/conditions.py`)
 
@@ -127,6 +145,7 @@ One evaluator for **both** triggers and protocol decisions. A condition is a JSO
 | `indicator` + `at_least` / `at_most` | latest value of that indicator is ≥ / ≤ the number |
 | `indicator` + `z_above` / `z_below` | its z-score against the astronaut's baseline is above / below |
 | `var` + `above` / `below` / `at_least` / `at_most` / `z_above` / `z_below` | same, for a value stored by a `measure` node (`save_as`) |
+| `indicator` or `var` + `metric` + `above` / `below` / `at_least` / `at_most` | compares a value derived from x and the baseline mu / sigma (5.2): `raw` (default) x · `baseline_fraction` x / mu · `baseline_delta` x − mu (signed, in the indicator's unit) · `z_score` (x − mu) / sigma · `abs_z_score` abs(z). Several bounds are ANDed, e.g. `{"indicator": "trt_left", "metric": "baseline_delta", "at_least": 20, "below": 55}`. Do not mix `metric` with `z_above` / `z_below` (those stay as the legacy form of strict `z_score`). Without a valid baseline it is not satisfied (not evaluable, 5.2). Names in `CONDITION_METRICS` (`core/models.py`). |
 | `severity_at_least` / `severity_is` | current episode severity (order in `core/models.py`) |
 | `environment_in` | current environment is in the list |
 | `answer` + `equals` | the answer stored by a `question` node equals the value |
@@ -136,7 +155,7 @@ One evaluator for **both** triggers and protocol decisions. A condition is a JSO
 
 `ctx` passed to `check(cond, ctx)`:
 `{"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}, "symptoms": {symptom_id: level}, "var_indicators": {save_as: indicator}}`.
-`var_indicators` is built by the protocol engine from its `measure` nodes; it is required only for `var` + `z_above` / `z_below`.
+`var_indicators` is built by the protocol engine from its `measure` nodes; it is required for `var` conditions that use the baseline (`z_above` / `z_below` or a `metric` other than `raw`).
 `symptoms` comes from `triggers.symptom_levels()`; symptom conditions are allowed in `states` and in protocol `decision` nodes, never inside a symptom's own `levels`.
 
 ## 7. Function contracts
@@ -145,7 +164,9 @@ Do not change a signature without asking Ansel. Until a function is implemented 
 
 ```python
 # core/models.py  (Ansel)
-SEVERITIES, SYMPTOM_LEVELS, PROBLEM_STATES, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES, MOODS
+SEVERITIES, SYMPTOM_LEVELS, PROBLEM_STATES, CONDITION_METRICS, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES, MOODS
+data_dir() -> Path                 # runtime data folder of the current session (DATA_DIR outside the app)
+data_file(default: Path) -> Path   # e.g. data_file(MEASUREMENTS_FILE): that file in the current session (5.5)
 severity_rank(s) -> int
 max_severity(a, b) -> str
 
@@ -174,7 +195,7 @@ save_episode(episode: dict) -> None                # create or replace by id
 get_open_episode(astronaut: str) -> dict | None    # pending_confirmation or active
 load_pending(astronaut: str | None = None) -> list[dict]
 save_pending(items: list[dict]) -> None            # replaces the whole pending list
-reset_demo() -> None                               # copy data/seed/* over data/
+reset_demo() -> None                               # copy data/seed/* over this session's data (5.5)
 
 # core/mission.py  (Fran)
 now() -> datetime
@@ -266,6 +287,7 @@ For symptom-based problems, `decision` nodes can also branch on symptom levels (
 - **Touch only the files you were asked to.** Never edit another owner's file, not even "a small fix": open a request for the owner (section 14).
 - **Small changes.** One feature or fix per request. Do not rewrite whole files. Do not reorganise the project.
 - **Keep the contracts** in section 7. Do not rename functions, parameters, JSON keys or CSV columns.
+- Runtime data is read and written **only by `core/data.py` and `core/mission.py`, through `models.data_file()`** (section 5.5).
 - Pages (`app.py`, `pages/`) **never read or write files directly**: they only call `core/`. Charts come from `core/charts.py`, the mascot from `core/mascot.py`.
 - No new libraries, no new top-level folders, no secrets or API keys in the code.
 - Add a test in `tests/` when you add logic in `core/`. Keep `python -m pytest` green.
@@ -295,6 +317,12 @@ python -m core.config --strict    # also lists values still marked TODO
 ## 14. Requests between owners (GitHub Issues)
 
 When one person (or their AI) needs something from another owner, it is written as a **GitHub issue**, not passed on by word of mouth. Never use a shared file for this.
+
+**Keep requests and comments short: they cost every reader time and tokens.**
+- An issue body is **at most ~200 words**; a comment **at most ~100 words** and only with new information (a decision, a result, a blocker). Do not restate the issue or earlier comments.
+- **Link instead of copying**: point to the source file, page, comment or PR (`#41`, `AGENTS.md 5.2`) rather than pasting tables, proposals or acceptance matrices.
+- No long technical proposals in issues: if a design needs discussion, write the minimal proposal in a few bullets and ask Ansel; details go in the pull request.
+- When you read an issue, read its body and only the **latest** comments that matter for your task.
 
 **At the start of every task**, list the open requests for your human and show them before starting:
 
@@ -326,3 +354,22 @@ Rules:
 3. **Contract changes go through Ansel.** If the request changes section 5, 6 or 7 (formats, conditions, signatures, `core/models.py`), also add the label `to:ansel`.
 4. **Do not delete requests.** The pull request that completes one says `Closes #<issue>`, and the issue closes when it is merged. If you will not do it, comment why and close it.
 5. **Keep it public-safe.** The repo, and its issues, become public before submission: no personal data, secrets or private messages.
+
+## 15. Demo and judging
+
+The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **about 30 seconds**. After that, the judges try the **deployed app** on their own. Both matter:
+
+**The 30-second demo** (recorded as a video for the slides; the live app is only the backup):
+- It starts from Reset demo, so `data/seed/` must leave the story ready to show (section 5.5): the anomaly appears with one "advance mission" click.
+- Target path, about 6 actions: advance mission → alert from the mascot → Check-in chart with the personal baseline and bands → Simulate wait and repeat the measurement → Protocol: 2-3 short steps on the short branch (for example Mars, contact flight surgeon with the communication delay) → end.
+- The demo story (astronaut, indicator, mission day, values) is written by Gonzalo with Edu; the data is generated by Fran.
+
+**Content rules that follow from this:**
+- **Short texts.** The mascot reads every protocol step and alert aloud: one or two short sentences per step.
+- **Every protocol has a short branch** that the demo can follow in 3-4 nodes, **and** the complete flow for the judges. Both are real content from Edu, not shortcuts invented for the demo.
+- Priority: one problem (SANS) complete end to end for the demo first; then muscle atrophy complete for the judges.
+
+**The app for the judges:**
+- It must be **complete**: both problems, every protocol path, Trends, all environments.
+- It must be **self-explanatory**: the Home says in a few lines what the app does and how to try it in one minute, and the README explains what it does, what it does not do (it guides, it does not diagnose) and where every health value comes from.
+- Each judge has their own data (section 5.5); a refresh starts again from the demo starting point.
