@@ -1,4 +1,5 @@
 # AI-assisted: generated with Claude Code and reviewed by Fran.
+# AI-assisted: synthetic zero-SD fixture updated with Codex at Edu's explicit request; review pending.
 """Measurements and astronauts in core/data.py. Uses temporary files, never data/."""
 from datetime import datetime
 
@@ -124,10 +125,11 @@ def test_z_score(tmp_data):
     assert data.z_score("a1", "heart_rate", 62) == pytest.approx(0.0)
 
 
-def test_z_score_none_without_baseline_or_zero_std(tmp_data):
+def test_z_score_none_without_baseline_or_zero_std(tmp_data, monkeypatch):
+    monkeypatch.setattr(data, "load_indicators", lambda: {"heart_rate": {}, "synthetic_constant": {}})
     assert data.z_score("a1", "heart_rate", 70) is None
     add_preflight([62])  # one value: std 0.0
     assert data.get_baseline("a1", "heart_rate")["std"] == 0.0
     assert data.z_score("a1", "heart_rate", 70) is None
-    add_preflight([5, 5, 5], indicator="mood")  # identical values: std 0
-    assert data.z_score("a1", "mood", 3) is None
+    add_preflight([5, 5, 5], indicator="synthetic_constant")  # identical values: std 0
+    assert data.z_score("a1", "synthetic_constant", 3) is None
