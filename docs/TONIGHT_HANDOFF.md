@@ -89,4 +89,5 @@ Only decisions that are important for the team to make (see section 1); one line
 
 What the agent merged tonight (one line per PR: number, what, tests) and the minor decisions it took on its own (what and why).
 
-- (none yet)
+- Task 1 (Advance speed): `core/data.py` caches the clock-filtered sorted table, the (astronaut, indicator) split and `latest_values` per (file content, clock). One advance of the real seed 0.70 s → 0.32 s locally; results byte-identical to `main` (3 environments × 4 advances: episodes, CSV, latest values, baselines, symptom levels). 3 new tests in `tests/test_data_cache.py`.
+  - Decided: **PERF-2/3/4 not done**. Profiled after #158: config JSON loads are 43 per advance (~10 ms) and rule validation ~55 ms; the time was pandas filtering (85%). Caching config needs deep copies (as slow as parsing) and validating once needs invalidation logic in Juan Carlos's files: more risk than gain. Reopen only if the deployed timing is still slow.

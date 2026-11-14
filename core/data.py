@@ -93,19 +93,47 @@ def load_measurements(astronaut=None, indicator=None, phase=None) -> pd.DataFram
     mission.advance() reveals them; manual and protocol measurements are always shown.
     Always returns a new DataFrame (the parsed file is cached by content).
     """
-    df = _all_measurements()
+    return _filtered(astronaut, indicator, phase).copy()
+
+
+def _filtered(astronaut, indicator, phase) -> pd.DataFrame:
+    """load_measurements() without the copy, cached by (content, clock, filters).
+
+    Detection asks for the same few tables hundreds of times per advance while neither the
+    file nor the clock changes (docs/CODE_REVIEW.md PERF-1). Callers must not modify the result.
+    """
+    path, digest, df = _measurements_entry()
     if df.empty:
         return _empty_measurements()
-    simulated = df["source"] == "simulated"
-    if simulated.any():
-        df = df[~(simulated & (df["timestamp"] > mission.now()))]
-    if astronaut is not None:
-        df = df[df["astronaut"] == astronaut]
-    if indicator is not None:
-        df = df[df["indicator"] == indicator]
+    clock = mission.now()   # simulated rows after the clock are hidden, so it is part of the key
+    results = _results_for(path, digest, clock)
+    key = ("rows", astronaut, indicator, phase)
+    cached = results.get(key)
+    if cached is not None:
+        return cached
+    if ("visible",) not in results:
+        # Sorting once and filtering later gives the same rows in the same order as filtering
+        # first: the sort is stable, so equal timestamps keep their file order either way.
+        simulated = df["source"] == "simulated"
+        if simulated.any():
+            df = df[~(simulated & (df["timestamp"] > clock))]
+        results[("visible",)] = df.sort_values("timestamp", kind="stable")
+    df = results[("visible",)]
+    if astronaut is not None and indicator is not None:
+        if ("pairs",) not in results:
+            results[("pairs",)] = {pair: group for pair, group in
+                                   df.groupby(["astronaut", "indicator"], sort=False)}
+        df = results[("pairs",)].get((astronaut, indicator), df.iloc[0:0])
+    else:
+        if astronaut is not None:
+            df = df[df["astronaut"] == astronaut]
+        if indicator is not None:
+            df = df[df["indicator"] == indicator]
     if phase is not None:
         df = df[df["phase"] == phase]
-    return df.sort_values("timestamp", kind="stable").reset_index(drop=True)
+    df = df.reset_index(drop=True)
+    results[key] = df
+    return df
 
 
 def add_measurement(m: dict) -> None:
@@ -142,11 +170,24 @@ def add_measurement(m: dict) -> None:
         writer.writerow(row)
 
 
-# Baselines already computed, per measurements file: (content digest, mission time, {key: result}).
-# Detection asks for the same few baselines hundreds of times per advance; they only change when
-# the file changes or the clock reveals rows, so both are part of the key.
+# Results already computed, per measurements file: (content digest, mission time, {key: result}).
+# Baselines, filtered tables and latest values only change when the file changes or the clock
+# reveals rows, so both are part of the key. Results are never modified once stored.
 _BASELINES: dict[str, tuple[bytes | None, object, dict]] = {}
 _MISSING = object()
+
+
+def _results_for(path: str, digest: bytes | None, clock) -> dict:
+    """The result dictionary of this file content and mission time (a new one if either changed)."""
+    with _CACHE_LOCK:
+        cached = _BASELINES.get(path)
+        if cached is None or cached[0] != digest or cached[1] != clock:
+            cached = (digest, clock, {})
+            _BASELINES.pop(path, None)
+            _BASELINES[path] = cached
+            while len(_BASELINES) > _PARSED_MAX:
+                _BASELINES.pop(next(iter(_BASELINES)))
+    return cached[2]
 
 
 def get_baseline(astronaut: str, indicator: str) -> dict | None:
@@ -156,25 +197,16 @@ def get_baseline(astronaut: str, indicator: str) -> dict | None:
     With a single value the std is 0.0 (z_score then returns None).
     """
     path, digest, _ = _measurements_entry()
-    clock = mission.now()   # simulated rows after the clock are hidden, so it is part of the key
-    with _CACHE_LOCK:
-        cached = _BASELINES.get(path)
-        if cached is None or cached[0] != digest or cached[1] != clock:
-            cached = (digest, clock, {})
-            _BASELINES.pop(path, None)
-            _BASELINES[path] = cached
-            while len(_BASELINES) > _PARSED_MAX:
-                _BASELINES.pop(next(iter(_BASELINES)))
-    results = cached[2]
-    result = results.get((astronaut, indicator), _MISSING)
+    results = _results_for(path, digest, mission.now())
+    result = results.get(("baseline", astronaut, indicator), _MISSING)
     if result is _MISSING:
         result = _compute_baseline(astronaut, indicator)
-        results[(astronaut, indicator)] = result
+        results[("baseline", astronaut, indicator)] = result
     return None if result is None else dict(result)
 
 
 def _compute_baseline(astronaut: str, indicator: str) -> dict | None:
-    values = load_measurements(astronaut=astronaut, indicator=indicator, phase="preflight")["value"]
+    values = _filtered(astronaut, indicator, "preflight")["value"]
     values = values.dropna()
     n = len(values)
     if n == 0:
@@ -196,11 +228,14 @@ def z_score(astronaut: str, indicator: str, value: float) -> float | None:
 
 def latest_values(astronaut: str) -> dict:
     """{indicator: last value} for this astronaut (latest timestamp wins)."""
-    df = load_measurements(astronaut=astronaut)
-    if df.empty:
-        return {}
-    last = df.groupby("indicator", sort=False).tail(1)
-    return {row.indicator: float(row.value) for row in last.itertuples()}
+    path, digest, _ = _measurements_entry()
+    results = _results_for(path, digest, mission.now())
+    key = ("latest", astronaut)
+    if key not in results:
+        df = _filtered(astronaut, None, None)
+        last = df.groupby("indicator", sort=False).tail(1) if not df.empty else df
+        results[key] = {row.indicator: float(row.value) for row in last.itertuples()}
+    return dict(results[key])
 
 
 def _read_episodes_file() -> dict:
