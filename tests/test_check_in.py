@@ -109,6 +109,7 @@ def test_records_only_on_submit_and_does_not_repeat_on_rerun(screen):
     assert state["calls"] == []
     button(app, "Record measurement").click().run()
     assert not app.exception
+    assert app.success
     assert state["calls"] == [("record", {
         "timestamp": "2027-04-10T08:00:00", "astronaut": "a1", "indicator": "x",
         "value": 20, "unit": "example units", "phase": "mission", "source": "manual",
@@ -116,7 +117,7 @@ def test_records_only_on_submit_and_does_not_repeat_on_rerun(screen):
     app.run()
     assert len(state["calls"]) == 1
     assert app.number_input[0].value is None
-    assert app.success
+    assert not app.success
 
 
 def test_empty_submission_is_not_sent_to_core(screen):
@@ -198,6 +199,9 @@ def test_core_error_is_displayed_without_success(screen, monkeypatch):
     assert app.error[0].value == "Baseline data is unavailable."
     assert not app.success
     assert state["speech"][-1][0] == app.error[0].value
+    app.run()
+    assert not app.error
+    assert state["speech"][-1][0] == "Choose an indicator and record a new measurement."
 
 
 def test_simulate_wait_advances_real_clock_and_processes_revealed_measurements(screen, monkeypatch):
