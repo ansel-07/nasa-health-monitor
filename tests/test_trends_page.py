@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from core import charts, config, models
+from core import charts, config, episodes, models
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "3_Trends.py"
 
@@ -20,7 +20,9 @@ HEADER = "timestamp,astronaut,indicator,value,unit,phase,source\n"
 @pytest.fixture
 def screen(tmp_path, monkeypatch):
     calls = []
-    (tmp_path / "astronauts.csv").write_text("id,name,role\na1,Astronaut A,Commander\n")
+    (tmp_path / "astronauts.csv").write_text(
+        "id,name,role\na1,Astronaut A,Commander\na2,Astronaut B,Flight engineer\n")
+    monkeypatch.setattr(models, "MISSION_STATE_FILE", tmp_path / "mission_state.json")
     monkeypatch.setattr(models, "MEASUREMENTS_FILE", tmp_path / "measurements.csv")
     monkeypatch.setattr(models, "ASTRONAUTS_FILE", tmp_path / "astronauts.csv")
     monkeypatch.setattr(models, "EPISODES_FILE", tmp_path / "episodes.json")
@@ -88,3 +90,83 @@ def test_changing_indicator_redraws_chart(screen):
     app.selectbox[0].select("y").run()
     assert not app.exception
     assert calls[-1] == ("a1", "y", False, "mars")
+
+
+# --- Demo controls: advance mission ------------------------------------------------------
+
+def simulated(folder):
+    """Day-1 and day-2 mission rows (fake values), hidden until the clock reaches them."""
+    write_measurements(folder, [
+        "2027-03-30T08:00:00,a1,x,60,u,preflight,simulated",
+        "2027-04-01T08:00:00,a1,x,61,u,mission,simulated",
+        "2027-04-01T08:00:00,a2,x,90,u,mission,simulated",
+        "2027-04-02T08:00:00,a1,x,62,u,mission,simulated",
+    ])
+
+
+@pytest.fixture
+def detection(monkeypatch):
+    """Fake episode detection: records calls; opens an episode for values above 80."""
+    calls = []
+
+    def on_new(measurement, environment):
+        calls.append((measurement["astronaut"], measurement["value"], environment))
+        if measurement["value"] > 80:
+            from core import data
+            data.save_episode({"id": f"ep-{len(calls)}", "astronaut": measurement["astronaut"],
+                               "problem": "p", "status": "pending_confirmation"})
+
+    monkeypatch.setattr(episodes, "on_new_measurement", on_new)
+    return calls
+
+
+def advance_button(app):
+    return next(b for b in app.button if b.label == "Advance 24 h")
+
+
+def test_demo_controls_show_mission_time(screen):
+    app, _, _ = screen
+    app.run()
+    assert not app.exception
+    assert any("2027-04-01 00:00" in m.value and "day 1" in m.value for m in app.markdown)
+
+
+def test_advance_reveals_a_day_and_sends_it_to_detection(screen, detection):
+    app, _, folder = screen
+    simulated(folder)
+    app.run()
+    advance_button(app).click().run()
+    assert not app.exception
+    assert any("2027-04-02 00:00" in m.value and "day 2" in m.value for m in app.markdown)
+    assert detection == [("a1", 61.0, "mars"), ("a2", 90.0, "mars")]  # every astronaut, day 1 only
+    assert "2 new simulated measurement(s)" in app.warning[0].value
+    assert "New alert for: Astronaut B." in app.warning[0].value
+    assert "Go to Check-in" not in [b.label for b in app.button]  # the alert is not ours
+
+    advance_button(app).click().run()
+    assert detection[-1] == ("a1", 62.0, "mars")
+    assert app.info[0].value.endswith("1 new simulated measurement(s).")
+
+
+def test_alert_for_current_astronaut_offers_check_in(screen, detection, monkeypatch):
+    app, _, folder = screen
+    simulated(folder)
+    app.session_state["astronaut"] = "a2"
+    app.run()
+    advance_button(app).click().run()
+    assert "New alert for: Astronaut B." in app.warning[0].value
+    assert "Go to Check-in" in [b.label for b in app.button]
+
+
+def test_detection_error_is_reported(screen, monkeypatch):
+    app, _, folder = screen
+    simulated(folder)
+
+    def broken(measurement, environment):
+        raise ValueError("problem config incomplete")
+
+    monkeypatch.setattr(episodes, "on_new_measurement", broken)
+    app.run()
+    advance_button(app).click().run()
+    assert not app.exception
+    assert "detection failed: problem config incomplete" in app.error[0].value

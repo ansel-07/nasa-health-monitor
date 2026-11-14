@@ -21,7 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core import config, data, episodes, mission, protocol_engine
-from core.models import severity_rank
+from core.models import PROBLEM_STATES, SEVERITIES, severity_rank
 
 
 SCENARIOS = ["Full journey", "Measurement branches", "Immediate handover", "Pending confirmation", "No episode"]
@@ -79,6 +79,30 @@ def new_state(scenario: str, environment: str, severity: str) -> dict:
             "closed_at": None, "outcome": None,
         }
     return {"clock": clock, "episode": episode, "measurements": []}
+
+
+def _protocol_severities(value) -> set[str]:
+    """Severity names a protocol uses in set_severity nodes and severity conditions."""
+    if isinstance(value, list):
+        return set().union(*map(_protocol_severities, value))
+    if not isinstance(value, dict):
+        return set()
+    found = {value[key] for key in ("severity", "severity_is", "severity_at_least") if isinstance(value.get(key), str)}
+    return found.union(*map(_protocol_severities, value.values()))
+
+
+def severity_options(protocol: dict) -> list[str]:
+    """Starting states of the previewed problem, in the vocabulary its protocol uses.
+
+    A problem with both formats (like _example) offers the vocabulary its protocol
+    actually checks, so a start state never mismatches the protocol's conditions.
+    """
+    problem = config.load_problems(include_examples=True)[protocol["problem"]]
+    names, used = protocol_engine._severity_names(problem), _protocol_severities(protocol["nodes"])
+    for vocabulary in (PROBLEM_STATES, SEVERITIES):
+        if set(vocabulary) <= set(names) and used & set(vocabulary):
+            return vocabulary[1:]
+    return [name for name in names if name not in (PROBLEM_STATES[0], SEVERITIES[0])]
 
 
 def protocol_edges(protocol: dict) -> list[tuple[str, str, str]]:
@@ -170,7 +194,8 @@ def main() -> None:
         st.title("Protocol test controls")
         scenario = st.selectbox("Scenario", SCENARIOS)
         environment = st.selectbox("Starting environment", ["iss", "moon", "mars"])
-        severity = st.selectbox("Starting severity", ["mild", "moderate", "severe"], index=1)
+        options = severity_options(protocol)
+        severity = st.selectbox("Starting severity", options, index=len(options) // 2)
         if st.button("Load / restart scenario") or "protocol_sandbox" not in st.session_state:
             for key in list(st.session_state):
                 if key.startswith("protocol_sandbox-astronaut_"):
@@ -217,7 +242,9 @@ def main() -> None:
         (data, "get_open_episode", get_open_episode),
         (data, "save_episode", save_episode),
         (data, "latest_values", latest_values),
-        (data, "add_measurement", lambda measurement: state["measurements"].append(deepcopy(measurement))),
+        # Protocol readings go through detection; the sandbox only records them.
+        (episodes, "on_new_measurement",
+         lambda measurement, environment: state["measurements"].append(deepcopy(measurement))),
         (episodes, "get_pending", lambda astronaut: [
             {"astronaut": astronaut, "problem": "sandbox_measure", "severity": "severe"}] if pending else []),
         (st, "page_link", page_link),

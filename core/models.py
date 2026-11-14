@@ -94,6 +94,11 @@ SEVERITIES = ["inactive", "mild", "moderate", "severe"]
 SYMPTOM_LEVELS = ["not_present", "watch", "concern"]
 PROBLEM_STATES = ["no_concern", "watch", "medical_urgency"]
 
+# Value compared by a numeric condition (AGENTS.md, section 6). mu / sigma = pre-flight baseline.
+#   raw: x · baseline_fraction: x / mu · baseline_delta: x - mu (signed)
+#   z_score: (x - mu) / sigma · abs_z_score: |(x - mu) / sigma|
+CONDITION_METRICS = ["raw", "baseline_fraction", "baseline_delta", "z_score", "abs_z_score"]
+
 EPISODE_STATUSES = [
     "pending_confirmation",
     "active",

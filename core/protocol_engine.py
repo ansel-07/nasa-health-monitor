@@ -4,9 +4,9 @@ from copy import deepcopy
 from datetime import datetime
 from math import isfinite
 
-from core import conditions, data, mission
-from core.config import load_environments, load_indicators, load_protocol
-from core.models import NODE_TYPES, OUTCOMES, SEVERITIES, TODO_MARK
+from core import conditions, data, episodes, mission, triggers
+from core.config import load_environments, load_indicators, load_problems, load_protocol
+from core.models import NODE_TYPES, OUTCOMES, PROBLEM_STATES, SEVERITIES, TODO_MARK
 
 
 def _require_complete(value, path: str = "protocol") -> None:
@@ -20,6 +20,15 @@ def _require_complete(value, path: str = "protocol") -> None:
     elif isinstance(value, list):
         for index, child in enumerate(value):
             _require_complete(child, f"{path}[{index}]")
+
+def _severity_names(problem: dict) -> list[str]:
+    """Names set_severity may use, as in the config validator (AGENTS.md 5.3, TRANSITION).
+
+    Symptom-based problems use PROBLEM_STATES, legacy problems SEVERITIES; a problem
+    with both formats (like _example) accepts both. Unknown problems stay legacy.
+    """
+    names = (PROBLEM_STATES if "symptoms" in problem else []) + (SEVERITIES if "triggers" in problem else [])
+    return names or SEVERITIES
 
 def _var_indicators(protocol: dict) -> dict[str, str]:
     """Build variable-to-indicator metadata from the protocol on each run."""
@@ -83,6 +92,12 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     Action wait_min is enforced with the mission clock, starting on arrival
     at the action; cannot remains available during the wait. This function
     does not advance the mission clock or simulate notifications.
+    A valid measurement is saved as soon as it is accepted, so the symptom
+    levels used by later decision nodes (symptom-based problems) include it.
+    It is saved through episodes.on_new_measurement() (AGENTS.md 10, rules 1
+    and 5) while this episode is still open in storage: its own problem is
+    suppressed, other problems go to pending, even if this submit then ends.
+    Only newly accepted readings are routed; submit(None) never replays one.
     The caller must use the returned episode on subsequent submissions.
     """
     if episode["status"] in OUTCOMES:
@@ -96,13 +111,14 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     protocol = load_protocol(updated["problem"])
     _require_complete(protocol)
     var_indicators = _var_indicators(protocol)
+    problem = load_problems(include_examples=True).get(updated["problem"], {})
+    severity_names = _severity_names(problem)
     updated["current_node"] = updated.get("current_node") or protocol["start"]
     updated.setdefault("vars", {})
     updated.setdefault("answers", {})
     updated.setdefault("log", [])
     at = mission.now()
     timestamp = at.isoformat()
-    measurements = []
     visited = set()
     latest = dict(data.latest_values(updated["astronaut"]))
 
@@ -120,14 +136,18 @@ def submit(episode: dict, user_input: dict | None) -> dict:
             ctx = {key: updated[key] for key in ("astronaut", "environment", "severity", "vars", "answers")}
             ctx["latest"] = latest
             ctx["var_indicators"] = var_indicators
+            if "symptoms" in problem:
+                # Recomputed at every decision so it reflects measurements saved above.
+                ctx["symptoms"] = triggers.symptom_levels(
+                    updated["problem"], updated["astronaut"], updated["environment"])
             target = node["default"]
             for branch in node["branches"]:
                 if conditions.check(branch["if"], ctx):
                     target = branch["next"]
                     break
         elif kind == "set_severity":
-            if node["severity"] not in SEVERITIES:
-                raise ValueError("Invalid protocol severity.")
+            if node["severity"] not in severity_names:
+                raise ValueError(f"Invalid protocol severity for this problem: {node['severity']}")
             updated["severity"] = node["severity"]
             target = node["next"]
         elif kind == "end":
@@ -176,9 +196,15 @@ def submit(episode: dict, user_input: dict | None) -> dict:
                 unit = indicator["unit"]
                 if unit.startswith("TODO"):
                     raise ValueError("Measurement unit is still TODO in config/indicators.json.")
-                measurements.append({"timestamp": timestamp, "astronaut": updated["astronaut"],
-                                     "indicator": node["indicator"], "value": value, "unit": unit,
-                                     "phase": "mission", "source": "protocol"})
+                # Detection suppresses the problem of the astronaut's open episode, so
+                # that stored episode must be this one; otherwise it could reopen it.
+                stored_open = data.get_open_episode(updated["astronaut"])
+                if not stored_open or stored_open["id"] != updated["id"]:
+                    raise ValueError("This episode is not the astronaut's open episode in storage.")
+                episodes.on_new_measurement({
+                    "timestamp": timestamp, "astronaut": updated["astronaut"],
+                    "indicator": node["indicator"], "value": value, "unit": unit,
+                    "phase": "mission", "source": "protocol"}, updated["environment"])
                 updated["vars"][node["save_as"]] = value
                 latest[node["indicator"]] = value
                 recorded_input = value
@@ -189,7 +215,5 @@ def submit(episode: dict, user_input: dict | None) -> dict:
         updated["log"].append({"at": timestamp, "node": node_id, "input": recorded_input})
         updated["current_node"] = target
 
-    for measurement in measurements:
-        data.add_measurement(measurement)
     data.save_episode(updated)
     return updated

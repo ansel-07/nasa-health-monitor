@@ -5,9 +5,14 @@
 No mascot on this screen (AGENTS.md, section 8). Charts come from core.charts;
 data only through core.data and core.config (pages never read files).
 """
+from datetime import datetime
+
 import streamlit as st
 
-from core import charts, config, data
+from core import charts, config, data, episodes, mission
+
+ADVANCE_HOURS = 24
+FEEDBACK_KEY = "trends_advance_feedback"
 
 st.title("Trends")
 
@@ -22,6 +27,47 @@ astronauts = data.load_astronauts()
 names = dict(zip(astronauts["id"], astronauts["name"]))
 env_name = config.load_environments().get(environment, {}).get("name", environment)
 st.caption(f"{names.get(astronaut, astronaut)} · {env_name}")
+
+
+def _advance_mission() -> dict:
+    """Advance the clock and send every newly visible measurement to episode detection.
+
+    Returns the feedback to show after the rerun: {"level", "text", "alert"}.
+    """
+    before = {a: (data.get_open_episode(a) or {}).get("id") for a in names}
+    revealed = mission.advance(hours=ADVANCE_HOURS)
+    try:
+        for measurement in revealed:  # every astronaut: AGENTS.md section 10, rule 1
+            episodes.on_new_measurement(measurement, environment)
+    except (ValueError, KeyError, OSError) as error:
+        return {"level": "error", "alert": False,
+                "text": f"Mission time advanced, but detection failed: {error}"}
+    opened = [a for a in names
+              if (data.get_open_episode(a) or {}).get("id") not in (None, before[a])]
+    text = f"Mission time advanced {ADVANCE_HOURS} h: {len(revealed)} new simulated measurement(s)."
+    if not opened:
+        return {"level": "info", "text": text, "alert": False}
+    who = ", ".join(names[a] for a in opened)
+    return {"level": "warning", "text": f"{text} New alert for: {who}.", "alert": astronaut in opened}
+
+
+with st.container(border=True):
+    st.markdown("**Demo controls**")
+    st.caption("Simulates the passing of mission time for the demo: each click reveals the "
+               "next day of simulated measurements, which may open alerts.")
+    now = mission.now()
+    day = (now - datetime.fromisoformat(config.load_mission()["start"])).days + 1
+    col_time, col_button = st.columns([3, 1])
+    col_time.write(f"Mission time: **{now:%Y-%m-%d %H:%M}** (day {day})")
+    if col_button.button(f"Advance {ADVANCE_HOURS} h"):
+        st.session_state[FEEDBACK_KEY] = _advance_mission()
+        st.rerun()
+    # Kept (not popped) so the "Go to Check-in" button still exists on the rerun its click causes.
+    feedback = st.session_state.get(FEEDBACK_KEY)
+    if feedback:
+        getattr(st, feedback["level"])(feedback["text"])
+        if feedback["alert"] and st.button("Go to Check-in"):
+            st.switch_page("pages/1_Check_in.py")
 
 # Test fixtures (ids starting with "_") are never shown as health content.
 indicators = {key: info for key, info in config.load_indicators().items() if not key.startswith("_")}
