@@ -57,7 +57,8 @@ def _subjective_issues(astronaut: str, source: str, report) -> None:
             return
         previous = {item["issue"] for item in active}
         st.caption("Select issues present today. To mark one as resolved, deselect it and save. "
-                   "Reports affect activity reminders; objective measurements determine alerts.")
+                   "Routine issues make the linked check-in reminders run down faster; alerts come "
+                   "from measurements. Urgent symptoms need action at once.")
         for item in active:
             state = "persistent" if item["persistent"] else "active"
             st.caption(f"{definitions[item['issue']]['label']}: {state}, since {item['since']}.")
@@ -179,7 +180,22 @@ def main() -> None:
         st.stop()
 
     if selected not in checkins:
-        with mascot.beside(message if opened else "Choose a check-in to record your measurements.", mood):
+        # Urgent subjective symptoms prevail, as in the Main Menu (AGENTS.md 5.6): they stay
+        # visible until the astronaut marks them resolved below.
+        definitions = config.load_subjective_issues().get("issues", {})
+        try:
+            alarms = [definitions[item["issue"]] for item in activity.active_issues(astronaut)
+                      if definitions.get(item["issue"], {}).get("alarm")]
+        except (ValueError, KeyError, OSError):
+            alarms = []
+        for alarm in alarms:
+            st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
+                     "When it is no longer present, mark it as resolved in Subjective issues below.")
+        list_text, list_mood = (message, mood) if opened else ("Choose a check-in to record your measurements.", mood)
+        if alarms:
+            list_text, list_mood = ("You reported an urgent symptom. Stop the risky task and contact "
+                                    "the crew medical officer now.", "serious")
+        with mascot.beside(list_text, list_mood):
             st.caption("Bars show time since completion, not health status. You can measure at any time.")
             if not checkins:
                 st.info("No check-ins are configured yet.")
