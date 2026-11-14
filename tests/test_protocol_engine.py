@@ -65,6 +65,7 @@ def test_initial_decision_uses_shared_evaluator_and_full_context(episode, monkey
 
 
 def test_default_info_question_and_action(episode, monkeypatch):
+    episode["environment"] = "iss"
     updated = engine.submit(episode, None)
     assert updated["current_node"] == "intro"
     updated = engine.submit(updated, {"action": "continue"})
@@ -243,3 +244,55 @@ def test_reentering_timed_action_starts_new_wait(episode, monkeypatch):
     assert engine.current_step(updated)["remaining_wait_min"] == 1
     with pytest.raises(ValueError, match="wait is not complete"):
         engine.submit(updated, {"action": "done"})
+
+
+@pytest.mark.parametrize("problem", ["problem_1", "problem_2"])
+def test_placeholder_protocol_cannot_close_episode(episode, dependencies, problem):
+    episode["problem"] = problem
+    before = deepcopy(episode)
+    with pytest.raises(ValueError, match="TODO"):
+        engine.submit(episode, None)
+    assert episode == before
+    for mock in dependencies:
+        mock.assert_not_called()
+
+
+def test_todo_end_prevents_measurement_and_severity_writes(episode, monkeypatch, dependencies):
+    protocol = engine.load_protocol("_example")
+    protocol["nodes"]["done"]["text"] = "TODO_EDU: write the final instructions."
+    monkeypatch.setattr(engine, "load_protocol", lambda _: protocol)
+    episode["current_node"] = "remeasure"
+    before = deepcopy(episode)
+    with pytest.raises(ValueError, match="TODO"):
+        engine.submit(episode, {"value": 8})
+    assert episode == before
+    for mock in dependencies:
+        mock.assert_not_called()
+
+
+@pytest.mark.parametrize("response", [None, {"action": "continue"}])
+def test_todo_step_cannot_be_displayed_or_submitted(episode, monkeypatch, dependencies, response):
+    protocol = engine.load_protocol("_example")
+    protocol["nodes"]["intro"]["text"] = "TODO_GONZALO: write this step."
+    monkeypatch.setattr(engine, "load_protocol", lambda _: protocol)
+    episode["current_node"] = "intro"
+    before = deepcopy(episode)
+    with pytest.raises(ValueError, match="TODO"):
+        engine.current_step(episode)
+    with pytest.raises(ValueError, match="TODO"):
+        engine.submit(episode, response)
+    assert episode == before
+    for mock in dependencies:
+        mock.assert_not_called()
+
+
+def test_todo_in_nested_branch_is_rejected_before_execution(episode, monkeypatch, dependencies):
+    protocol = engine.load_protocol("_example")
+    protocol["nodes"]["check"]["branches"][0]["if"]["above"] = "TODO_EDU"
+    monkeypatch.setattr(engine, "load_protocol", lambda _: protocol)
+    before = deepcopy(episode)
+    with pytest.raises(ValueError, match="TODO"):
+        engine.submit(episode, None)
+    assert episode == before
+    for mock in dependencies:
+        mock.assert_not_called()
