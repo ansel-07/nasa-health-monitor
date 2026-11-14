@@ -2,47 +2,47 @@
   "eye_oct": {
     "name": "Eye scan (OCT)",
     "indicators": ["peripapillary_trt_left", "peripapillary_trt_right"],
-    "bar_full_hours": 24
+    "bar_full_hours": 720
   },
   "optic_disc": {
     "name": "Optic disc check",
     "indicators": ["optic_disc_edema_grade_left", "optic_disc_edema_grade_right"],
-    "bar_full_hours": 24
+    "bar_full_hours": 720
   },
   "refraction": {
     "name": "Refraction",
     "indicators": ["refraction_left", "refraction_right"],
-    "bar_full_hours": 24
+    "bar_full_hours": 720
   },
   "visual_acuity": {
     "name": "Visual acuity",
     "indicators": ["visual_acuity_left", "visual_acuity_right"],
-    "bar_full_hours": 24
+    "bar_full_hours": 168
   },
   "muscle_strength_test": {
     "name": "Muscle strength",
     "indicators": ["muscle_strength"],
-    "bar_full_hours": 24
+    "bar_full_hours": 168
   },
   "muscle_size": {
     "name": "Muscle size",
     "indicators": ["muscle_area"],
-    "bar_full_hours": 24
+    "bar_full_hours": 336
   },
   "muscle_performance": {
     "name": "Muscle power (right knee)",
     "indicators": ["muscle_power"],
-    "bar_full_hours": 24
+    "bar_full_hours": 168
   },
   "muscle_endurance_test": {
     "name": "Muscle endurance (right knee)",
     "indicators": ["muscle_endurance"],
-    "bar_full_hours": 24
+    "bar_full_hours": 168
   },
   "muscle_tone": {
     "name": "Muscle tone and stiffness",
     "indicators": ["muscle_tone", "muscle_stiffness"],
-    "bar_full_hours": 24
+    "bar_full_hours": 168
   },
   "_example": {
     "name": "Example check-in (test fixture)",
