@@ -9,7 +9,7 @@ from datetime import datetime
 
 import streamlit as st
 
-from core import charts, config, data, episodes, mission
+from core import charts, config, data, mission
 
 ADVANCE_HOURS = 24
 FEEDBACK_KEY = "trends_advance_feedback"
@@ -34,20 +34,16 @@ def _advance_mission() -> dict:
 
     Returns the feedback to show after the rerun: {"level", "text", "alert"}.
     """
-    before = {a: (data.get_open_episode(a) or {}).get("id") for a in names}
-    revealed = mission.advance(hours=ADVANCE_HOURS)
     try:
-        for measurement in revealed:  # every astronaut: AGENTS.md section 10, rule 1
-            episodes.on_new_measurement(measurement, environment)
+        result = mission.advance_and_detect(ADVANCE_HOURS, environment)
     except (ValueError, KeyError, OSError) as error:
         return {"level": "error", "alert": False,
                 "text": f"Mission time advanced, but detection failed: {error}"}
-    opened = [a for a in names
-              if (data.get_open_episode(a) or {}).get("id") not in (None, before[a])]
-    text = f"Mission time advanced {ADVANCE_HOURS} h: {len(revealed)} new simulated measurement(s)."
+    opened = result["new_alerts"]
+    text = f"Mission time advanced {ADVANCE_HOURS} h: {result['revealed']} new simulated measurement(s)."
     if not opened:
         return {"level": "info", "text": text, "alert": False}
-    who = ", ".join(names[a] for a in opened)
+    who = ", ".join(names.get(a, a) for a in opened)
     return {"level": "warning", "text": f"{text} New alert for: {who}.", "alert": astronaut in opened}
 
 
