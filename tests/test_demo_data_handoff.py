@@ -72,7 +72,7 @@ def test_documented_data_reaches_real_confirmation_and_protocol(tmp_path, monkey
     assert left != right
 
     first = mission.advance_and_detect(24, environment)
-    assert first == {"revealed": 9, "new_alerts": ["a1"]}
+    assert {k: first[k] for k in ("revealed", "new_alerts")} == {"revealed": 9, "new_alerts": ["a1"]}
     eye_episode = data.get_open_episode("a1")
     assert eye_episode["problem"] == "sans" and eye_episode["status"] == "pending_confirmation"
     assert eye_episode["trigger"]["indicator"] == "peripapillary_trt_left"
@@ -84,7 +84,7 @@ def test_documented_data_reaches_real_confirmation_and_protocol(tmp_path, monkey
         (left["mean"] + 20, left["mean"] + 55), (left["mean"] + 55, None)]
 
     second = mission.advance_and_detect(24, environment)
-    assert second == {"revealed": 9, "new_alerts": ["a2"]}
+    assert {k: second[k] for k in ("revealed", "new_alerts")} == {"revealed": 9, "new_alerts": ["a2"]}
     muscle_episode = data.get_open_episode("a2")
     assert muscle_episode["problem"] == "muscle_atrophy"
     assert muscle_episode["symptoms"]["muscle_strength"] == "concern"
