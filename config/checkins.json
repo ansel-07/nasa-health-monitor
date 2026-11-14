@@ -30,8 +30,13 @@
     "bar_full_hours": 24
   },
   "muscle_performance": {
-    "name": "Muscle power and endurance",
-    "indicators": ["muscle_power", "muscle_endurance"],
+    "name": "Muscle power (right knee)",
+    "indicators": ["muscle_power"],
+    "bar_full_hours": 24
+  },
+  "muscle_endurance_test": {
+    "name": "Muscle endurance (right knee)",
+    "indicators": ["muscle_endurance"],
     "bar_full_hours": 24
   },
   "muscle_tone": {
