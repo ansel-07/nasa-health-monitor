@@ -33,7 +33,7 @@ The app **guides, it does not diagnose**.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
 - Multipage Streamlit app: `app.py` is the entry point and only sets the navigation (`st.navigation`); every screen is a file in `pages/`. **A new page must be added to the list in `app.py`**, or it will not appear.
-- **Screens and navigation** follow `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (Gonzalo) with the overrides of section 16. No sidebar menu: people move with buttons and cards. Welcome → Main Menu → Check-in (list → detail) · Trends · Tutorials; Protocols opens only from a confirmed alert (or an active episode). Use `st.switch_page("pages/<file>.py")` for every button that changes screen. Theme: `.streamlit/config.toml` (colours of the spec).
+- **Screens and navigation** follow `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (Gonzalo) with the overrides of section 16. No sidebar menu: people move with buttons and cards. Welcome (conversational buttons: astronaut, then environment; no dropdowns, no NEXT) → Main Menu → Check-in (list → detail) · Trends · Tutorials; Protocols opens only from a confirmed alert (or an active episode). Use `st.switch_page("pages/<file>.py")` for every button that changes screen. Theme: `.streamlit/config.toml` (colours of the spec).
 - Mascot: SVG/CSS/JS inside `streamlit.components.v1.html`. No image files, no external services.
 
 ## 4. Repository layout and owners
@@ -270,13 +270,12 @@ Streamlit session state (created by the Welcome, `pages/0_Home.py`): `st.session
 
 ## 8. The mascot
 
-Provisional layout, until Gonzalo's UI document:
+Layout decided by Ansel; details in `docs/FRONTEND_MASCOT_LAYOUT.md` (it wins over the spec here):
 
-- **Where it appears:** Welcome, Main Menu, Check-in, Protocols and Tutorials. **Not** on Trends.
-- **Screens with cards** (Main Menu, Check-in list, Tutorials list) use the same layout as a visual: `mascot.beside()` with the cards on the right (section 16 overrides the spec here).
-- **Look:** the face with **subtitles below it** (no speech bubble).
-- **Alone on the screen:** `mascot.say(text, mood, size="large")`, big and centered (the Welcome, and Check-in / Protocols while there is no visual).
-- **With a visual** (a measurement chart in Check-in, the protocol flowchart in Protocol): the mascot moves small to the left and the visual takes the right. **Buttons always go below**, full width; if there are none at that moment, the space stays empty.
+- **Where it appears:** Welcome, Main Menu, Check-in and Protocols. **Not** on Trends or Tutorials.
+- **Look:** the spec face (cyan eyes and smile, no frame) with **subtitles below it** (no speech bubble).
+- **Alone on the screen:** `mascot.say(text, mood, size="large")`, big (35 % of the browser height) and centred. Cards and buttons are **not** a visual: they go below the subtitles (Welcome, Main Menu, Check-in list, every Protocols state without a step).
+- **Only with a chart or a flowchart** (Check-in detail, an active protocol step): `mascot.beside()`; the mascot slides to the left and shrinks (a 600 ms entry animation, once), the visual takes the right. **Buttons always go below**, full width.
 
   ```python
   with mascot.beside(text, mood):
@@ -284,11 +283,12 @@ Provisional layout, until Gonzalo's UI document:
   if st.button("Record measurement"):
       ...
   ```
+- **Subtitles** appear word by word (with the voice when it is on) while the mouth talks. The mascot **speaks only a new text**: a rerun with the same text shows the full subtitles silently.
 - **What it says:** the text the screen would otherwise show (alerts, confirmation requests, protocol steps). Pages pass the text; the mascot never invents health content. Keep it short: it is read aloud (section 15).
-- **Mood:** one of `MOODS` in `core/models.py`. Provisional list; which mood goes with which situation is still to be decided by the team.
-- **Voice:** the browser's own speech synthesis, in English, no AI service. Muted until the astronaut turns it on (browsers block audio before a user action).
-- **Look and name:** still to be decided by the team. Design it ourselves; do not copy existing characters, code or artwork.
-- Pages call only `mascot.say()`, `mascot.beside()` and `mascot.voice_toggle()`; never write mascot HTML in a page.
+- **Mood:** one of `MOODS` in `core/models.py`. Which mood goes with which situation is still to be decided by the team.
+- **Voice:** the browser's own speech synthesis, in English, no AI service. Muted until the astronaut turns it on with the **Voice toggle, fixed in the top-right corner** (browsers block audio before a user action); turning it on speaks the current line at once.
+- **Name:** still to be decided by the team. Design it ourselves; do not copy existing characters, code or artwork.
+- Pages call only `mascot.say()`, `mascot.beside()` and `mascot.voice_toggle()`, at most one mascot per screen run; never write mascot HTML in a page.
 
 ## 9. Protocol flowcharts (`config/protocols/<problem_id>.json`)
 
@@ -424,11 +424,12 @@ The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **ab
 
 `docs/ASTRONAUT_HEALTH_APP_SPEC.md` is the product reference for screens, navigation, bars, subjective issues, tutorials and the visual style. Read it before UI work. Where it says to reuse the repository (medical rules, severities, protocols), this file and `config/` win. **Decisions that override the spec (Ansel):**
 
-1. **Mascot:** keeps subtitles and voice. Large and centered when alone (Welcome); small **on the left** with the visual or the cards on the right (`mascot.beside()`), not on the right. Its look is provisional (Ansel).
+1. **Mascot:** keeps subtitles and voice. Big and centred when alone, cards and buttons below it; small **on the left** only beside a chart or a flowchart (`mascot.beside()`); none on Trends and Tutorials (section 8, `docs/FRONTEND_MASCOT_LAYOUT.md`).
 2. **Check-ins are grouped by test** (`config/checkins.json`, 5.6), not one card per indicator.
 3. **Bars use the mission clock**, not real time, so the live demo can show them draining.
 4. **Tutorials = practising a real protocol**: the same engine and flowchart, in practice mode (the episode dict has `"practice": true` and nothing is saved: no measurements, no detection, no episode). Each protocol has its own review interval (`tutorial_bar_full_days`).
 5. **Data per astronaut**, not per (astronaut, mission): the environment only changes rules and branches, as before (spec section 5 allows keeping the repo behaviour).
 6. The confirmation wait (`confirm_wait_min`) and the one-open-episode rule (section 10) stay; the Protocols screen shows the active episode and the pending alerts by severity.
+7. **Welcome** uses conversational buttons (astronaut, then environment), no dropdowns and no NEXT.
 
 **Before submission (after the Sunday 16:00 freeze; Ansel):** delete the internal Spanish documents in `docs/` (`ESTRUCTURA.md`, `Preparación del entorno · NASA Space Apps 2026.md`, `WORKFLOW.md`); complete every `TODO` in the README; make the repository public.
