@@ -39,6 +39,14 @@ def test_new_measurement_overrides_latest_and_calculates_state(symptom_setup):
     assert triggers.symptom_levels("test_problem", "a1", "mars") == {"a": "not_present", "b": "concern"}
 
 
+def test_normal_incoming_value_does_not_raise_another_symptoms_alert(symptom_setup):
+    _, latest, m = symptom_setup
+    m["value"] = 0
+    assert latest["y"] == 30
+    assert triggers.evaluate(m, "mars") == []
+    assert triggers.symptom_levels("test_problem", "a1", "mars")["b"] == "concern"
+
+
 def test_first_matching_level_and_state_win(symptom_setup):
     problems, latest, m = symptom_setup
     problem = problems["test_problem"]
