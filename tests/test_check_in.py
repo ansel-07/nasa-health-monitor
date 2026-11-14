@@ -37,6 +37,26 @@ def screen(monkeypatch):
         st.rerun()
 
     monkeypatch.setattr(st, "switch_page", switch)
+
+
+    state.update(subjective_config={"issues": {}}, issue_records={}, issue_calls=[])
+    monkeypatch.setattr(config, "load_subjective_issues", lambda **kwargs: state["subjective_config"])
+    monkeypatch.setattr(activity, "active_issues", lambda astronaut: deepcopy(state["issue_records"].get(astronaut, [])))
+
+    def report_issues(astronaut, issue_ids, source):
+        state["issue_calls"].append(("report", astronaut, issue_ids, source))
+        active = state["issue_records"].setdefault(astronaut, [])
+        for issue_id in issue_ids:
+            if not any(item["issue"] == issue_id for item in active):
+                active.append({"issue": issue_id, "since": state["now"].isoformat(), "persistent": False})
+
+    def resolve(astronaut, issue_id):
+        state["issue_calls"].append(("resolve", astronaut, issue_id))
+        state["issue_records"][astronaut] = [item for item in state["issue_records"][astronaut]
+                                              if item["issue"] != issue_id]
+
+    monkeypatch.setattr(activity, "report_issues", report_issues)
+    monkeypatch.setattr(activity, "resolve_issue", resolve)
     monkeypatch.setattr(config, "load_indicators", lambda: indicators)
     monkeypatch.setattr(config, "load_problems", lambda: problems)
     monkeypatch.setattr(config, "load_environments", lambda: {"mars": {"name": "Mars"}, "iss": {"name": "ISS"}})
@@ -604,6 +624,7 @@ def test_group_retries_only_remaining_values_after_partial_failure(screen, monke
     assert not app.exception
     assert len(state['calls']) == 1 and not state['completions']
     assert len(app.number_input) == 2
+    assert all(item.label != 'Continue repeat measurement' for item in app.button)
     state['now'] += timedelta(minutes=1)
     button(app, 'Record measurement').click().run()
     assert not app.exception
@@ -634,3 +655,93 @@ def test_completion_retry_does_not_record_values_again(screen, monkeypatch):
     button(app, 'Finish check-in').click().run()
     assert not app.exception
     assert len(state['calls']) == len(state['completions']) == 1
+
+
+def subjective_fixture(state):
+    state['subjective_config']['issues'] = {
+        'issue_a': {'label': 'Synthetic issue A', 'check_ins': ['x']},
+        'issue_b': {'label': 'Synthetic issue B', 'check_ins': ['y']},
+    }
+
+
+@pytest.mark.parametrize('detail,source', [(False, 'check_in_list'), (True, 'check_in_detail')])
+def test_subjective_issues_save_only_on_explicit_submit(screen, detail, source):
+    app, state = screen
+    subjective_fixture(state)
+    if not detail:
+        app.session_state['check_in_selected:a1:mars'] = None
+    app.run()
+    assert not app.exception
+    app.multiselect[0].set_value(['issue_a', 'issue_b'])
+    assert state['issue_calls'] == []
+    button(app, 'Save issues').click().run()
+    assert not app.exception
+    assert state['issue_calls'] == [('report', 'a1', ['issue_a', 'issue_b'], source)]
+    assert state['calls'] == [] and state['open'] is None
+    app.run()
+    assert len(state['issue_calls']) == 1
+
+
+def test_subjective_panel_follows_all_list_cards(screen):
+    app, state = screen
+    subjective_fixture(state)
+    app.session_state['check_in_selected:a1:mars'] = None
+    app.run()
+    card_row = next(index for index, node in app.main.children.items()
+                    if hasattr(node, 'children') and node.get('progress'))
+    issue_panel = next(index for index, node in app.main.children.items()
+                       if getattr(node, 'label', '') == 'Subjective issues')
+    assert issue_panel > card_row
+
+
+def test_deselecting_saved_issue_explicitly_resolves_it(screen):
+    app, state = screen
+    subjective_fixture(state)
+    state['issue_records']['a1'] = [{'issue': 'issue_a', 'since': '2027-04-10T08:00:00', 'persistent': True}]
+    app.run()
+    assert app.multiselect[0].value == ['issue_a']
+    assert state['issue_calls'] == []
+    app.multiselect[0].set_value([])
+    button(app, 'Save issues').click().run()
+    assert not app.exception
+    assert state['issue_calls'] == [('resolve', 'a1', 'issue_a')]
+    assert app.multiselect[0].value == []
+
+
+def test_subjective_issue_selection_is_separate_for_each_astronaut(screen):
+    app, state = screen
+    subjective_fixture(state)
+    state['issue_records']['a1'] = [{'issue': 'issue_a', 'since': '2027-04-10T08:00:00', 'persistent': False}]
+    app.run()
+    assert app.multiselect[0].value == ['issue_a']
+    app.session_state['astronaut'] = 'a2'
+    app.run()
+    assert not app.exception
+    assert app.multiselect[0].value == []
+    assert state['issue_calls'] == []
+
+
+def test_unconfigured_subjective_issues_show_empty_state(screen):
+    app, state = screen
+    app.run()
+    assert not app.multiselect
+    assert any('Subjective issues are not configured' in item.value for item in app.info)
+    assert state['issue_calls'] == []
+
+
+def test_subjective_report_failure_preserves_existing_issue(screen, monkeypatch):
+    app, state = screen
+    subjective_fixture(state)
+    state['issue_records']['a1'] = [{'issue': 'issue_a', 'since': '2027-04-10T08:00:00', 'persistent': False}]
+
+    def fail(*args, **kwargs):
+        raise OSError('Synthetic issue storage failure')
+
+    monkeypatch.setattr(activity, 'report_issues', fail)
+    app.run()
+    app.multiselect[0].set_value(['issue_b'])
+    button(app, 'Save issues').click().run()
+    assert not app.exception
+    assert any('could not be fully saved' in item.value for item in app.error)
+    assert state['issue_calls'] == []
+    assert state['issue_records']['a1'][0]['issue'] == 'issue_a'

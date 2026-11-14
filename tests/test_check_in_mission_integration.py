@@ -312,3 +312,41 @@ def test_grouped_submission_uses_real_detection_and_keeps_other_alert_pending(mi
     before = disk_snapshot()
     app.run()
     assert disk_snapshot() == before
+
+
+def test_subjective_entry_points_share_history_without_duplicate_reports(mission_workspace):
+    (config.CONFIG_DIR / 'subjective_issues.json').write_text(json.dumps({
+        'settings': {'persistence_days': 3, 'speed_multiplier': 2},
+        'issues': {
+            'issue_a': {'label': 'Synthetic issue A', 'check_ins': ['x']},
+            'issue_b': {'label': 'Synthetic issue B', 'check_ins': ['y']},
+        },
+    }), encoding='utf-8')
+    activity.complete('a1', 'check_in', 'x')
+    app = screen()
+    before = disk_snapshot()
+    button(app, 'Back to check-ins').click().run()
+    app.run()
+    assert disk_snapshot() == before
+    app.multiselect[0].set_value(['issue_a', 'issue_b'])
+    button(app, 'Save issues').click().run()
+    assert not app.exception
+    assert {item['issue'] for item in activity.active_issues('a1')} == {'issue_a', 'issue_b'}
+    assert activity.active_issues('a2') == []
+    button(app, 'Check x').click().run()
+    assert app.multiselect[0].value == ['issue_a', 'issue_b']
+    button(app, 'Save issues').click().run()
+    assert not app.exception
+    record = json.loads(models.ACTIVITY_FILE.read_text(encoding='utf-8'))['astronauts']['a1']
+    assert len(record['issues']) == 2
+    assert all(len(item['reports']) == 1 for item in record['issues'])
+    assert all(item['reports'][0]['source'] == 'check_in_list' for item in record['issues'])
+    app.multiselect[0].set_value([])
+    button(app, 'Save issues').click().run()
+    assert not app.exception
+    assert activity.active_issues('a1') == []
+    after = json.loads(models.ACTIVITY_FILE.read_text(encoding='utf-8'))['astronauts']['a1']
+    assert after['completions'] == record['completions']
+    assert all(item['resolved_at'] == START.isoformat() for item in after['issues'])
+    assert data.load_episodes() == [] and data.load_pending() == []
+    assert disk_snapshot()[:3] == before[:3]  # Objective measurements, episodes and clock are unchanged.
