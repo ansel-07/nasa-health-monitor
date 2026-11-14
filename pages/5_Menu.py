@@ -1,8 +1,8 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
 """Main Menu: Check-in, Trends and Tutorials cards, plus the demo controls. Owner: Ansel.
 
-docs/ASTRONAUT_HEALTH_APP_SPEC.md, screen 2, with the mascot of AGENTS.md 16 (small on the left,
-cards on the right). Protocols is not a menu item: its card appears only while the astronaut
+docs/ASTRONAUT_HEALTH_APP_SPEC.md, screen 2, with the layout of docs/FRONTEND_MASCOT_LAYOUT.md 3:
+big centred mascot, urgent alarms, then one row of cards below. Protocols is not a menu item: its card appears only while the astronaut
 has an active episode or pending alerts. The top-left back button (to Welcome) comes from app.py.
 """
 import streamlit as st
@@ -18,9 +18,7 @@ names = dict(zip(*[data.load_astronauts()[c] for c in ("id", "name")]))
 open_episode = data.get_open_episode(astronaut)
 pending = episodes.get_pending(astronaut)
 
-_, voice_col = st.columns([5, 1])
-with voice_col:
-    mascot.voice_toggle()
+mascot.voice_toggle()
 
 # Urgent subjective symptoms (docs/sintomas_subjetivos_atrofia_SANS.md section 3) prevail and stay
 # visible until the astronaut marks them resolved in Check-in; they never close by themselves.
@@ -43,18 +41,21 @@ elif pending:
 else:
     text, mood = f"Hi {names[astronaut]}! What would you like to do?", "happy"
 
+mascot.say(text, mood, size="large")
+
 for alarm in alarms:
     st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
              "When it is no longer present, mark it as resolved in Check-in → Subjective issues.")
 
 CARDS = [("Check-in", "pages/1_Check_in.py"), ("Trends", "pages/3_Trends.py"),
          ("Tutorials", "pages/4_Tutorials.py")]
-with mascot.beside(text, mood):
-    if (open_episode and open_episode["status"] == "active") or pending:
-        if st.button("Protocols", type="primary", use_container_width=True):
-            st.switch_page("pages/2_Protocol.py")
-    for label, page in CARDS:
-        if st.button(label, use_container_width=True):
+if (open_episode and open_episode["status"] == "active") or pending:
+    CARDS.insert(0, ("Protocols", "pages/2_Protocol.py"))
+with st.container(key="menu_cards"):
+    st.html("<style>.st-key-menu_cards button { min-height: 4.5rem; font-size: 1.1rem; }</style>")
+    for column, (label, page) in zip(st.columns(len(CARDS)), CARDS):
+        if column.button(label, type="primary" if label == "Protocols" else "secondary",
+                         use_container_width=True):
             st.switch_page(page)
 
 st.divider()

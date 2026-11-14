@@ -45,7 +45,9 @@ def test_real_seed_check_in_confirms_without_incomplete_baselines(tmp_path, monk
 
     app.run()
     assert not app.exception
-    click("NEXT")
+    for key in ("welcome_astronaut_a1", f"welcome_environment_{environment}"):  # Welcome buttons
+        app.button(key=key).click().run()
+        assert not app.exception
     assert data.load_episodes("a1") == []  # Stored simulated history never opens an episode.
     required_indicators = {key for item in config.load_checkins().values() for key in item["indicators"]}
     preflight = data.load_measurements(astronaut="a1", phase="preflight")

@@ -91,13 +91,13 @@ def snapshot(folder):
 
 
 def browser(environment="mars"):
-    """Welcome -> NEXT -> Main Menu (docs/ASTRONAUT_HEALTH_APP_SPEC.md screens 1-2)."""
+    """Welcome (astronaut, then environment buttons) -> Main Menu (FRONTEND_MASCOT_LAYOUT.md 2)."""
     app = AppTest.from_file(str(APP))
-    app.session_state["astronaut"] = "a1"
-    app.session_state["environment"] = environment
     app.run()
     assert not app.exception
-    click(app, "NEXT")
+    for key in ("welcome_astronaut_a1", f"welcome_environment_{environment}"):
+        app.button(key=key).click().run()
+        assert not app.exception
     return app
 
 

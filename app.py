@@ -4,6 +4,7 @@
 Screens and navigation follow docs/ASTRONAUT_HEALTH_APP_SPEC.md (AGENTS.md 3 and 16): no sidebar
 menu, people move with buttons and cards. This file lists the screens and adds the top-left
 back button: Main Menu goes back to Welcome; every other screen goes back to Main Menu.
+On Welcome it hides Streamlit's header so the conversation fills the viewport.
 A new page must be added to PAGES.
 """
 import streamlit as st
@@ -21,6 +22,17 @@ PAGES = [
     st.Page("pages/4_Tutorials.py", title="Tutorials"),
 ]
 navigation = st.navigation(PAGES, position="hidden")
+
+if navigation.url_path == welcome.url_path:
+    # Full-viewport Welcome (docs/FRONTEND_MASCOT_LAYOUT.md 2): no Streamlit header or top padding.
+    st.html("""<style>
+      [data-testid="stHeader"], [data-testid="stToolbar"] { display: none; }
+      [data-testid="stMainBlockContainer"], .block-container { padding-top: 1rem; padding-bottom: 1rem; }
+      .st-key-welcome_screen { min-height: calc(100vh - 2rem); display: flex; flex-direction: column;
+                               justify-content: center; max-width: 56rem; margin: 0 auto; }
+    </style>""")
+else:
+    st.session_state.pop("welcome_step", None)   # arriving at Welcome always starts at step 1
 
 if navigation.url_path == menu.url_path:
     if st.button("← Back"):
