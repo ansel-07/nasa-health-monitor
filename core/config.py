@@ -12,6 +12,7 @@ from core.models import (
     CONTACT_TARGETS,
     NODE_TYPES,
     OUTCOMES,
+    CONDITION_METRICS,
     PROBLEM_STATES,
     PROTOCOLS_DIR,
     SEVERITIES,
@@ -94,6 +95,13 @@ def _check_condition_refs(cond, where: str, indicators: dict, symptoms) -> list:
     for leaf in _leaf_conditions(cond):
         if "indicator" in leaf and leaf["indicator"] not in indicators:
             errors.append(f"{where}: unknown indicator '{leaf['indicator']}'")
+        if "metric" in leaf:
+            if leaf["metric"] not in CONDITION_METRICS:
+                errors.append(f"{where}: unknown metric '{leaf['metric']}'")
+            if "indicator" not in leaf and "var" not in leaf:
+                errors.append(f"{where}: 'metric' needs an 'indicator' or 'var'")
+            if "z_above" in leaf or "z_below" in leaf:
+                errors.append(f"{where}: do not mix 'metric' with z_above / z_below; use metric z_score")
         if "symptom" in leaf:
             if symptoms is None:
                 errors.append(f"{where}: symptom conditions are not allowed here")

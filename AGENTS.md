@@ -81,6 +81,11 @@ timestamp,astronaut,indicator,value,unit,phase,source
 
 For each astronaut and indicator: mean and standard deviation of the `preflight` measurements. Returned as `{"mean": float, "std": float, "n": int}`. z-score = (value − mean) / std.
 
+- It is the **only** reference for baseline-relative conditions (section 6). It is frozen by construction: pre-flight rows do not change during the mission.
+- A baseline is **valid** only with `n >= 2` and `std > 0` (and `mean > 0` for `baseline_fraction`).
+- **Never pool sites:** one indicator id per eye and per muscle/site/method (e.g. `refraction_left`, `refraction_right`), so every baseline compares like with like.
+- **Not evaluable** (no valid baseline, or a value missing): the condition is not satisfied, **but the result is never shown as normal**: Check-in keeps the measurement and says the indicator cannot be evaluated yet (no valid pre-flight baseline), and a confirmation never dismisses an episode because of it. No new API or episode status. A full "not evaluable" model (three-valued API, reference metadata, re-evaluation) is out of scope for the hackathon (README, future work).
+
 ### 5.3 Config files (in `config/`)
 
 - `mission.json`: mission name, start time, default environment, astronauts.
@@ -140,6 +145,7 @@ One evaluator for **both** triggers and protocol decisions. A condition is a JSO
 | `indicator` + `at_least` / `at_most` | latest value of that indicator is ≥ / ≤ the number |
 | `indicator` + `z_above` / `z_below` | its z-score against the astronaut's baseline is above / below |
 | `var` + `above` / `below` / `at_least` / `at_most` / `z_above` / `z_below` | same, for a value stored by a `measure` node (`save_as`) |
+| `indicator` or `var` + `metric` + `above` / `below` / `at_least` / `at_most` | compares a value derived from x and the baseline mu / sigma (5.2): `raw` (default) x · `baseline_fraction` x / mu · `baseline_delta` x − mu (signed, in the indicator's unit) · `z_score` (x − mu) / sigma · `abs_z_score` abs(z). Several bounds are ANDed, e.g. `{"indicator": "trt_left", "metric": "baseline_delta", "at_least": 20, "below": 55}`. Do not mix `metric` with `z_above` / `z_below` (those stay as the legacy form of strict `z_score`). Without a valid baseline it is not satisfied (not evaluable, 5.2). Names in `CONDITION_METRICS` (`core/models.py`). |
 | `severity_at_least` / `severity_is` | current episode severity (order in `core/models.py`) |
 | `environment_in` | current environment is in the list |
 | `answer` + `equals` | the answer stored by a `question` node equals the value |
@@ -149,7 +155,7 @@ One evaluator for **both** triggers and protocol decisions. A condition is a JSO
 
 `ctx` passed to `check(cond, ctx)`:
 `{"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}, "symptoms": {symptom_id: level}, "var_indicators": {save_as: indicator}}`.
-`var_indicators` is built by the protocol engine from its `measure` nodes; it is required only for `var` + `z_above` / `z_below`.
+`var_indicators` is built by the protocol engine from its `measure` nodes; it is required for `var` conditions that use the baseline (`z_above` / `z_below` or a `metric` other than `raw`).
 `symptoms` comes from `triggers.symptom_levels()`; symptom conditions are allowed in `states` and in protocol `decision` nodes, never inside a symptom's own `levels`.
 
 ## 7. Function contracts
@@ -158,7 +164,7 @@ Do not change a signature without asking Ansel. Until a function is implemented 
 
 ```python
 # core/models.py  (Ansel)
-SEVERITIES, SYMPTOM_LEVELS, PROBLEM_STATES, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES, MOODS
+SEVERITIES, SYMPTOM_LEVELS, PROBLEM_STATES, CONDITION_METRICS, EPISODE_STATUSES, OPEN_STATUSES, OUTCOMES, NODE_TYPES, PHASES, SOURCES, MOODS
 data_dir() -> Path                 # runtime data folder of the current session (DATA_DIR outside the app)
 data_file(default: Path) -> Path   # e.g. data_file(MEASUREMENTS_FILE): that file in the current session (5.5)
 severity_rank(s) -> int
@@ -311,6 +317,12 @@ python -m core.config --strict    # also lists values still marked TODO
 ## 14. Requests between owners (GitHub Issues)
 
 When one person (or their AI) needs something from another owner, it is written as a **GitHub issue**, not passed on by word of mouth. Never use a shared file for this.
+
+**Keep requests and comments short: they cost every reader time and tokens.**
+- An issue body is **at most ~200 words**; a comment **at most ~100 words** and only with new information (a decision, a result, a blocker). Do not restate the issue or earlier comments.
+- **Link instead of copying**: point to the source file, page, comment or PR (`#41`, `AGENTS.md 5.2`) rather than pasting tables, proposals or acceptance matrices.
+- No long technical proposals in issues: if a design needs discussion, write the minimal proposal in a few bullets and ask Ansel; details go in the pull request.
+- When you read an issue, read its body and only the **latest** comments that matter for your task.
 
 **At the start of every task**, list the open requests for your human and show them before starting:
 

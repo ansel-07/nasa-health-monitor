@@ -72,6 +72,10 @@ tests/              pytest tests
 
 - TODO
 
+## Limitations and future work
+
+- **Baseline quality.** Baseline-relative criteria use the mean and standard deviation of the pre-flight measurements of each astronaut and indicator (at least two sessions, non-zero spread). When no valid baseline exists, the app says the indicator cannot be evaluated yet and never reports it as normal. A complete model (explicit "not evaluable" results through every rule, reference quality metadata and automatic re-evaluation) is future work.
+
 ## Team
 
 | Name | Role |
