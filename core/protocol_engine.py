@@ -1,5 +1,6 @@
 # AI-assisted: generated with Claude Code and Codex; human review pending.
 """Run a protocol flowchart for an active episode. Owner: Javi."""
+import json
 from copy import deepcopy
 from datetime import datetime
 from math import isfinite
@@ -217,3 +218,115 @@ def submit(episode: dict, user_input: dict | None) -> dict:
 
     data.save_episode(updated)
     return updated
+
+
+# ---------------------------------------------------------------- flowchart (AGENTS.md 8, #69)
+
+_CONTACT_LABELS = {"crew_medical_officer": "crew medical officer", "flight_surgeon": "flight surgeon"}
+_OPERATORS = {"above": ">", "below": "<", "at_least": "≥", "at_most": "≤", "z_above": "z >", "z_below": "z <"}
+_CURRENT, _VISITED, _AHEAD = ("#fef3c7", "#b45309"), ("#dcfce7", "#15803d"), ("#f1f5f9", "#94a3b8")
+
+
+def _readable(name) -> str:
+    return str(name).replace("_", " ").capitalize()
+
+
+def _short(text: str, limit: int = 34) -> str:
+    """First sentence of a step text, cut to `limit` characters."""
+    sentence = str(text).split(". ")[0].rstrip(".")
+    return sentence if len(sentence) <= limit else sentence[:limit - 1].rstrip() + "…"
+
+
+def _wrap(text: str, width: int = 18) -> str:
+    lines, line = [], ""
+    for word in text.split():
+        if line and len(line) + 1 + len(word) > width:
+            lines.append(line)
+            line = word
+        else:
+            line = f"{line} {word}".strip()
+    return "\n".join(lines + [line])
+
+
+def _node_label(node: dict, indicators: dict) -> str:
+    kind = node["type"]
+    if kind == "decision":
+        return "Check"
+    if kind == "set_severity":
+        return f"Severity: {_readable(node['severity'])}"
+    if kind == "contact":
+        return f"Contact {_CONTACT_LABELS.get(node['target'], _readable(node['target']))}"
+    if kind == "end":
+        return f"End: {_readable(node['outcome'])}"
+    if kind == "measure":
+        name = indicators.get(node["indicator"], {}).get("name", "")
+        return _short(f"Measure {name if name and not name.startswith(TODO_MARK) else _readable(node['indicator'])}")
+    return _short(node.get("text", ""))
+
+
+def _condition_label(cond: dict) -> str:
+    """A few words for a decision branch; unknown forms fall back to "Condition met"."""
+    if "environment_in" in cond:
+        return " / ".join(env.upper() if len(env) <= 3 else env.capitalize() for env in cond["environment_in"])
+    if "severity_is" in cond:
+        return _readable(cond["severity_is"])
+    if "severity_at_least" in cond:
+        return f"{_readable(cond['severity_at_least'])} or worse"
+    if "answer" in cond:
+        return _readable(cond["equals"])
+    operator = next((op for op in _OPERATORS if op in cond), None)
+    if operator and ("var" in cond or "indicator" in cond):
+        subject = "Value" if "var" in cond else _readable(cond["indicator"])
+        return f"{subject} {_OPERATORS[operator]} {cond[operator]:g}"
+    if "symptom" in cond:
+        level = cond.get("level_is") or cond.get("level_at_least")
+        return f"{_readable(cond['symptom'])}: {_readable(level)}"
+    return "Condition met"
+
+
+def _edges(node: dict) -> list[tuple[str, str]]:
+    """(target, label) for every way out of a node, in display order."""
+    kind = node["type"]
+    if kind == "question":
+        return [(target, _readable(answer)) for answer, target in node["options"].items()]
+    if kind == "decision":
+        return [(b["next"], _condition_label(b["if"])) for b in node["branches"]] + [(node["default"], "Otherwise")]
+    edges = [(node["next"], "Done" if kind == "action" and "next_if_cannot" in node else "")] if "next" in node else []
+    if "next_if_cannot" in node:
+        edges.append((node["next_if_cannot"], "I can't"))
+    return edges
+
+
+def flowchart_dot(episode: dict) -> str:
+    """Graphviz DOT text of the episode's whole protocol for st.graphviz_chart.
+
+    The current node is highlighted (amber), nodes in the episode log are marked
+    as visited (green) and the connections taken are drawn thicker. Labels are
+    short, readable words, never the full step text. Reads only configuration.
+    """
+    protocol = load_protocol(episode["problem"])
+    indicators = load_indicators()
+    current = episode.get("current_node") or protocol["start"]
+    trace = [entry["node"] for entry in episode.get("log", [])
+             if entry.get("input") != "wait_started"] + [current]
+    trace = [node for i, node in enumerate(trace) if i == 0 or node != trace[i - 1]]
+    taken, visited = set(zip(trace, trace[1:])), set(trace)
+    quote = lambda value: json.dumps(value, ensure_ascii=False)  # Graphviz reads UTF-8, not \u escapes
+    lines = ["digraph protocol {",
+             'graph [rankdir=LR, bgcolor="transparent", nodesep=0.25, ranksep=0.35];',
+             'node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11, margin="0.12,0.06"];',
+             'edge [fontname="Arial", fontsize=9, arrowsize=0.6];']
+    for node_id, node in protocol["nodes"].items():
+        fill, border = _CURRENT if node_id == current else _VISITED if node_id in visited else _AHEAD
+        width = 2.5 if node_id == current else 1
+        shape = "diamond" if node["type"] == "decision" else "box"
+        label = _wrap(_node_label(node, indicators))
+        lines.append(f"{quote(node_id)} [label={quote(label)}, shape={shape}, "
+                     f'fillcolor="{fill}", color="{border}", penwidth={width}];')
+    for node_id, node in protocol["nodes"].items():
+        for target, label in _edges(node):
+            color, width = (_VISITED[1], 2.5) if (node_id, target) in taken else (_AHEAD[1], 1)
+            lines.append(f"{quote(node_id)} -> {quote(target)} [label={quote(label)}, "
+                         f'color="{color}", fontcolor="{color}", penwidth={width}];')
+    lines.append("}")
+    return "\n".join(lines)

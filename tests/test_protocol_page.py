@@ -204,3 +204,26 @@ def test_save_error_keeps_current_step(context, monkeypatch):
     assert not app.exception
     assert app.error
     assert context["episode"]["current_node"] == "intro"
+
+
+def current_in_chart(app) -> str:
+    charts = app.get("graphviz_chart")
+    assert len(charts) == 1
+    return next(line.split('"')[1] for line in charts[0].proto.spec.splitlines() if 'fillcolor="#fef3c7"' in line)
+
+
+def test_flowchart_beside_mascot_follows_the_current_step(context):
+    app = page()
+    assert current_in_chart(app) == "intro"
+    assert button(app, "Continue")
+    button(app, "Continue").click().run()
+    assert current_in_chart(app) == "symptoms"
+    assert app.radio and button(app, "Submit answer")
+
+
+def test_screens_without_an_active_protocol_show_no_flowchart(context):
+    episode = context["episode"]
+    context["episode"] = {**episode, "status": "pending_confirmation"}
+    assert not page().get("graphviz_chart")
+    context["episode"] = None
+    assert not page().get("graphviz_chart")
