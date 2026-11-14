@@ -350,3 +350,24 @@ def test_subjective_entry_points_share_history_without_duplicate_reports(mission
     assert all(item['resolved_at'] == START.isoformat() for item in after['issues'])
     assert data.load_episodes() == [] and data.load_pending() == []
     assert disk_snapshot()[:3] == before[:3]  # Objective measurements, episodes and clock are unchanged.
+
+
+def test_active_alarm_takes_over_the_check_in_list(mission_workspace, monkeypatch):
+    """Handoff task 2: with an urgent symptom active, the list says so (as the Main Menu does)."""
+    (config.CONFIG_DIR / 'subjective_issues.json').write_text(json.dumps({
+        'settings': {'persistence_days': 3, 'speed_multiplier': 2},
+        'issues': {'alarm_a': {'label': 'Synthetic alarm', 'alarm': True,
+                               'action': 'Synthetic action.', 'check_ins': []}},
+    }), encoding='utf-8')
+    speech = []
+    monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))
+    app = AppTest.from_file(str(PAGE))
+    app.session_state["astronaut"] = "a1"
+    app.session_state["environment"] = "mars"
+    app.run()
+    assert speech[-1] == "Choose a check-in to record your measurements."
+    activity.report_issues('a1', ['alarm_a'], source='check_in_list')
+    app.run()
+    assert not app.exception
+    assert "urgent symptom" in speech[-1]
+    assert any("Synthetic alarm. Synthetic action." in item.value for item in app.error)
