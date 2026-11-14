@@ -1,0 +1,254 @@
+{
+  "_ai_assisted": "Generated with Codex from Javi's draft and the team treatment guide; human review pending.",
+  "_integration_status": "Activated for confirmed numerical findings. Immediate clinical-priority entry before measurement confirmation remains a separate owner integration; no numerical finding automatically establishes urgency.",
+  "problem": "muscle_atrophy",
+  "start": "route",
+  "nodes": {
+    "route": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "severity_is": "medical_urgency"
+          },
+          "next": "u_stop"
+        }
+      ],
+      "default": "w_intro",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Prototype flow composition [P]."
+    },
+    "w_intro": {
+      "type": "info",
+      "text": "Your muscle readings need follow-up, and fatigue or weakness can have other causes. This app guides you; it does not diagnose.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch [P]",
+      "next": "w_red_flags"
+    },
+    "w_red_flags": {
+      "type": "question",
+      "text": "Do you have any of these right now: sudden or quickly worsening weakness, a new inability to move safely or to complete egress, or new intense muscle pain?",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency [P]",
+      "save_as": "red_flags",
+      "options": {
+        "yes": "w_escalate",
+        "no": "w_concern"
+      }
+    },
+    "w_escalate": {
+      "type": "set_severity",
+      "severity": "medical_urgency",
+      "next": "u_stop",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Prototype flow composition [P]."
+    },
+    "w_report": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Tell the crew medical officer. Review together your symptoms, any pain, your real exercise load and your strength trend.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: initial action [P]",
+      "next": "w_limits"
+    },
+    "w_limits": {
+      "type": "question",
+      "text": "Is the worsening unexpected, or does it stop you from completing a task?",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: initial action [P]",
+      "save_as": "limits_task",
+      "options": {
+        "yes": "w_priority_route",
+        "no": "w_exercise"
+      }
+    },
+    "w_priority_route": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "environment_in": [
+              "mars"
+            ]
+          },
+          "next": "w_priority_local"
+        }
+      ],
+      "default": "w_priority_ground",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Prototype flow composition [P]."
+    },
+    "w_priority_local": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Ask the crew medical officer for a priority assessment using the pre-authorized local protocol. Earth cannot answer immediately from Mars.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch [P]; NASA, Hazard: Distance From Earth [7]",
+      "next": "w_exercise"
+    },
+    "w_priority_ground": {
+      "type": "contact",
+      "target": "flight_surgeon",
+      "text": "Ask the flight surgeons for a priority assessment.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: initial action [P]",
+      "next": "w_exercise"
+    },
+    "w_exercise": {
+      "type": "action",
+      "text": "Do not increase exercise load on your own after a strength drop. Review load, technique and recovery with your exercise specialist.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, Exercise Overview [1]; Team triage guide [P]",
+      "next": "w_nutrition"
+    },
+    "w_nutrition": {
+      "type": "action",
+      "text": "Review energy and protein intake with your approved nutrition plan. Do not start supplements or medicines without medical advice.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, Human Adaptation to Spaceflight: The Role of Nutrition [2]; Team triage guide [P]",
+      "next": "w_avoid"
+    },
+    "w_avoid": {
+      "type": "info",
+      "text": "Do not train with pain, and do not make up missed sessions with extra load.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: avoid [P]",
+      "next": "w_end"
+    },
+    "w_end": {
+      "type": "end",
+      "outcome": "monitoring",
+      "text": "Log symptoms and training daily, and repeat the comparable strength test when indicated. Follow your prescribed rehabilitation after return.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, The Real Story About Astronaut Health Care in Space [3]; Canadian Space Agency, Return and Reconditioning [4]"
+    },
+    "u_stop": {
+      "type": "action",
+      "text": "Stop exercise and risky tasks, get to a safe position and alert the crew medical officer immediately. Do not repeat maximal tests or wait for another sensor reading.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: initial action [P]",
+      "next": "u_env",
+      "next_if_cannot": "u_help"
+    },
+    "u_env": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "environment_in": [
+              "iss"
+            ]
+          },
+          "next": "u_orbit"
+        },
+        {
+          "if": {
+            "environment_in": [
+              "moon"
+            ]
+          },
+          "next": "u_moon"
+        },
+        {
+          "if": {
+            "environment_in": [
+              "mars"
+            ]
+          },
+          "next": "u_mars_send"
+        }
+      ],
+      "default": "u_ground",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Prototype flow composition [P]."
+    },
+    "u_orbit": {
+      "type": "contact",
+      "target": "flight_surgeon",
+      "text": "Notify the flight surgeons and continue care with the crew medical officer. Any return decision belongs to the medical and mission team.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3]",
+      "next": "u_reviewed"
+    },
+    "u_moon": {
+      "type": "contact",
+      "target": "flight_surgeon",
+      "text": "Notify the flight surgeons while care starts in the habitat. Transfer depends on the vehicle, resources and clinical decision.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]",
+      "next": "u_reviewed"
+    },
+    "u_mars_send": {
+      "type": "contact",
+      "target": "flight_surgeon",
+      "text": "Transmit the case to Earth and follow the pre-authorized local protocol with the crew medical officer. Do not wait for an immediate reply.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, Hazard: Distance From Earth [7]",
+      "next": "u_reviewed"
+    },
+    "u_ground": {
+      "type": "contact",
+      "target": "flight_surgeon",
+      "text": "Notify the flight surgeons and continue local medical care.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, medical urgency [P]",
+      "next": "u_reviewed"
+    },
+    "u_end": {
+      "type": "end",
+      "outcome": "handed_over",
+      "text": "Clinical review and handover have been acknowledged. Stay assisted and follow the clinician's restrictions and rehabilitation plan.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: follow-up [P]"
+    },
+    "u_help": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Request immediate assistance from the crew medical officer. Do not continue the risky task.",
+      "next": "u_env",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; clinical-priority response [P]."
+    },
+    "u_reviewed": {
+      "type": "question",
+      "text": "Has a clinician reviewed this episode and accepted the handover?",
+      "save_as": "clinical_handover_accepted",
+      "options": {
+        "yes": "u_end",
+        "not_yet": "u_wait_review"
+      },
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; keep urgency active until clinical review [P]. Prototype acknowledgement, not identity verification."
+    },
+    "u_wait_review": {
+      "type": "action",
+      "text": "Stay assisted and continue the local medical instructions. Keep this episode open until clinical review and accepted handover.",
+      "next": "u_reviewed",
+      "next_if_cannot": "u_help",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; clinical review before closure [P]. No timed wait is prescribed."
+    },
+    "w_concern": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "any": [
+              {
+                "symptom": "muscle_strength",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_area",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_power",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_endurance",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_tone",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_stiffness",
+                "level_is": "concern"
+              }
+            ]
+          },
+          "next": "w_priority_review"
+        }
+      ],
+      "default": "w_report",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; numerical concern requires priority review without automatic medical urgency [P]."
+    },
+    "w_priority_review": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Ask the crew medical officer for priority medical review of the concerning finding. A concerning number alone does not establish a medical urgency.",
+      "next": "w_report",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; prototype review routing [P]."
+    }
+  }
+}
