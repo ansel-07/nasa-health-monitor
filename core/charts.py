@@ -4,9 +4,10 @@
 Used by pages/3_Trends.py (full size) and by pages/1_Check_in.py (compact, next to the mascot).
 Pages draw the figure with st.plotly_chart(fig). Contract: AGENTS.md, section 7.
 
-No health threshold is written here: the severity bands are read from the triggers in
-config/problems.json (Edu). Thresholds still marked TODO are skipped, so a band only
-appears once Edu has written its value.
+No health threshold is written here: the bands are read from config/problems.json (Edu):
+the `levels` of each symptom (watch / concern) or, for problems still in the legacy format,
+their `triggers`. Thresholds still marked TODO are skipped, so a band only appears once
+Edu has written its value.
 """
 from numbers import Real
 
@@ -14,7 +15,6 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from core import config, data
-from core.models import severity_rank
 
 # Colours (dataviz reference palette). Severity uses the reserved status colours and
 # always comes with a text label, so colour never carries the meaning alone.
@@ -22,8 +22,21 @@ MISSION_COLOR = "#2a78d6"
 PREFLIGHT_COLOR = "#9e9c97"
 BASELINE_COLOR = "#7a7974"
 USUAL_RANGE_FILL = "rgba(158, 156, 151, 0.15)"
-SEVERITY_COLORS = {"mild": "#fab219", "moderate": "#ec835a", "severe": "#d03b3b"}
+WARNING, SERIOUS, CRITICAL = "#fab219", "#ec835a", "#d03b3b"
+# Symptom levels and problem states (AGENTS.md 5.3), plus the legacy severity names.
+SEVERITY_COLORS = {
+    "watch": WARNING, "concern": SERIOUS, "medical_urgency": CRITICAL,
+    "mild": WARNING, "moderate": SERIOUS, "severe": CRITICAL,
+}
+# Drawing order of the bands, least serious first (more serious bands are drawn on top).
+BAND_RANK = {"watch": 1, "mild": 1, "concern": 2, "moderate": 2, "severe": 3}
 BAND_OPACITY = 0.12
+
+# Condition keys that give a band: key -> (direction, is a z-score).
+THRESHOLD_KEYS = {
+    "above": ("above", False), "at_least": ("above", False), "z_above": ("above", True),
+    "below": ("below", False), "at_most": ("below", False), "z_below": ("below", True),
+}
 
 FULL_HEIGHT = 420
 COMPACT_HEIGHT = 220
@@ -33,42 +46,67 @@ def _is_number(x) -> bool:
     return isinstance(x, Real) and not isinstance(x, bool)
 
 
-def threshold_bands(astronaut: str, indicator: str, environment: str | None = None) -> list[dict]:
-    """Severity thresholds for this indicator, from the triggers in config/problems.json.
+def _thresholds(cond: dict, indicator: str, baseline: dict | None) -> list[tuple[str, float]]:
+    """(direction, value) for each numeric threshold of a simple condition on this indicator.
 
-    One item per usable trigger: {"severity", "direction": "above" | "below", "value", "problem"}.
-    Only simple conditions on this indicator count (no all/any). Triggers without
-    `environments` always count; triggers with `environments` only when `environment` is in
-    that list (never when environment is None). z thresholds become values with the
-    astronaut's baseline. Values that are not numbers yet (TODO) are skipped.
+    z thresholds become values with the baseline; TODO values and compound conditions
+    (all / any / count_at_least) give nothing.
+    """
+    if cond.get("indicator") != indicator:
+        return []
+    found = []
+    for key, (direction, is_z) in THRESHOLD_KEYS.items():
+        threshold = cond.get(key)
+        if not _is_number(threshold):
+            continue
+        if is_z:
+            if baseline is None or baseline["std"] == 0:
+                continue
+            threshold = baseline["mean"] + threshold * baseline["std"]
+        found.append((direction, float(threshold)))
+    return found
+
+
+def _applies(rule: dict, environment: str | None) -> bool:
+    """Rules without `environments` always apply; the others only in those environments."""
+    return "environments" not in rule or environment in rule["environments"]
+
+
+def threshold_bands(astronaut: str, indicator: str, environment: str | None = None) -> list[dict]:
+    """Coloured bands for this indicator, from config/problems.json.
+
+    One item per usable rule: {"severity", "direction": "above" | "below", "value", "problem",
+    "symptom", "label"}. For symptom-based problems each level rule of a symptom gives a band
+    ("severity" is the level: watch / concern); problems without `symptoms` still use their
+    legacy `triggers` ("severity" is mild / moderate / severe; "symptom" is None).
+    Only simple conditions on this indicator count. Rules with `environments` only count when
+    `environment` is in that list (never when environment is None). Sorted least serious first.
     """
     baseline = data.get_baseline(astronaut, indicator)
     bands = []
+
+    def add(severity, cond, problem_id, symptom_id=None, symptom_name=None):
+        if severity not in BAND_RANK:
+            return
+        label = severity.capitalize()
+        if symptom_name and not symptom_name.startswith("TODO"):
+            label = f"{label} · {symptom_name}"
+        for direction, value in _thresholds(cond, indicator, baseline):
+            bands.append({"severity": severity, "direction": direction, "value": value,
+                          "problem": problem_id, "symptom": symptom_id, "label": label})
+
     for problem_id, problem in config.load_problems().items():
-        for trigger in problem.get("triggers", []):
-            cond = trigger.get("when", {})
-            severity = trigger.get("severity")
-            if cond.get("indicator") != indicator:
-                continue
-            if "environments" in trigger and environment not in trigger["environments"]:
-                continue
-            if severity not in SEVERITY_COLORS:
-                continue
-            for key in ("above", "below", "z_above", "z_below"):
-                threshold = cond.get(key)
-                if not _is_number(threshold):
-                    continue
-                if key.startswith("z_"):
-                    if baseline is None or baseline["std"] == 0:
-                        continue
-                    threshold = baseline["mean"] + threshold * baseline["std"]
-                bands.append({
-                    "severity": severity,
-                    "direction": key.removeprefix("z_"),
-                    "value": float(threshold),
-                    "problem": problem_id,
-                })
-    return sorted(bands, key=lambda b: severity_rank(b["severity"]))
+        if "symptoms" in problem:
+            for symptom_id, symptom in problem["symptoms"].items():
+                for rule in symptom.get("levels", []):
+                    if _applies(rule, environment):
+                        add(rule.get("level"), rule.get("when", {}), problem_id,
+                            symptom_id, symptom.get("name"))
+        else:  # TRANSITION: legacy format (AGENTS.md 5.3)
+            for trigger in problem.get("triggers", []):
+                if _applies(trigger, environment):
+                    add(trigger.get("severity"), trigger.get("when", {}), problem_id)
+    return sorted(bands, key=lambda b: BAND_RANK[b["severity"]])
 
 
 def _episode_marks(astronaut: str, indicator: str) -> list[dict]:
@@ -151,7 +189,7 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
         fig.add_hrect(
             y0=y0, y1=y1, fillcolor=SEVERITY_COLORS[band["severity"]], opacity=BAND_OPACITY,
             line_width=0, layer="below",
-            annotation_text=None if compact else band["severity"].capitalize(),
+            annotation_text=None if compact else band["label"],
             annotation_position="top right" if band["direction"] == "above" else "bottom right",
         )
 
