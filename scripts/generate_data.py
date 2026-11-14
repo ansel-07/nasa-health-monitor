@@ -11,10 +11,17 @@ Usage (from the repo root):  python -m scripts.generate_data
   noise, plus the anomalies of the demo scenario.
 - numpy.random.default_rng(SEED): the same parameters always give the same data.
 - Writes data/measurements.csv AND data/seed/measurements.csv (the copy used by Reset demo).
+- Also writes mission_state.json in data/ and data/seed/: the clock starts at 00:00 of
+  DEMO_DAY, so after Reset demo the earlier mission days are history and ONE "Advance 24 h"
+  click reveals the demo anomaly (AGENTS.md sections 5.5 and 15).
+
+SYNTHETIC DEMONSTRATION DATA: the output is a scripted example for the demo, not a model of
+real astronaut physiology or of how SANS / muscle atrophy develop over time.
 
 Every health value below is written by Edu (TODO_EDU) and the demo scenario by Gonzalo
 (TODO_GONZALO). While any TODO is left, the script refuses to run and lists them.
 """
+import json
 import sys
 from datetime import datetime, timedelta
 from numbers import Real
@@ -29,7 +36,8 @@ from core.models import MEASUREMENT_COLUMNS, TODO_MARK
 
 SEED = 2027
 PREFLIGHT_DAYS = 14       # days of pre-flight data per astronaut (enough for a baseline)
-MISSION_DAYS = 10         # simulated mission days
+MISSION_DAYS = "TODO_EDU"     # simulated mission days (Edu: 10 days is not supported by the sources)
+DEMO_DAY = "TODO_GONZALO"     # mission day of the demo anomaly, revealed by one Advance click
 MEASURE_HOUR = 8          # every simulated measurement is taken at 08:00
 
 # Health values: one entry per indicator to simulate (keys of config/indicators.json).
@@ -66,9 +74,16 @@ ANOMALIES = [
 
 # --- Generator -------------------------------------------------------------------------------
 
-def find_todos(indicator_params: dict, anomalies: list) -> list[str]:
-    """Where a value still starts with TODO, e.g. 'INDICATOR_PARAMS[heart_rate][mean]'."""
-    found = []
+def _is_todo(value) -> bool:
+    return isinstance(value, str) and value.startswith(TODO_MARK)
+
+
+def find_todos(indicator_params: dict, anomalies: list, scenario: dict | None = None) -> list[str]:
+    """Where a value still starts with TODO, e.g. 'INDICATOR_PARAMS[heart_rate][mean]'.
+
+    scenario: optional single values, e.g. {"MISSION_DAYS": 10, "DEMO_DAY": 4}.
+    """
+    found = [name for name, value in (scenario or {}).items() if _is_todo(value)]
     for indicator, params in indicator_params.items():
         for key, value in params.items():
             if isinstance(value, str) and value.startswith(TODO_MARK):
@@ -113,6 +128,30 @@ def check_params(indicator_params: dict, anomalies: list, astronauts: list, unit
     return errors
 
 
+def _is_whole(x) -> bool:
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def check_scenario(mission_days, demo_day, anomalies: list) -> list[str]:
+    """Errors in MISSION_DAYS / DEMO_DAY: whole numbers, and an anomaly on the demo day."""
+    if not (_is_whole(mission_days) and mission_days >= 1):
+        return ["MISSION_DAYS: must be a whole number of at least 1"]
+    if not (_is_whole(demo_day) and 1 <= demo_day <= mission_days):
+        return [f"DEMO_DAY: must be a whole number from 1 to {mission_days}"]
+    if not any(a.get("day") == demo_day for a in anomalies):
+        return [f"DEMO_DAY: no anomaly on mission day {demo_day}, so the demo click would reveal nothing"]
+    return []
+
+
+def seed_clock(start: datetime, demo_day: int) -> datetime:
+    """Mission time to leave in the seed: 00:00 of the demo day.
+
+    Mission day d is measured at start + (d - 1) days, MEASURE_HOUR; so days before the demo
+    day are already visible, and one 24 h advance reveals exactly the demo day.
+    """
+    return start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=demo_day - 1)
+
+
 def generate(indicator_params: dict, anomalies: list, astronauts: list, units: dict,
              start: datetime, preflight_days: int, mission_days: int, seed: int,
              measure_hour: int = MEASURE_HOUR) -> pd.DataFrame:
@@ -144,17 +183,29 @@ def generate(indicator_params: dict, anomalies: list, astronauts: list, units: d
     return df.sort_values(["timestamp", "astronaut", "indicator"], kind="stable").reset_index(drop=True)
 
 
-def write(df: pd.DataFrame) -> list:
-    """Write the measurements to data/ and data/seed/; returns the paths written."""
-    paths = [models.MEASUREMENTS_FILE, models.SEED_DIR / models.MEASUREMENTS_FILE.name]
-    for path in paths:
+def write(df: pd.DataFrame, clock: datetime | None = None) -> list:
+    """Write the measurements (and the mission clock, if given) to data/ and data/seed/.
+
+    Scripts run outside the app, so these are the repository files (AGENTS.md 5.5).
+    Returns the paths written.
+    """
+    paths = []
+    for path in (models.MEASUREMENTS_FILE, models.SEED_DIR / models.MEASUREMENTS_FILE.name):
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path, index=False, columns=MEASUREMENT_COLUMNS, lineterminator="\n")
+        paths.append(path)
+    if clock is not None:
+        state = json.dumps({"now": clock.isoformat(timespec="seconds")}, indent=2) + "\n"
+        for path in (models.MISSION_STATE_FILE, models.SEED_DIR / models.MISSION_STATE_FILE.name):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(state, encoding="utf-8", newline="\n")
+            paths.append(path)
     return paths
 
 
 def main() -> int:
-    todos = find_todos(INDICATOR_PARAMS, ANOMALIES)
+    todos = find_todos(INDICATOR_PARAMS, ANOMALIES,
+                       {"MISSION_DAYS": MISSION_DAYS, "DEMO_DAY": DEMO_DAY})
     if todos:
         print("Cannot generate data yet: these values are still marked TODO "
               "(health values: Edu; demo scenario: Gonzalo):")
@@ -165,17 +216,23 @@ def main() -> int:
     mission = config.load_mission()
     units = {key: info["unit"] for key, info in config.load_indicators().items()
              if not key.startswith("_")}
-    errors = check_params(INDICATOR_PARAMS, ANOMALIES, mission["astronauts"], units, MISSION_DAYS)
+    errors = check_scenario(MISSION_DAYS, DEMO_DAY, ANOMALIES)
+    if not errors:
+        errors = check_params(INDICATOR_PARAMS, ANOMALIES, mission["astronauts"], units, MISSION_DAYS)
     if errors:
         print("Cannot generate data: the parameters have errors:")
         for error in errors:
             print(f"  - {error}")
         return 1
 
+    start = datetime.fromisoformat(mission["start"])
     df = generate(INDICATOR_PARAMS, ANOMALIES, mission["astronauts"], units,
-                  datetime.fromisoformat(mission["start"]), PREFLIGHT_DAYS, MISSION_DAYS, SEED)
-    for path in write(df):
-        print(f"Wrote {len(df)} measurements to {path}")
+                  start, PREFLIGHT_DAYS, MISSION_DAYS, SEED)
+    clock = seed_clock(start, DEMO_DAY)
+    for path in write(df, clock):
+        print(f"Wrote {path}")
+    print(f"{len(df)} synthetic demonstration measurements (not a model of real physiology). "
+          f"Seed clock: {clock.isoformat()} -> one 'Advance 24 h' reveals mission day {DEMO_DAY}.")
     return 0
 
 

@@ -1,5 +1,6 @@
 # AI-assisted: generated with Claude Code and reviewed by Fran.
 """scripts/generate_data.py. Every number here is a FAKE test value, not health content."""
+import json
 from datetime import datetime
 
 import pandas as pd
@@ -112,13 +113,64 @@ def test_main_refuses_while_todo(tmp_path, monkeypatch, capsys):
     assert not (tmp_path / "measurements.csv").exists()
 
 
-def test_main_writes_with_complete_parameters(tmp_path, monkeypatch):
+@pytest.fixture
+def complete(tmp_path, monkeypatch):
+    """Complete FAKE parameters (not health values); every data path in a temporary folder."""
     monkeypatch.setattr(models, "MEASUREMENTS_FILE", tmp_path / "measurements.csv")
+    monkeypatch.setattr(models, "MISSION_STATE_FILE", tmp_path / "mission_state.json")
+    monkeypatch.setattr(models, "EPISODES_FILE", tmp_path / "episodes.json")
     monkeypatch.setattr(models, "SEED_DIR", tmp_path / "seed")
-    fake = {"heart_rate": {"mean": 50, "sd": 1, "decimals": 0}}
-    monkeypatch.setattr(gen, "INDICATOR_PARAMS", fake)
+    monkeypatch.setattr(gen, "INDICATOR_PARAMS", {"heart_rate": {"mean": 50, "sd": 1, "decimals": 0}})
     monkeypatch.setattr(gen, "ANOMALIES", [{"astronaut": "a1", "indicator": "heart_rate",
-                                            "day": 2, "value": 80}])
+                                            "day": 4, "value": 80}])
+    monkeypatch.setattr(gen, "MISSION_DAYS", 6)
+    monkeypatch.setattr(gen, "DEMO_DAY", 4)
+    return tmp_path
+
+
+def test_main_writes_with_complete_parameters(complete):
     assert gen.main() == 0
-    written = pd.read_csv(tmp_path / "measurements.csv")
-    assert len(written) == 3 * (gen.PREFLIGHT_DAYS + gen.MISSION_DAYS)
+    written = pd.read_csv(complete / "measurements.csv")
+    assert len(written) == 3 * (gen.PREFLIGHT_DAYS + 6)
+    for folder in (complete, complete / "seed"):
+        state = json.loads((folder / "mission_state.json").read_text(encoding="utf-8"))
+        assert state == {"now": "2027-04-04T00:00:00"}   # 00:00 of mission day 4
+
+
+def test_one_advance_after_reset_reveals_the_demo_anomaly(complete, monkeypatch):
+    """End to end: generate -> Reset demo -> one Advance 24 h -> the demo anomaly is revealed."""
+    from core import mission
+    monkeypatch.setattr(models, "DATA_DIR", complete)
+    assert gen.main() == 0
+    data.reset_demo()
+    visible = data.load_measurements(astronaut="a1", phase="mission")
+    assert list(visible["timestamp"].dt.day) == [1, 2, 3]     # earlier days: history
+    revealed = mission.advance(24)
+    assert [(m["astronaut"], m["value"]) for m in revealed if m["value"] == 80] == [("a1", 80.0)]
+    assert {m["timestamp"] for m in revealed} == {"2027-04-04T08:00:00"}
+
+
+def test_scenario_todos_are_listed():
+    todos = gen.find_todos({}, [], {"MISSION_DAYS": "TODO_EDU", "DEMO_DAY": 3})
+    assert todos == ["MISSION_DAYS"]
+    assert {"MISSION_DAYS", "DEMO_DAY"} <= set(
+        gen.find_todos(gen.INDICATOR_PARAMS, gen.ANOMALIES,
+                       {"MISSION_DAYS": gen.MISSION_DAYS, "DEMO_DAY": gen.DEMO_DAY}))
+
+
+@pytest.mark.parametrize("mission_days, demo_day, anomaly_day, ok", [
+    (10, 4, 4, True),
+    (10, 4, 5, False),     # no anomaly on the demo day
+    (10, 11, 11, False),   # demo day after the mission
+    (0, 1, 1, False),
+    (10, 2.5, 2.5, False),
+    (10, True, 1, False),
+])
+def test_check_scenario(mission_days, demo_day, anomaly_day, ok):
+    errors = gen.check_scenario(mission_days, demo_day, [{"day": anomaly_day}])
+    assert (errors == []) is ok
+
+
+def test_seed_clock():
+    assert gen.seed_clock(datetime(2027, 4, 1), 1) == datetime(2027, 4, 1)
+    assert gen.seed_clock(datetime(2027, 4, 1, 6, 30), 5) == datetime(2027, 4, 5)
