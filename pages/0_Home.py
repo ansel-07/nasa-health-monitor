@@ -29,6 +29,8 @@ with voice_col:
 
 _, center, _ = st.columns([1, 2, 1])
 with center:
+    st.title("SpaceDoc")
+    st.caption("Your health, guided through every mission. Prototype: it guides; it does not diagnose.")
     mascot.say("Hello! Tell me who you are and where the mission is.", "happy", size="large")
     pick_astronaut, pick_environment = st.columns(2)
     with pick_astronaut:
@@ -44,3 +46,10 @@ with center:
             st.session_state["astronaut"] = astronaut
             st.session_state["environment"] = environment
             st.switch_page("pages/5_Menu.py")
+
+    # Approved copy (Gonzalo, #39), with the steps following the current screens.
+    with st.expander("Try it in 1 minute"):
+        st.markdown("1. " + 'Choose **Astronaut A** and **International Space Station**, then **NEXT**. In Main Menu → *Demo controls*, press **Reset demo**. You will explore fictional, synthetic measurements.')
+        st.markdown("2. " + 'Press **Advance mission 24 h** to reveal an ocular measurement alert. Open **Check-in** to compare it with your personal pre-flight baseline.')
+        st.markdown("3. " + 'Use **Simulate wait** and repeat the flagged measurement with the demo value to confirm the anomaly.')
+        st.markdown("4. " + 'Open **Protocols** and follow the guidance through to medical follow-up. SpaceDoc guides you; it does not diagnose.')
