@@ -8,7 +8,7 @@ import pytest
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
-from core import charts, config, data, episodes, mascot, mission
+from core import charts, config, data, episodes, mascot, mission, triggers
 
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
@@ -176,6 +176,32 @@ def test_pending_confirmation_locks_indicator_and_wait(screen):
     assert button(app, "Confirm repeat measurement").disabled
     assert button(app, "Simulate wait")
     assert "Repeat measurement" in app.subheader[0].value
+
+
+@pytest.mark.parametrize("status,expected_environment", [
+    ("pending_confirmation", "mars"), ("active", "iss"), (None, "iss"),
+])
+def test_chart_and_assessment_share_environment_after_home_selection_changes(screen, monkeypatch, status, expected_environment):
+    app, state = screen
+    if status:
+        opened(state, status)
+    app.session_state["environment"] = "iss"
+    assessment_environments = []
+    original_assessment = triggers.assessment_issues
+
+    def assessment(problems, astronaut, indicator, environment):
+        assessment_environments.append(environment)
+        return original_assessment(problems, astronaut, indicator, environment)
+
+    monkeypatch.setattr(triggers, "assessment_issues", assessment)
+    before = deepcopy(state["open"])
+    app.run()
+    assert not app.exception
+    assert state["chart_calls"][-1] == ("a1", "x", True, expected_environment)
+    assert assessment_environments == [expected_environment]
+    assert state["open"] == before
+    if status:
+        assert any("original environment: Mars" in item.value for item in app.info)
 
 
 def test_ready_repeat_calls_confirm_and_offers_protocol(screen):
