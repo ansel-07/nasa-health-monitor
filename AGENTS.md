@@ -28,7 +28,7 @@ The app **guides, it does not diagnose**.
 
 ## 3. Stack
 
-- Python 3.12, Streamlit, pandas, Plotly, numpy. pytest for tests (always run as `python -m pytest`).
+- Python 3.12, Streamlit **1.67.0 (pinned in `requirements.txt`: the mascot uses `components.html`, removed in newer versions; do not upgrade without Ansel)**, pandas, Plotly, numpy. pytest for tests (always run as `python -m pytest`).
 - Always work inside the project virtual environment (`.venv`). Use Python 3.12: newer versions (3.14) may fail to install some packages.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
@@ -220,6 +220,8 @@ evaluate(measurement: dict, environment: str) -> list[dict]
 # one item per matching problem: {"problem", "severity", "indicator", "value", "z", "symptoms"?}
 # For symptom-based problems: "severity" is the problem state, "symptoms" is {symptom_id: level}.
 symptom_levels(problem_id: str, astronaut: str, environment: str) -> dict   # {symptom_id: level}, latest values only
+assessment_issues(problems: dict, astronaut: str, indicator: str, environment: str) -> list[str]
+# Check-in warnings (5.2 "not evaluable"): at most two messages; never changes data or episodes
 
 # core/episodes.py  (Juan Carlos)
 on_new_measurement(measurement: dict, environment: str) -> dict | None
@@ -313,6 +315,8 @@ python -m core.config --strict    # also lists values still marked TODO
 ```
 
 ## 13. Git workflow
+
+- **Deploy** (Streamlit Community Cloud): main file `app.py`, **Python 3.12** in Advanced settings, branch `main`.
 
 - `main` always starts. Run the app and `python -m pytest` before every push.
 - One branch per task: `<name>/short-description` (e.g. `juancarlos/confirmation-step`). Open a pull request; Ansel reviews and merges.
