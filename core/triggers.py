@@ -77,57 +77,40 @@ def _symptom_levels(problem: dict, ctx: dict) -> dict:
     return levels
 
 
-def _condition_evidence(cond: dict, ctx: dict, symptom_evidence: dict | None = None) -> set[str]:
+def _condition_evidence(cond: dict, ctx: dict) -> set[str]:
     """Indicators in true branches of an already validated, matching condition."""
     if not conditions.check(cond, ctx):
         return set()
     for operator in ("all", "any", "of"):
         if operator in cond:
-            return set().union(*(_condition_evidence(child, ctx, symptom_evidence)
+            return set().union(*(_condition_evidence(child, ctx)
                                  for child in cond[operator]))
     if "indicator" in cond:
         return {cond["indicator"]}
-    if "symptom" in cond and ctx["symptoms"].get(cond["symptom"]) != SYMPTOM_LEVELS[0]:
-        return (symptom_evidence or {}).get(cond["symptom"], set())
     return set()
 
 
-def _measurement_supports_match(measurement: dict, environment: str, match: dict) -> bool:
-    """Admission guard for episode evidence, separate from latest-state evaluation.
+def _supports_symptom_alert(problem: dict, ctx: dict, levels: dict, indicator: str) -> bool:
+    """The incoming indicator must feed a matching positive symptom level.
 
     A newly revealed normal row must not open or queue a confirmation based on
     another indicator's positive symptom. Only true branches of the first
-    matching level and state rules supply evidence. No values are substituted.
+    matching level rule supply evidence. The problem state still uses all latest
+    symptom levels, including those supplied by other indicators.
     """
-    problem = config.load_problems()[match["problem"]]
-    latest = dict(data.latest_values(measurement["astronaut"]))
-    latest[measurement["indicator"]] = measurement["value"]
-    ctx = {"astronaut": measurement["astronaut"], "environment": environment, "latest": latest}
-    if "symptoms" in problem or "states" in problem:
-        # Reuse the evaluated snapshot rather than reading every baseline again
-        # for each row of a simultaneous batch.
-        ctx["symptoms"] = match["symptoms"]
-        evidence = {}
-        for sid, symptom in problem["symptoms"].items():
-            if ctx["symptoms"][sid] == SYMPTOM_LEVELS[0] or not any(
-                measurement["indicator"] in _indicator_ids(rule["when"]) for rule in symptom["levels"]
-            ):
+    for sid, symptom in problem["symptoms"].items():
+        if levels[sid] == SYMPTOM_LEVELS[0] or not any(
+            indicator in _indicator_ids(rule["when"]) for rule in symptom["levels"]
+        ):
+            continue
+        for rule in symptom["levels"]:
+            if "environments" in rule and ctx["environment"] not in rule["environments"]:
                 continue
-            for rule in symptom["levels"]:
-                if "environments" in rule and environment not in rule["environments"]:
-                    continue
-                if conditions.check(rule["when"], ctx):
-                    evidence[sid] = _condition_evidence(rule["when"], ctx)
-                    break
-        if not any(measurement["indicator"] in indicators for indicators in evidence.values()):
-            return False
-        for rule in problem["states"]:
             if conditions.check(rule["when"], ctx):
-                return measurement["indicator"] in _condition_evidence(rule["when"], ctx, evidence)
-        return False
-    return any(measurement["indicator"] in _condition_evidence(rule["when"], ctx)
-               for rule in problem["triggers"]
-               if "environments" not in rule or environment in rule["environments"])
+                if indicator in _condition_evidence(rule["when"], ctx):
+                    return True
+                break
+    return False
 
 
 def assessment_issues(problems: dict, astronaut: str, indicator: str, environment: str) -> list[str]:
@@ -199,7 +182,9 @@ def evaluate(measurement: dict, environment: str) -> list[dict]:
     Callers supply only new mission measurements, including newly revealed
     simulated ones. History is never scanned here. Only rules referencing the
     new indicator are evaluated, using latest values for the other indicators.
-    In an any condition, another indicator's branch may supply the match.
+    Symptom alerts require positive evidence from the incoming indicator's
+    matching level rule. State still uses all latest values. Legacy any rules
+    retain their existing behavior, including another indicator's matching branch.
     Results follow configuration order and describe the incoming measurement.
     Invalid configuration raises ValueError; missing baselines yield z=None.
     """
@@ -234,7 +219,7 @@ def evaluate(measurement: dict, environment: str) -> list[dict]:
                 state_ctx = {**ctx, "symptoms": levels}
                 state = next((rule["state"] for rule in problem["states"]
                               if conditions.check(rule["when"], state_ctx)), PROBLEM_STATES[0])
-                if state != PROBLEM_STATES[0]:
+                if state != PROBLEM_STATES[0] and _supports_symptom_alert(problem, ctx, levels, indicator):
                     results.append({"problem": problem_id, "severity": state, "indicator": indicator,
                                     "value": value, "z": None, "symptoms": levels})
             except ValueError as error:

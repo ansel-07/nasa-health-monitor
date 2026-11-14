@@ -27,6 +27,7 @@ def mission_workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "MEASUREMENTS_FILE", tmp_path / "measurements.csv")
     monkeypatch.setattr(models, "EPISODES_FILE", tmp_path / "episodes.json")
     monkeypatch.setattr(models, "MISSION_STATE_FILE", tmp_path / "mission_state.json")
+    monkeypatch.setattr(models, "ACTIVITY_FILE", tmp_path / "activity.json")
     monkeypatch.setattr(models, "ASTRONAUTS_FILE", tmp_path / "astronauts.csv")
     models.ASTRONAUTS_FILE.write_text("id,name,role\na1,Synthetic A,Test\na2,Synthetic B,Test\n", encoding="utf-8")
     monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
@@ -53,6 +54,8 @@ def mission_workspace(tmp_path, monkeypatch):
     for filename, content in {
         "mission.json": {"start": START.isoformat(), "environment": "mars"},
         "indicators.json": indicators, "problems.json": problems,
+        "checkins.json": {key: {"name": f"Check {key}", "indicators": [key], "bar_full_hours": 24} for key in ("x", "y")},
+        "subjective_issues.json": {"settings": {"persistence_days": 3, "speed_multiplier": 2}, "issues": {}},
         "environments.json": {"mars": {"name": "Mars"}},
     }.items():
         (config_dir / filename).write_text(json.dumps(content), encoding="utf-8")
@@ -75,6 +78,7 @@ def screen():
     app = AppTest.from_file(str(PAGE))
     app.session_state["astronaut"] = "a1"
     app.session_state["environment"] = "mars"
+    app.session_state["check_in_selected:a1:mars"] = "x"
     app.run()
     assert not app.exception
     return app
@@ -247,6 +251,7 @@ def test_new_mission_alert_replaces_previous_no_alert_feedback(mission_workspace
     assert not app.exception
     assert not app.success
     assert "needs a repeat measurement" in speech[-1]
+    button(app, "Continue repeat measurement").click().run()
     assert button(app, "Confirm repeat measurement").disabled
     assert data.get_open_episode("a1")["problem"] == "synthetic_b"
     assert disk_snapshot() == before

@@ -10,7 +10,7 @@ from math import ceil, isfinite
 
 import streamlit as st
 
-from core import charts, config, data, episodes, mascot, mission, triggers
+from core import activity, charts, config, data, episodes, mascot, mission, triggers
 
 
 def _unfinished(value) -> bool:
@@ -97,7 +97,56 @@ def main() -> None:
         st.session_state[feedback_key] = {"level": level, "text": text}
         st.rerun()
 
-    confirmation = opened is not None and opened["status"] == "pending_confirmation"
+    checkins = config.load_checkins()
+    selection_key = f"check_in_selected:{astronaut}:{environment}"
+
+    def select_for(indicator_id: str) -> None:
+        st.session_state[selection_key] = next(
+            (key for key, item in checkins.items() if indicator_id in item["indicators"]), None,
+        )
+
+    if selection_key not in st.session_state:
+        st.session_state[selection_key] = None
+        if opened and opened["status"] == "pending_confirmation":
+            select_for(opened["trigger"]["indicator"])
+    selected = st.session_state[selection_key]
+
+    def waiting_alerts() -> None:
+        _waiting_alerts(astronaut, environment, opened, problems, indicators, blocked, report, select_for)
+
+    if selected not in checkins:
+        with mascot.beside(message if opened else "Choose a check-in to record your measurements.", mood):
+            st.caption("Bars show time since completion, not health status. You can measure at any time.")
+            if not checkins:
+                st.info("No check-ins are configured yet.")
+            for checkin_id, checkin in checkins.items():
+                with st.container(border=True):
+                    if st.button(checkin["name"], key=f"check_in_card:{checkin_id}", width="stretch"):
+                        st.session_state[selection_key] = checkin_id
+                        st.rerun()
+                    level = activity.bar_level(astronaut, "check_in", checkin_id)
+                    st.progress(level, text=f"Activity recency: {level}%")
+        if opened and opened["status"] == "pending_confirmation":
+            if st.button("Continue repeat measurement", width="stretch"):
+                select_for(opened["trigger"]["indicator"])
+                st.rerun()
+        elif opened and opened["status"] == "active":
+            if st.button("Open Protocol", width="stretch"):
+                st.switch_page("pages/2_Protocol.py")
+        waiting_alerts()
+        return
+
+    if st.button("Back to check-ins"):
+        st.session_state[selection_key] = None
+        st.rerun()
+    checkin = checkins[selected]
+    st.header(checkin["name"])
+    group = checkin["indicators"]
+    if not group or any(key not in indicators for key in group):
+        st.error("The indicators for this check-in are unavailable.")
+        return
+    confirmation = (opened is not None and opened["status"] == "pending_confirmation"
+                    and opened["trigger"]["indicator"] in group)
     if confirmation:
         indicator_id = opened["trigger"]["indicator"]
         st.subheader("Repeat measurement")
@@ -105,10 +154,10 @@ def main() -> None:
         st.write(f"Indicator: {'Unavailable indicator' if _unfinished(name) else name}")
     else:
         indicator_id = st.selectbox(
-            "Indicator", list(indicators),
+            "Indicator", group,
             format_func=lambda key: ("Unavailable indicator" if _unfinished(indicators[key]["name"])
                                      else indicators[key]["name"]),
-            key=f"check_in_indicator:{astronaut}:{environment}",
+            key=f"check_in_indicator:{astronaut}:{environment}:{selected}",
         )
     indicator = indicators[indicator_id]
     assessment_environment = opened["environment"] if confirmation else environment
@@ -146,6 +195,10 @@ def main() -> None:
     if opened and opened["status"] == "active":
         if st.button("Open Protocol", width="stretch"):
             st.switch_page("pages/2_Protocol.py")
+    elif opened and not confirmation:
+        if st.button("Continue repeat measurement", width="stretch"):
+            select_for(opened["trigger"]["indicator"])
+            st.rerun()
 
     guidance_ready = _guidance(indicator)
     ready = True
@@ -215,6 +268,10 @@ def main() -> None:
         st.session_state[version_key] = version + 1
         report("warning" if issues else "success", text)
 
+    waiting_alerts()
+
+
+def _waiting_alerts(astronaut, environment, opened, problems, indicators, blocked, report, select_for):
     pending = [item for item in episodes.get_pending(astronaut) if item["problem"] in problems]
     if pending:
         st.subheader("Waiting alerts")
@@ -236,6 +293,8 @@ def main() -> None:
                     result = episodes.accept_pending(astronaut, environment)
                 except (ValueError, KeyError, OSError) as error:
                     report("error", str(error))
+                if result is not None:
+                    select_for(result["trigger"]["indicator"])
                 report("info", "The next alert is ready for a repeat measurement after its confirmation wait."
                        if result is not None else "There are no waiting alerts to review.")
 
