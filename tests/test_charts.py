@@ -322,3 +322,16 @@ def test_alert_marks_use_the_mission_day(tmp_data, fixed_now):
     alert = next(t for t in charts.indicator_chart("a1", "_example_indicator").data if t.name == "Alert")
     assert list(alert.x) == [pytest.approx(2.25)]
     assert alert.customdata[0][3] == "2027-04-02 06:00"
+
+
+def test_compact_chart_has_no_label_without_text(tmp_data, fake_problems, fixed_now):
+    """#125: a position without a text makes Plotly draw its default label "new text"."""
+    for day, value in ((28, 60), (29, 62), (30, 64)):
+        add(f"2027-03-{day}T08:00:00", value, phase="preflight")
+    add("2027-04-01T08:00:00", 66)
+    for compact in (True, False):
+        fig = charts.indicator_chart("a1", "_example_indicator", compact=compact)
+        texts = [a.text for a in fig.layout.annotations]
+        assert all(t and t != "new text" for t in texts), (compact, texts)
+    compact_fig = charts.indicator_chart("a1", "_example_indicator", compact=True)
+    assert len([s for s in compact_fig.layout.shapes if s.fillcolor in charts.SEVERITY_COLORS.values()]) >= 1

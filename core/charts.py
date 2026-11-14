@@ -245,12 +245,13 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
     for band in bands:
         y0 = y_low if band["low"] is None else band["low"]
         y1 = y_high if band["high"] is None else band["high"]
-        fig.add_hrect(
-            y0=y0, y1=y1, fillcolor=SEVERITY_COLORS[band["severity"]], opacity=BAND_OPACITY,
-            line_width=0, layer="below",
-            annotation_text=None if compact else band["label"],
-            annotation_position="bottom right" if band["direction"] == "below" else "top right",
-        )
+        # A label only in the full chart. Never pass a position without a text: Plotly would
+        # then draw its default label "new text" (#125).
+        label = {} if compact else dict(
+            annotation_text=band["label"],
+            annotation_position="bottom right" if band["direction"] == "below" else "top right")
+        fig.add_hrect(y0=y0, y1=y1, fillcolor=SEVERITY_COLORS[band["severity"]],
+                      opacity=BAND_OPACITY, line_width=0, layer="below", **label)
 
     if baseline is not None:
         fig.add_hrect(y0=baseline["mean"] - baseline["std"], y1=baseline["mean"] + baseline["std"],
@@ -274,8 +275,8 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
 
     # Launch (mission day 1) separates pre-flight from mission; "Now" is the mission clock.
     if (df["phase"] == "preflight").any() and (df["phase"] == "mission").any():
-        fig.add_vline(x=1, line=dict(color=BASELINE_COLOR, width=1, dash="dot"),
-                      annotation_text=None if compact else "Launch", annotation_position="top")
+        launch_label = {} if compact else dict(annotation_text="Launch", annotation_position="top")
+        fig.add_vline(x=1, line=dict(color=BASELINE_COLOR, width=1, dash="dot"), **launch_label)
     fig.add_vline(x=_mission_day(mission.now()), line=dict(color=NOW_COLOR, width=2),
                   annotation_text="Now", annotation_position="top")
 
