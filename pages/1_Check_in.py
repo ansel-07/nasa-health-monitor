@@ -112,7 +112,9 @@ def main() -> None:
         message, mood = "Measurement guidance is not available yet. This indicator cannot be submitted.", "serious"
     chart_col, mascot_col = st.columns([4, 1])
     with chart_col:
-        st.plotly_chart(charts.indicator_chart(astronaut, indicator_id, compact=True))
+        st.plotly_chart(charts.indicator_chart(
+            astronaut, indicator_id, compact=True, environment=environment,
+        ))
     with mascot_col:
         mascot.say(message, mood, size="small")
 
