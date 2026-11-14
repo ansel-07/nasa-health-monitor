@@ -1,14 +1,15 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
+# AI-assisted: baseline metrics generated with Codex; human review pending.
 """Shared condition evaluator for triggers and protocol decisions. Owner: Juan Carlos.
 
 Condition language: AGENTS.md, section 6.
 ctx = {"astronaut", "environment", "severity", "vars", "answers", "latest": {indicator: value}}
 Numeric indicator and variable conditions also accept at_least (>=) and
-at_most (<=). These compare raw values, not percentages, baseline deltas or z-scores.
+at_most (<=). The optional metric transforms the value using its own baseline.
 
-Variable z-scores additionally require ctx["var_indicators"] = {save_as: indicator}.
+Variable baseline comparisons require ctx["var_indicators"] = {save_as: indicator}.
 The protocol engine supplies this mapping from measure nodes. Numeric values
-remain in vars; no changes to condition JSON or the check signature are needed.
+remain in vars; the check signature is unchanged.
 Rebuild the mapping from the protocol on each execution so restored episodes
 also work. Each save_as must refer to a single indicator; the caller must reject
 conflicting measure definitions. The mapping need not be persisted in episodes.
@@ -18,7 +19,7 @@ from numbers import Real
 from operator import ge, gt, le, lt
 
 from core import data
-from core.models import PROBLEM_STATES, SEVERITIES, SYMPTOM_LEVELS
+from core.models import CONDITION_METRICS, PROBLEM_STATES, SEVERITIES, SYMPTOM_LEVELS
 
 
 _COMPARISONS = {
@@ -59,8 +60,11 @@ def _validate(cond: dict) -> None:
     if "indicator" in cond or "var" in cond:
         selectors = keys & {"indicator", "var"}
         comparisons = keys & _COMPARISONS.keys()
-        if len(selectors) != 1 or not comparisons or keys != selectors | comparisons:
+        if len(selectors) != 1 or not comparisons or keys - {"metric"} != selectors | comparisons:
             raise ValueError("Use one indicator or var with numeric comparisons only.")
+        if "metric" in cond and (cond["metric"] not in CONDITION_METRICS
+                                 or comparisons & {"z_above", "z_below"}):
+            raise ValueError("Use a known metric without legacy z_above/z_below comparisons.")
         _validate_name(cond[next(iter(selectors))])
         for operator in comparisons:
             if not _is_number(cond[operator]):
@@ -101,7 +105,7 @@ def _validate_variable_indicators(cond: dict, ctx: dict) -> None:
             for child in cond[operator]:
                 _validate_variable_indicators(child, ctx)
             return
-    if "var" in cond and {"z_above", "z_below"}.intersection(cond):
+    if "var" in cond and _uses_baseline(cond):
         mapping = ctx.get("var_indicators")
         indicator = mapping.get(cond["var"]) if isinstance(mapping, dict) else None
         if not isinstance(indicator, str) or not indicator.strip() or indicator.startswith("TODO"):
@@ -109,6 +113,39 @@ def _validate_variable_indicators(cond: dict, ctx: dict) -> None:
                 f"Variable '{cond['var']}' requires an explicit variable-to-indicator "
                 "mapping in ctx['var_indicators']."
             )
+
+
+def _uses_baseline(cond: dict) -> bool:
+    return cond.get("metric", "raw") != "raw" or bool({"z_above", "z_below"}.intersection(cond))
+
+
+def _metric_value(cond: dict, ctx: dict):
+    """Return the configured numeric value, or None when it cannot be evaluated."""
+    selector = "indicator" if "indicator" in cond else "var"
+    name = cond[selector]
+    value = ctx.get("latest" if selector == "indicator" else "vars", {}).get(name)
+    if not _is_number(value):
+        return None
+    metric = cond.get("metric", "raw")
+    if metric == "raw":
+        return value
+    astronaut = ctx.get("astronaut")
+    indicator = name if selector == "indicator" else ctx.get("var_indicators", {}).get(name)
+    baseline = data.get_baseline(astronaut, indicator) if astronaut and indicator else None
+    if not isinstance(baseline, dict) or not all(_is_number(baseline.get(k)) for k in ("mean", "std", "n")):
+        return None
+    mean, std, n = baseline["mean"], baseline["std"], baseline["n"]
+    if n < 2 or std <= 0 or (metric == "baseline_fraction" and mean <= 0):
+        return None
+    if metric == "baseline_fraction":
+        result = value / mean
+    elif metric == "baseline_delta":
+        result = value - mean
+    else:
+        result = (value - mean) / std
+        if metric == "abs_z_score":
+            result = abs(result)
+    return result if _is_number(result) else None
 
 
 def _evaluate(cond: dict, ctx: dict) -> bool:
@@ -130,8 +167,7 @@ def _evaluate(cond: dict, ctx: dict) -> bool:
     if "indicator" in cond or "var" in cond:
         selector = "indicator" if "indicator" in cond else "var"
         name = cond[selector]
-        values = ctx.get("latest" if selector == "indicator" else "vars", {})
-        value = values.get(name)
+        value = _metric_value(cond, ctx)
         if not _is_number(value):
             return False
         z = None
@@ -171,8 +207,8 @@ def check(cond: dict, ctx: dict) -> bool:
 
     Missing or non-finite numeric data does not satisfy a condition. Invalid
     conditions raise ValueError, even inside an otherwise skipped branch.
-    Variable z-scores use ctx['var_indicators'][save_as] for the baseline and
-    ctx['vars'][save_as] for the measured value, never the latest indicator value.
+    Variable baseline comparisons use ctx['var_indicators'][save_as] for the
+    baseline and ctx['vars'][save_as] for the value, never the latest indicator.
     Missing/invalid mappings raise ValueError; missing values or baselines return
     False. Absolute variable comparisons need no mapping. Context is not mutated.
     """
