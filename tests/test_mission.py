@@ -20,7 +20,7 @@ def tmp_files(tmp_path, monkeypatch):
 
 
 def add(timestamp, value, source="simulated", phase="mission", astronaut="a1"):
-    data.add_measurement({"timestamp": timestamp, "astronaut": astronaut, "indicator": "heart_rate",
+    data.add_measurement({"timestamp": timestamp, "astronaut": astronaut, "indicator": "_example_indicator",
                           "value": value, "unit": "bpm", "phase": phase, "source": source})
 
 
@@ -49,8 +49,8 @@ def test_future_simulated_measurements_are_hidden(tmp_files):
     add("2027-04-01T08:00:00", 70)                      # mission day 1, still future
     add("2027-04-05T08:00:00", 75, source="manual")     # manual rows are never hidden
     assert list(data.load_measurements()["value"]) == [60.0, 75.0]
-    assert data.latest_values("a1") == {"heart_rate": 75.0}
-    assert data.get_baseline("a1", "heart_rate")["n"] == 1
+    assert data.latest_values("a1") == {"_example_indicator": 75.0}
+    assert data.get_baseline("a1", "_example_indicator")["n"] == 1
 
 
 def test_advance_returns_only_newly_visible_simulated_rows(tmp_files):
@@ -63,7 +63,7 @@ def test_advance_returns_only_newly_visible_simulated_rows(tmp_files):
     revealed = mission.advance(hours=24)  # now 2027-04-02T00:00
     assert [(m["astronaut"], m["value"]) for m in revealed] == [("a1", 70.0), ("a2", 71.0)]
     assert revealed[0] == {"timestamp": "2027-04-01T08:00:00", "astronaut": "a1",
-                           "indicator": "heart_rate", "value": 70.0, "unit": "bpm",
+                           "indicator": "_example_indicator", "value": 70.0, "unit": "bpm",
                            "phase": "mission", "source": "simulated"}
     assert 70.0 in list(data.load_measurements()["value"])
 

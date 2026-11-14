@@ -22,7 +22,7 @@ def episode(id_, astronaut="a1", status="active", problem="problem_1"):
 
 def pending(astronaut="a1", problem="problem_2"):
     return {"astronaut": astronaut, "problem": problem, "severity": "mild",
-            "indicator": "sleep_hours", "value": 5.0, "z": -2.3,
+            "indicator": "_example_indicator_2", "value": 5.0, "z": -2.3,
             "measured_at": "2027-04-10T08:00:00"}
 
 
