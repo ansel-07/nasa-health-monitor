@@ -370,7 +370,10 @@ Rules:
 
 The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **about 30 seconds**. After that, the judges try the **deployed app** on their own. Both matter:
 
-**The 30-second demo** (recorded as a video for the slides; the live app is only the backup):
+**The 30-second demo is live** (no video is allowed in the presentation), so it must be robust:
+- It runs on the deployed app (or a local copy as backup), started right after Reset demo. Rehearse it; the voice needs one click on "Voice" first (browsers block audio before a user action).
+- No step may depend on typing long values or waiting: every value the demo needs is in the seed or offered as a button.
+- The screens must read well on a projector: big mascot, short texts, readable charts and flowchart.
 - It starts from Reset demo, so `data/seed/` must leave the story ready to show (section 5.5): the anomaly appears with one "advance mission" click.
 - **Mission time is a general mechanism**, not only a demo control: today "Advance 24 h" is on Trends (#50) and its logic moves to `core/mission.py` (#58). Mission time will also drive features Gonzalo is specifying (protocol-practice and review bars that run down over time); do not build those until his spec is in an issue.
 - Target path, about 6 actions: advance mission (Trends) → "Go to Check-in" → alert from the mascot → Check-in chart with the personal baseline and bands → Simulate wait and repeat the measurement → Protocol: 2-3 short steps on the short branch (for example Mars, contact flight surgeon with the communication delay) → end.
