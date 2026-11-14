@@ -1,20 +1,20 @@
 {
   "iss": {
     "name": "International Space Station",
-    "gravity_g": "TODO_EDU",
-    "comm_delay_min": "TODO_EDU",
-    "source": "TODO_EDU"
+    "gravity_g": 1e-06,
+    "comm_delay_min": 0,
+    "source": "Effective onboard microgravity, not local gravitational attraction: https://www.nasa.gov/wp-content/uploads/2023/03/np-2015-03-018-jsc-cellular-biology-iss-mini-book-508.pdf . Communication delay approximated as zero minutes for this demo (not physically zero); NASA describes negligible/millisecond delays: https://www.nasa.gov/missions/station/the-space-network-cell-towers-for-astronauts/"
   },
   "moon": {
     "name": "Lunar base",
-    "gravity_g": "TODO_EDU",
-    "comm_delay_min": "TODO_EDU",
-    "source": "TODO_EDU"
+    "gravity_g": 0.165,
+    "comm_delay_min": 0.021166666666666667,
+    "source": "Surface gravity: https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/moon/ . Mean one-way light time 1.27 seconds converted to minutes: https://www.esa.int/media/ten-things-you-didn-t-know-about-the-moon-moon-calling-earth . Signal travel time only; excludes clinical response and network delays."
   },
   "mars": {
     "name": "Mars base",
-    "gravity_g": "TODO_EDU",
-    "comm_delay_min": "TODO_EDU",
-    "source": "TODO_EDU"
+    "gravity_g": 0.38,
+    "comm_delay_min": 22,
+    "source": "Surface gravity: https://www.jpl.nasa.gov/news/press_kits/insight/landing/facts/mars-at-a-glance/ . Demo uses the upper endpoint of NASA's 3-22 minute one-way signal delay, not a constant for all missions: https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/ . Excludes clinical response time and outages."
   }
 }

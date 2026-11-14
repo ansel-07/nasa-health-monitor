@@ -63,7 +63,7 @@ def test_no_episode_and_pending(context):
     context["pending"] = [{"problem": "test_issue", "severity": "severe"}]
     app = page()
     assert any("no active protocol" in item.value for item in app.info)
-    assert any("Next: Test issue (severe)" in item.value for item in app.info)
+    assert any("Next: Test issue (Severe)" in item.value for item in app.info)
 
 
 def test_pending_confirmation_has_no_protocol_controls(context):
@@ -87,6 +87,28 @@ def test_info_advances_and_question_requires_selection(context):
     assert context["episode"]["answers"] == {"has_symptom": "no"}
     assert button(app, "Done").disabled
     assert not button(app, "I can't").disabled
+
+
+def test_astronaut_sees_readable_names_not_internal_ids(context, monkeypatch):
+    protocol = protocol_engine.load_protocol("_example")  # the fixture copy from context
+    protocol["nodes"]["symptoms"]["options"] = {"yes": "escalate", "not_yet": "do_action"}
+    monkeypatch.setattr(protocol_engine, "load_protocol", lambda _: deepcopy(protocol))
+    monkeypatch.setattr(config, "load_environments", lambda: {"mars": {"name": "Synthetic Mars base"}})
+    context["episode"].update(current_node="symptoms", severity="medical_urgency")
+    app = page()
+    assert any(item.value == "Severity: Medical urgency · Environment: Synthetic Mars base" for item in app.caption)
+    assert app.radio[0].options == ["Yes", "Not yet"]
+    app.radio[0].set_value("not_yet")
+    button(app, "Submit answer").click().run()
+    assert context["episode"]["answers"] == {"has_symptom": "not_yet"}
+
+
+def test_completion_time_is_readable(context, monkeypatch):
+    monkeypatch.setattr(protocol_engine, "load_environments", lambda: {"mars": {"comm_delay_min": 7}})
+    context["episode"]["current_node"] = "contact_now"
+    button(page(), "Continue").click().run()
+    app = page()
+    assert any(item.value == "Completed at mission time 10 Apr 2027, 08:00" for item in app.caption)
 
 
 def test_timed_action_refresh_and_measurement(context):

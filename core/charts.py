@@ -15,6 +15,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from core import config, data
+from core.models import CONDITION_METRICS
 
 # Colours (dataviz reference palette). Severity uses the reserved status colours and
 # always comes with a text label, so colour never carries the meaning alone.
@@ -33,10 +34,8 @@ BAND_RANK = {"watch": 1, "mild": 1, "concern": 2, "moderate": 2, "severe": 3}
 BAND_OPACITY = 0.12
 
 # Condition keys that give a band: key -> (direction, is a z-score).
-THRESHOLD_KEYS = {
-    "above": ("above", False), "at_least": ("above", False), "z_above": ("above", True),
-    "below": ("below", False), "at_most": ("below", False), "z_below": ("below", True),
-}
+LOWER_KEYS, UPPER_KEYS = ("above", "at_least"), ("below", "at_most")  # bounds on the metric
+Z_KEYS = ("z_above", "z_below")  # legacy form of a strict z_score bound
 
 FULL_HEIGHT = 420
 COMPACT_HEIGHT = 220
@@ -46,25 +45,64 @@ def _is_number(x) -> bool:
     return isinstance(x, Real) and not isinstance(x, bool)
 
 
-def _thresholds(cond: dict, indicator: str, baseline: dict | None) -> list[tuple[str, float]]:
-    """(direction, value) for each numeric threshold of a simple condition on this indicator.
+def _valid_baseline(baseline: dict | None, metric: str) -> bool:
+    """AGENTS.md 5.2: n >= 2 and std > 0 (and mean > 0 for baseline_fraction)."""
+    if baseline is None or baseline["n"] < 2 or not baseline["std"] > 0:
+        return False
+    return metric != "baseline_fraction" or baseline["mean"] > 0
 
-    z thresholds become values with the baseline; TODO values and compound conditions
-    (all / any / count_at_least) give nothing.
+
+def _to_value(metric: str, t: float, baseline: dict | None) -> float:
+    """A bound on the metric, converted to the indicator's unit (raw, fraction, delta, z)."""
+    if metric == "raw":
+        return t
+    mu, sigma = baseline["mean"], baseline["std"]
+    return {"baseline_fraction": mu * t, "baseline_delta": mu + t, "z_score": mu + t * sigma}[metric]
+
+
+def _intervals(cond: dict, indicator: str, baseline: dict | None) -> list[tuple[float | None, float | None]]:
+    """(low, high) value ranges, in the indicator's unit, where a simple condition is true.
+
+    None means open-ended (to the edge of the chart). Several bounds in one condition are ANDed
+    (AGENTS.md 6), so {"at_least": 20, "below": 55} is one range. abs_z_score gives two ranges,
+    one on each side of the baseline. Nothing for: another indicator, compound conditions,
+    unknown metrics, bounds still marked TODO, or no valid baseline (5.2) when one is needed.
     """
     if cond.get("indicator") != indicator:
         return []
-    found = []
-    for key, (direction, is_z) in THRESHOLD_KEYS.items():
-        threshold = cond.get(key)
-        if not _is_number(threshold):
-            continue
-        if is_z:
-            if baseline is None or baseline["std"] == 0:
-                continue
-            threshold = baseline["mean"] + threshold * baseline["std"]
-        found.append((direction, float(threshold)))
-    return found
+    metric = cond.get("metric", "raw")
+    if metric not in CONDITION_METRICS:
+        return []
+    keys = [k for k in LOWER_KEYS + UPPER_KEYS + Z_KEYS if k in cond]
+    if not keys or not all(_is_number(cond[k]) for k in keys):
+        return []
+    z_bounds = any(k in Z_KEYS for k in keys)
+    if (metric != "raw" or z_bounds) and not _valid_baseline(baseline, "z_score" if z_bounds and metric == "raw" else metric):
+        return []
+    lows = [float(cond[k]) for k in LOWER_KEYS if k in cond]
+    highs = [float(cond[k]) for k in UPPER_KEYS if k in cond]
+
+    if metric == "abs_z_score":
+        mu, sigma = baseline["mean"], baseline["std"]
+        a, b = (max(lows) if lows else None), (min(highs) if highs else None)
+        if a is not None and b is not None and a >= b:
+            return []
+        if a is None:  # |z| below b: one range around the baseline
+            return [(mu - b * sigma, mu + b * sigma)]
+        return [(None if b is None else mu - b * sigma, mu - a * sigma),
+                (mu + a * sigma, None if b is None else mu + b * sigma)]
+
+    low_values = [_to_value(metric, t, baseline) for t in lows]
+    high_values = [_to_value(metric, t, baseline) for t in highs]
+    if "z_above" in cond:
+        low_values.append(baseline["mean"] + cond["z_above"] * baseline["std"])
+    if "z_below" in cond:
+        high_values.append(baseline["mean"] + cond["z_below"] * baseline["std"])
+    low = max(low_values) if low_values else None
+    high = min(high_values) if high_values else None
+    if low is not None and high is not None and low >= high:
+        return []
+    return [(low, high)]
 
 
 def _applies(rule: dict, environment: str | None) -> bool:
@@ -75,8 +113,10 @@ def _applies(rule: dict, environment: str | None) -> bool:
 def threshold_bands(astronaut: str, indicator: str, environment: str | None = None) -> list[dict]:
     """Coloured bands for this indicator, from config/problems.json.
 
-    One item per usable rule: {"severity", "direction": "above" | "below", "value", "problem",
-    "symptom", "label"}. For symptom-based problems each level rule of a symptom gives a band
+    One item per value range of a usable rule: {"severity", "low", "high" (None = to the edge),
+    "direction": "above" | "below" | "between", "value" (the bound of a one-sided band, else None),
+    "problem", "symptom", "label"}. Bounds use `metric` (raw, baseline_fraction, baseline_delta,
+    z_score, abs_z_score) converted with the baseline. For symptom-based problems each level rule of a symptom gives a band
     ("severity" is the level: watch / concern); problems without `symptoms` still use their
     legacy `triggers` ("severity" is mild / moderate / severe; "symptom" is None).
     Only simple conditions on this indicator count. Rules with `environments` only count when
@@ -91,8 +131,11 @@ def threshold_bands(astronaut: str, indicator: str, environment: str | None = No
         label = severity.capitalize()
         if symptom_name and not symptom_name.startswith("TODO"):
             label = f"{label} · {symptom_name}"
-        for direction, value in _thresholds(cond, indicator, baseline):
-            bands.append({"severity": severity, "direction": direction, "value": value,
+        for low, high in _intervals(cond, indicator, baseline):
+            direction = "between" if low is not None and high is not None else (
+                "above" if high is None else "below")
+            bands.append({"severity": severity, "low": low, "high": high, "direction": direction,
+                          "value": low if direction == "above" else high if direction == "below" else None,
                           "problem": problem_id, "symptom": symptom_id, "label": label})
 
     for problem_id, problem in config.load_problems().items():
@@ -177,7 +220,7 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
         ))
 
     # Y range covering the data, the baseline and the thresholds, so bands can be drawn to the edge.
-    y_values = list(df["value"]) + [b["value"] for b in bands]
+    y_values = list(df["value"]) + [v for b in bands for v in (b["low"], b["high"]) if v is not None]
     if baseline is not None:
         y_values += [baseline["mean"] - baseline["std"], baseline["mean"] + baseline["std"]]
     y_low, y_high = min(y_values), max(y_values)
@@ -185,12 +228,13 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
     y_low, y_high = y_low - pad, y_high + pad
 
     for band in bands:
-        y0, y1 = (band["value"], y_high) if band["direction"] == "above" else (y_low, band["value"])
+        y0 = y_low if band["low"] is None else band["low"]
+        y1 = y_high if band["high"] is None else band["high"]
         fig.add_hrect(
             y0=y0, y1=y1, fillcolor=SEVERITY_COLORS[band["severity"]], opacity=BAND_OPACITY,
             line_width=0, layer="below",
             annotation_text=None if compact else band["label"],
-            annotation_position="top right" if band["direction"] == "above" else "bottom right",
+            annotation_position="bottom right" if band["direction"] == "below" else "top right",
         )
 
     if baseline is not None:

@@ -77,10 +77,17 @@ def _symptom_levels(problem: dict, ctx: dict) -> dict:
     return levels
 
 
-def _assessment_issues(problems: dict, astronaut: str, indicator: str, environment: str) -> list[str]:
-    """Check-in diagnostics only; detection results and shared contracts stay unchanged."""
+def assessment_issues(problems: dict, astronaut: str, indicator: str, environment: str) -> list[str]:
+    """Read-only warnings for the selected indicator and related incomplete assessments.
+
+    Takes the loaded problem configuration. Returns at most two messages: the
+    selected indicator's reason, if unavailable, and a count of other unavailable
+    indicators in related problems. Repeated rules count each indicator once.
+    Environment restrictions and example exclusions match detection. This does
+    not change detection results, measurements or episode state.
+    """
     ctx = {"astronaut": astronaut, "environment": environment, "latest": data.latest_values(astronaut)}
-    issues = []
+    issues = {}
     for pid, problem in problems.items():
         if pid.startswith("_"):
             continue
@@ -96,15 +103,20 @@ def _assessment_issues(problems: dict, astronaut: str, indicator: str, environme
                     continue
                 value = ctx["latest"].get(name)
                 if not conditions._is_number(value):
-                    issues.append(f"Cannot evaluate {name}: a measurement is unavailable.")
+                    issues[name] = f"Cannot evaluate {name}: a measurement is unavailable."
                 elif conditions._metric_value(leaf, ctx) is None or (
                     {"z_above", "z_below"}.intersection(leaf)
                     and not conditions._is_number(data.z_score(astronaut, name, value))
                 ):
-                    issues.append(f"Cannot evaluate {name}: no valid pre-flight baseline "
+                    issues[name] = (f"Cannot evaluate {name}: no valid pre-flight baseline "
                                   "(at least two measurements and positive standard deviation; "
                                   "baseline fractions also require a positive mean).")
-    return list(dict.fromkeys(issues))
+    messages = [issues[indicator]] if indicator in issues else []
+    others = len(issues.keys() - {indicator})
+    if others:
+        messages.append("1 other indicator has an incomplete assessment." if others == 1
+                        else f"{others} other indicators have incomplete assessments.")
+    return messages
 
 
 def _validate_trigger(trigger: dict) -> set[str]:

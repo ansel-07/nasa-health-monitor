@@ -1,27 +1,377 @@
 {
-  "problem_1": {
-    "name": "TODO: problem 1 name",
-    "description": "TODO_EDU",
-    "hrp_risk": "TODO_EDU",
-    "confirm_wait_min": "TODO_EDU",
-    "protocol": "protocols/problem_1.json",
-    "triggers": [
-      { "severity": "mild", "when": { "indicator": "heart_rate", "z_above": "TODO_EDU" } },
-      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_EDU" } },
-      { "severity": "moderate", "when": { "indicator": "heart_rate", "above": "TODO_EDU" }, "environments": ["mars"] }
-    ],
-    "source": "TODO_EDU"
+  "sans": {
+    "name": "Spaceflight Associated Neuro-ocular Syndrome (SANS)",
+    "description": "Monitor changes in ocular structure and visual function against each eye's personal pre-flight baseline. Findings request review; this app does not diagnose SANS. New visual loss, visual field defects or central distortion require medical assessment without waiting for a repeat measurement.",
+    "hrp_risk": "Risk of Spaceflight Associated Neuro-ocular Syndrome (SANS)",
+    "confirm_wait_min": 10,
+    "protocol": "protocols/sans.json",
+    "source": "Criteria: guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2. HRP risk: https://www.nasa.gov/directorates/esdmd/hhp/risk-of-spaceflight-associated-neuro-ocular-syndrome/ . Repeat timing [P]: 10 minutes is an estimated prototype re-acquisition interval selected under Edu's authorization to use estimates, not a NASA measurement or validated SANS recommendation. Analogy: https://doi.org/10.1371/journal.pone.0221466 , Methods, OCT measurements, reports nine consecutive scans within less than 10 minutes in healthy eyes; it does NOT prescribe a 10-minute wait or establish equivalence to peripapillary TRT, refraction or visual-acuity confirmation. This is a minimum demo countdown, not a follow-up schedule or a reason to delay medical assessment. Level/state definitions: https://github.com/ansel-07/nasa-health-monitor/issues/43#issuecomment-6879885382 . Numerical concern findings request priority medical review but do not establish medical urgency. Clinical red flags are assessed in the protocol; immediate entry before measurement confirmation is a separate, pending owner integration. No gravity multiplier or count-of-concern escalation is supported.",
+    "symptoms": {
+      "peripapillary_trt_left": {
+        "name": "Retinal thickening (left eye)",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "peripapillary_trt_left",
+              "metric": "baseline_delta",
+              "at_least": 55
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "peripapillary_trt_left",
+              "metric": "baseline_delta",
+              "at_least": 20,
+              "below": 55
+            }
+          }
+        ]
+      },
+      "optic_disc_edema_grade_left": {
+        "name": "Optic disc edema (left eye)",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "optic_disc_edema_grade_left",
+              "metric": "raw",
+              "at_least": 1
+            }
+          }
+        ]
+      },
+      "refraction_left": {
+        "name": "Positive refractive shift (left eye)",
+        "levels": [
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "refraction_left",
+              "metric": "baseline_delta",
+              "above": 0.5
+            }
+          }
+        ]
+      },
+      "visual_acuity_left": {
+        "name": "Corrected visual acuity change (left eye)",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "visual_acuity_left",
+              "metric": "z_score",
+              "at_least": 3
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "visual_acuity_left",
+              "metric": "z_score",
+              "at_least": 2,
+              "below": 3
+            }
+          }
+        ]
+      },
+      "peripapillary_trt_right": {
+        "name": "Retinal thickening (right eye)",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "peripapillary_trt_right",
+              "metric": "baseline_delta",
+              "at_least": 55
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "peripapillary_trt_right",
+              "metric": "baseline_delta",
+              "at_least": 20,
+              "below": 55
+            }
+          }
+        ]
+      },
+      "optic_disc_edema_grade_right": {
+        "name": "Optic disc edema (right eye)",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "optic_disc_edema_grade_right",
+              "metric": "raw",
+              "at_least": 1
+            }
+          }
+        ]
+      },
+      "refraction_right": {
+        "name": "Positive refractive shift (right eye)",
+        "levels": [
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "refraction_right",
+              "metric": "baseline_delta",
+              "above": 0.5
+            }
+          }
+        ]
+      },
+      "visual_acuity_right": {
+        "name": "Corrected visual acuity change (right eye)",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "visual_acuity_right",
+              "metric": "z_score",
+              "at_least": 3
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "visual_acuity_right",
+              "metric": "z_score",
+              "at_least": 2,
+              "below": 3
+            }
+          }
+        ]
+      }
+    },
+    "states": [
+      {
+        "state": "watch",
+        "when": {
+          "any": [
+            {
+              "symptom": "peripapillary_trt_left",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "optic_disc_edema_grade_left",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "refraction_left",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "visual_acuity_left",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "peripapillary_trt_right",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "optic_disc_edema_grade_right",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "refraction_right",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "visual_acuity_right",
+              "level_at_least": "watch"
+            }
+          ]
+        }
+      }
+    ]
   },
-  "problem_2": {
-    "name": "TODO: problem 2 name",
-    "description": "TODO_EDU",
-    "hrp_risk": "TODO_EDU",
-    "confirm_wait_min": "TODO_EDU",
-    "protocol": "protocols/problem_2.json",
-    "triggers": [
-      { "severity": "mild", "when": { "indicator": "sleep_hours", "z_below": "TODO_EDU" } }
-    ],
-    "source": "TODO_EDU"
+  "muscle_atrophy": {
+    "name": "Muscle atrophy",
+    "description": "Monitor muscle strength, size, power, endurance, tone and stiffness against a comparable personal pre-flight baseline. Statistical changes request review and do not diagnose atrophy. Sudden weakness or failure of a critical task requires medical assessment without waiting for maximal tests or repeat measurements.",
+    "hrp_risk": "Risk of Reduced Physical Performance Capabilities Due to Reduced Muscle Size, Strength, and Endurance (Muscle Risk)",
+    "confirm_wait_min": 2,
+    "protocol": "protocols/muscle_atrophy.json",
+    "source": "Criteria: guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1 and p. 2 clinical-priority note. HRP risk: https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Repeat timing [P]: 2 minutes is an estimated prototype minimum based on rest between isometric strength trials: https://stacks.cdc.gov/view/cdc/9182/cdc_9182_DS1.pdf , printed p. 14, Rest Period Length. Rest must be extended if fatigue remains. This is not a validated atrophy confirmation interval for all indicators, a treatment, or a NASA-measured recovery time; extrapolation to a per-problem demo countdown is a prototype choice authorized by Edu. Do not perform maximal tests with pain or delay medical assessment for sudden weakness/critical-task failure. Level/state definitions: https://github.com/ansel-07/nasa-health-monitor/issues/43#issuecomment-6879885382 . Numerical concern findings request priority medical review but do not establish medical urgency. Clinical red flags are assessed in the protocol; immediate entry before measurement confirmation is a separate, pending owner integration. No gravity multiplier or count-of-concern escalation is supported.",
+    "symptoms": {
+      "muscle_strength": {
+        "name": "Muscle force reduction",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "muscle_strength",
+              "metric": "baseline_fraction",
+              "below": 0.8
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "all": [
+                {
+                  "indicator": "muscle_strength",
+                  "metric": "z_score",
+                  "at_most": -2
+                },
+                {
+                  "indicator": "muscle_strength",
+                  "metric": "baseline_fraction",
+                  "at_least": 0.8
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "muscle_area": {
+        "name": "Muscle size reduction",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "muscle_area",
+              "metric": "z_score",
+              "at_most": -3
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "muscle_area",
+              "metric": "z_score",
+              "above": -3,
+              "at_most": -2
+            }
+          }
+        ]
+      },
+      "muscle_power": {
+        "name": "Muscle power reduction",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "muscle_power",
+              "metric": "z_score",
+              "at_most": -3
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "muscle_power",
+              "metric": "z_score",
+              "above": -3,
+              "at_most": -2
+            }
+          }
+        ]
+      },
+      "muscle_endurance": {
+        "name": "Muscle endurance reduction",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "muscle_endurance",
+              "metric": "z_score",
+              "at_most": -3
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "muscle_endurance",
+              "metric": "z_score",
+              "above": -3,
+              "at_most": -2
+            }
+          }
+        ]
+      },
+      "muscle_tone": {
+        "name": "Muscle tone change",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "muscle_tone",
+              "metric": "abs_z_score",
+              "at_least": 3
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "muscle_tone",
+              "metric": "abs_z_score",
+              "at_least": 2,
+              "below": 3
+            }
+          }
+        ]
+      },
+      "muscle_stiffness": {
+        "name": "Muscle stiffness change",
+        "levels": [
+          {
+            "level": "concern",
+            "when": {
+              "indicator": "muscle_stiffness",
+              "metric": "abs_z_score",
+              "at_least": 3
+            }
+          },
+          {
+            "level": "watch",
+            "when": {
+              "indicator": "muscle_stiffness",
+              "metric": "abs_z_score",
+              "at_least": 2,
+              "below": 3
+            }
+          }
+        ]
+      }
+    },
+    "states": [
+      {
+        "state": "watch",
+        "when": {
+          "any": [
+            {
+              "symptom": "muscle_strength",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "muscle_area",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "muscle_power",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "muscle_endurance",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "muscle_tone",
+              "level_at_least": "watch"
+            },
+            {
+              "symptom": "muscle_stiffness",
+              "level_at_least": "watch"
+            }
+          ]
+        }
+      }
+    ]
   },
   "_example": {
     "name": "Example problem (test fixture)",
