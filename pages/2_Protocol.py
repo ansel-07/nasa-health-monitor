@@ -57,7 +57,7 @@ def main() -> None:
     astronaut = st.session_state.get("astronaut")
     if not astronaut:
         mascot.say("Choose an astronaut on the Home page first.", "neutral", size="large")
-        st.page_link("app.py", label="Go to Home")
+        st.page_link("pages/0_Home.py", label="Go to Home")
         return
 
     episode = data.get_open_episode(astronaut)
