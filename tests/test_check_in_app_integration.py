@@ -128,7 +128,7 @@ def test_menu_confirmation_protocol_and_next_alert(workspace, environment):
     app.number_input[0].set_value(20)
     click(app, "Confirm repeat measurement")
     assert data.get_open_episode("a1")["status"] == "active"
-    click(app, "Open Protocol")
+    assert [item.value for item in app.title] == ["Protocol"]
     click(app, "Continue")
     assert data.get_open_episode("a1") is None
     assert data.load_episodes()[0]["status"] == "resolved"
