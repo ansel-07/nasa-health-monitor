@@ -7,12 +7,12 @@ from math import isfinite
 from numbers import Real
 
 from core import conditions, config, data
-from core.models import SEVERITIES, max_severity
+from core.models import PROBLEM_STATES, SEVERITIES, SYMPTOM_LEVELS, max_severity
 
 
 def _indicator_ids(cond: dict) -> set[str]:
     """Collect dependencies from an already validated condition."""
-    for operator in ("all", "any"):
+    for operator in ("all", "any", "of"):
         if operator in cond:
             return set().union(*(_indicator_ids(child) for child in cond[operator]))
     if "indicator" in cond:
@@ -20,6 +20,61 @@ def _indicator_ids(cond: dict) -> set[str]:
     if "environment_in" in cond:
         return set()
     raise ValueError("Triggers only support indicators, environments, all and any.")
+
+
+def _leaves(cond: dict):
+    for key in ("all", "any", "of"):
+        if key in cond:
+            for child in cond[key]:
+                yield from _leaves(child)
+            return
+    yield cond
+
+
+def _validate_symptom_problem(problem: dict) -> set[str]:
+    symptoms, states = problem.get("symptoms"), problem.get("states")
+    if not isinstance(symptoms, dict) or not symptoms or not isinstance(states, list) or not states:
+        raise ValueError("Symptom problems require non-empty symptoms and states.")
+    indicators = set()
+    for sid, symptom in symptoms.items():
+        if not isinstance(symptom, dict) or not isinstance(symptom.get("levels"), list) or not symptom["levels"]:
+            raise ValueError(f"Symptom '{sid}' requires a non-empty levels list.")
+        for rule in symptom["levels"]:
+            if not isinstance(rule, dict) or rule.get("level") not in SYMPTOM_LEVELS[1:] or "when" not in rule:
+                raise ValueError(f"Symptom '{sid}' has an invalid level rule.")
+            if "environments" in rule and (not isinstance(rule["environments"], list) or any(
+                not isinstance(env, str) or not env.strip() or env.startswith("TODO") for env in rule["environments"]
+            )):
+                raise ValueError(f"Symptom '{sid}' has invalid environments.")
+            conditions.check(rule["when"], {})
+            referenced = _indicator_ids(rule["when"])
+            if not referenced:
+                raise ValueError(f"Symptom '{sid}' must reference an indicator.")
+            indicators.update(referenced)
+    for rule in states:
+        if not isinstance(rule, dict) or rule.get("state") not in PROBLEM_STATES[1:] or "when" not in rule:
+            raise ValueError("Problem state rules require a supported state and condition.")
+        conditions.check(rule["when"], {})
+        for leaf in _leaves(rule["when"]):
+            if "symptom" in leaf:
+                if leaf["symptom"] not in symptoms:
+                    raise ValueError(f"Unknown symptom '{leaf['symptom']}' in state condition.")
+            elif "environment_in" not in leaf:
+                raise ValueError("Problem states only support symptom and environment conditions.")
+    return indicators
+
+
+def _symptom_levels(problem: dict, ctx: dict) -> dict:
+    levels = {}
+    for sid, symptom in problem["symptoms"].items():
+        levels[sid] = SYMPTOM_LEVELS[0]
+        for rule in symptom["levels"]:
+            if "environments" in rule and ctx["environment"] not in rule["environments"]:
+                continue
+            if conditions.check(rule["when"], ctx):
+                levels[sid] = rule["level"]
+                break
+    return levels
 
 
 def _validate_trigger(trigger: dict) -> set[str]:
@@ -75,6 +130,21 @@ def evaluate(measurement: dict, environment: str) -> list[dict]:
     for problem_id, problem in config.load_problems().items():
         if problem_id.startswith("_"):
             continue
+        if isinstance(problem, dict) and ("symptoms" in problem or "states" in problem):
+            try:
+                referenced = _validate_symptom_problem(problem)
+                if indicator not in referenced:
+                    continue
+                levels = _symptom_levels(problem, ctx)
+                state_ctx = {**ctx, "symptoms": levels}
+                state = next((rule["state"] for rule in problem["states"]
+                              if conditions.check(rule["when"], state_ctx)), PROBLEM_STATES[0])
+                if state != PROBLEM_STATES[0]:
+                    results.append({"problem": problem_id, "severity": state, "indicator": indicator,
+                                    "value": value, "z": None, "symptoms": levels})
+            except ValueError as error:
+                raise ValueError(f"Problem '{problem_id}': {error}") from error
+            continue
         if not isinstance(problem, dict) or not isinstance(problem.get("triggers"), list):
             raise ValueError(f"Problem '{problem_id}': triggers must be a list.")
         severity = None
@@ -111,7 +181,9 @@ def symptom_levels(problem_id: str, astronaut: str, environment: str) -> dict:
     Contract: AGENTS.md, sections 5.3 and 7. Uses only the latest value of each
     indicator. Levels come from SYMPTOM_LEVELS; "not_present" when no rule matches.
     """
-    # STUB (Juan Carlos): evaluate each symptom's `levels` (first match wins,
-    # respecting `environments`) with ctx["latest"] = data.latest_values(astronaut).
     problem = config.load_problems(include_examples=True)[problem_id]
-    return {symptom_id: "not_present" for symptom_id in problem.get("symptoms", {})}
+    if "symptoms" not in problem and "states" not in problem:
+        return {}
+    _validate_symptom_problem(problem)
+    return _symptom_levels(problem, {"astronaut": astronaut, "environment": environment,
+                                     "latest": data.latest_values(astronaut)})
