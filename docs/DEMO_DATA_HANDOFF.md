@@ -3,20 +3,24 @@
 # Synthetic demo data handoff
 
 Status: Edu accepts design A (declared synthetic data) on 2026-11-14, conditional
-on human plausibility. This specifies the three-indicator proposal and its
-plausibility checks; the final indicator coverage/story still needs the team
-decision in #78/#34. It is reviewed against primary sources for issue #36.
+on human plausibility. Edu subsequently specifies all fourteen indicators for the demo. This provides
+the full parameter table and plausibility checks; Gonzalo still owns the final
+story in #34. It is reviewed against primary sources for issue #36.
 It supplements the research table in #35/#36; it does not supply validated
 healthy-astronaut population or daily-variability parameters. It is not a physiological model,
 an astronaut reference population, or a validated disease trajectory. The
 benchmark does not by itself complete clinical configuration or deployment.
 
+Integration is blocked by [#91](https://github.com/ansel-07/nasa-health-monitor/issues/91):
+the batch advance opens SANS against a zero edema grade instead of the abnormal
+left TRT. Do not activate this dataset for the demo until the owner fix passes.
+The regression is explicitly strict-xfail; it is not claimed as a passing path.
+
 ## 1. Scope and provenance
 
-Simulate three indicators: left-eye peripapillary total retinal thickness (TRT),
-right-eye TRT, and muscle force. Keep all other indicator definitions in the
-catalogue, but do not generate unsupported distributions for them. The original
-heart_rate, sleep_hours, mood and example entries must remain intact.
+Simulate all fourteen indicators used by SANS and muscle atrophy: six muscle
+measurements and four ocular measurements for each eye. Catalogue cleanup is a
+separate task (#81); example fixtures are never simulated.
 
 The earlier Edu handoff in [#43](https://github.com/ansel-07/nasa-health-monitor/issues/43#issuecomment-6879885382)
 and the existing configuration tests attribute these worked examples to
@@ -66,6 +70,17 @@ INDICATOR_PARAMS = {
         "trend_per_day": 0.0,
         "decimals": 1,
     },
+    "optic_disc_edema_grade_left": {"mean": 0, "sd": 0, "person_sd": 0, "trend_per_day": 0, "min": 0, "max": 0, "decimals": 0},
+    "optic_disc_edema_grade_right": {"mean": 0, "sd": 0, "person_sd": 0, "trend_per_day": 0, "min": 0, "max": 0, "decimals": 0},
+    "refraction_left": {"mean": -1.0, "sd": 0.05, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "refraction_right": {"mean": -1.0, "sd": 0.05, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "visual_acuity_left": {"mean": 0.0, "sd": 0.03, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "visual_acuity_right": {"mean": 0.0, "sd": 0.03, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "muscle_area": {"mean": 10.0, "sd": 0.2, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "muscle_power": {"mean": 186.0, "sd": 8.0, "person_sd": 0, "trend_per_day": 0, "decimals": 1},
+    "muscle_endurance": {"mean": 14.4, "sd": 1.0, "person_sd": 0, "trend_per_day": 0, "min": 0, "decimals": 0},
+    "muscle_tone": {"mean": 16.3, "sd": 0.4, "person_sd": 0, "trend_per_day": 0, "decimals": 2},
+    "muscle_stiffness": {"mean": 294.0, "sd": 8.0, "person_sd": 0, "trend_per_day": 0, "decimals": 1},
 }
 
 ANOMALIES = [
@@ -93,11 +108,11 @@ ANOMALIES = [
 
 | Parameter | Meaning and justification |
 | --- | --- |
-| `mean`, `sd` | Parameters of generated synthetic observations, using the PDF's worked examples. `sd` is not an empirical estimate of daily astronaut variability. |
+| `mean`, `sd` | Synthetic observation parameters; the initial force/TRT examples and the added magnitude anchors are documented below. Every noise SD is a chosen software assumption, not an empirical daily astronaut SD. |
 | `person_sd = 0` | Disable random offsets between the three fictional astronauts. This is a fixed benchmark design, not a claim that real people have zero between-person variability. Finite sampled baselines will still differ. |
 | `trend_per_day = 0` | Hold the synthetic background stationary so injected anomalies can be tested independently. This is a deliberate simulation policy, not missing evidence replaced with a physiological zero. |
 | `decimals = 1` | Output precision for this software fixture; not instrument accuracy. |
-| No `min` or `max` | No clinical hard bounds or clipping are asserted. These optional keys are omitted, not guessed. Validate the generated values instead. |
+| `min` / `max` | Grade 0 is deliberately fixed for both eyes; this is a selected scenario, not the full Frisen scale. Repetition counts cannot be negative. These are representation/scenario constraints, not medical normality limits. Other bounds are omitted. |
 | 14 preflight days | Software sampling window inherited from the generator. It is not a validated minimum duration for a stable clinical baseline. |
 | 10 mission days | Test horizon, not a claim that either disease develops within ten days. A time-stamped injected observation exercises detection; it does not simulate onset or recovery. |
 | `SEED = 2027` | Reproducible benchmark with the current generator, indicator order, astronauts a1/a2/a3, and environment. Changing any of these requires revalidation. |
@@ -126,7 +141,7 @@ anomaly move together; Gonzalo owns that story choice. At reset:
 
 1. Preflight observations are available for computing each personal reference.
    Future mission observations must stay hidden.
-2. One advance reveals nine new observations, including a1's left-eye 360.0
+2. One advance reveals 42 new observations, including a1's left-eye 360.0
    micrometre reading. The right eye remains a separate observation.
 3. A synthetic confirmation of the same indicator with value 360.0 remains above
    the +55 micrometre criterion. Apply the configured estimated repeat timer; it
@@ -138,7 +153,9 @@ This is a proposed technical acceptance scenario, not an attempt to replace
 Gonzalo's final pitch story. No clinical-priority symptoms are assigned to these
 numerical anomalies. A concerning number alone must not be labelled a medical
 urgency. The real production evaluator, clock and episode lifecycle are exercised
-by the accompanying tests; this does not establish diagnostic performance.
+by the control tests with the new anomaly submitted explicitly. They do not prove
+the batch advance works: its incorrect trigger attribution is tracked in #91.
+Neither path establishes diagnostic performance.
 
 The right-eye observation can also return the already-positive SANS state because
 the problem uses the latest values of both eyes. This does not mean the right eye
@@ -150,7 +167,7 @@ the generated preflight rows. Expected anchors (rounded here for reporting):
 | Case | Sampled personal mean | Sample SD | Injected value | Criterion result |
 | --- | ---: | ---: | ---: | --- |
 | a1 left TRT | 297.835714 micrometres | 4.183412 micrometres | 360.0 micrometres | Delta +62.164286 micrometres, above the inclusive +55 boundary |
-| a2 force | 518.750000 N | 23.870121 N | 390.0 N | 75.1807% of personal reference, below the strict 80% boundary |
+| a2 force | 489.607143 N | 31.203709 N | 390.0 N | 79.6557% of personal reference, below the strict 80% boundary |
 
 Validate full-precision results in memory. Do not manufacture exact reference
 values by rounding or overwrite preflight measurements to make a case pass.
@@ -170,7 +187,7 @@ Keep that inventory for research, but do not copy it into `INDICATOR_PARAMS`.
 | Mixed clinical cohorts and healthy references | No study participant is treated as a fictional astronaut or as a generic healthy-astronaut reference. |
 | Unsupported daily disease trends | Use an openly declared stationary software fixture and explicit anomaly overrides. No clinical trajectory is inferred from endpoint differences. |
 | No executable scenario | The block now supplies every required generator parameter and two reproducible test cases; the first is revealed on the first advance. |
-| Missing values for every catalogue indicator | Limit this benchmark to the three fully specified indicators; do not insert unsupported values for the remaining catalogue. |
+| Missing values for every catalogue indicator | Supply all fourteen as explicitly synthetic observations with fixed definitions and source-checked magnitudes; do not call chosen noise empirical daily variability. |
 
 ## 5. Newly verified empirical alternatives and their limits
 
@@ -208,21 +225,21 @@ The values should be described as **synthetic benchmark observations** in any
 public demonstration. They cannot support claims of diagnostic accuracy or
 physiological prediction.
 
-Generation and lifecycle checks run in isolated temporary storage through the
-real generator and core APIs. They cover baseline calculation, a single advance,
-two anomaly cases, confirmation, watch protocols and eye independence. They do
-not test the deployed application or authorize clinical use.
+Generation and lifecycle control checks run in isolated temporary storage through
+the real generator and core APIs. They cover baseline calculation, newly revealed
+anomalies submitted explicitly, confirmation, watch protocols and eye independence.
+The separate batch-advance regression is strict-xfail for #91. These checks do
+not establish a working automatic demo or authorize clinical use.
 
 Before treating the final deployed demo as complete: integrate the agreed story
 with Gonzalo, have Fran generate the seed, confirm the reference-dependent rules
 against the real evaluator, and run the full detection-confirmation-protocol path.
 This document does not change the generator, runtime files, seed or medical rules.
 An evidence/documentation PR can be reviewed without activating the benchmark.
-Edu now accepts a synthetic solution. Keep #36/#78 open until Ansel/Gonzalo/Fran
-agree whether this three-indicator subset meets the demo coverage, the remaining
-catalogue entries stay unsimulated, and the app/README labelling is integrated.
-This does not authorize copying these numbers to other sites or filling the other
-eleven indicators with placeholders. Empirical astronaut distributions are not delivered.
+Edu accepts design A and all fourteen indicators. The complete block can be
+handed to Fran without changing the generator API. The final story and app/README
+synthetic labels still require owner integration (#34/#35/#78). Scientific
+plausibility does not establish population validity or diagnostic accuracy.
 
 ### Human plausibility of the selected magnitudes
 
@@ -230,12 +247,12 @@ eleven indicators with placeholders. Empirical astronaut distributions are not d
 reports a 51 kg grip median and 38-64 kg 10th-90th centiles for men aged 30.
 These dynamometer readings are force-equivalent (kgf); conversion uses
 1 kgf = 9.80665 N. The proposed 500 N is about 51.0 kgf, and the complete
-generated force set (390.0-559.3 N) is about 39.8-57.0 kgf. This supports physical
+generated force set (390.0-546.2 N) is about 39.8-55.7 kgf. This supports physical
 plausibility for selected fictional adult grip profiles, not a universal normal
 range, an astronaut norm, or suitability for all ages/sexes. No demographic
 inference about the fictional astronauts is made from this example comparison.
 
-The generated TRT values (285.5-360.0 micrometres) fall within the 272-420
+The generated TRT values are checked against the 272-420
 micrometre preflight range reported for the selected annulus in Patel Table 2.
 This is an observed-cohort envelope used as a plausibility check, not a clinical
 reference interval: within it, an individual's change can still be concerning.
@@ -276,6 +293,56 @@ must be reported and do not establish disease.
 
 Run `.venv/Scripts/python.exe -m pytest tests/test_demo_data_handoff.py -q`.
 The tests read the exact documented parameter block, so changing its seed, order,
-mission days or scenario requires revalidation. A passing result establishes a
-reproducible software scenario with scientifically traceable criteria, while
-population validity and the final demo story remain separate acceptance items.
+mission days or scenario requires revalidation. Passing controls establish data
+reproducibility and individual-measurement flows, not the blocked automatic flow.
+Population validity and the final demo story remain separate acceptance items.
+
+
+## 8. Fourteen-indicator measurement definitions and magnitude anchors
+
+All added SDs below are explicitly chosen synthetic observation noise. None is
+copied from a population SD, SEM or confidence interval. Person offsets and
+trends are deliberately zero for this controlled demo. The fictional records
+are not drawn from a joint physiological population model. The programme does
+not instruct real people to perform these tests daily; some cited tests require
+longer recovery and specialised facilities.
+
+| Indicator(s) | Fixed definition for this dataset | Synthetic mean / noise SD | Magnitude rationale |
+| --- | --- | --- | --- |
+| muscle_strength | Right-hand isometric grip, same dynamometer/posture/summary | 500 / 25 N | Previously documented adult grip comparison; not a leg-force measure. |
+| muscle_area | Right lumbar multifidus at L5, same ultrasound cross-section | 10 / 0.2 cm2 | Hides Table 1 reports L5 average about 10 cm2; used only for scale. It does not supply an empirical right-side mean or daily SD. Our generated right-side references never pool sides. |
+| muscle_power | Right-knee concentric extension peak mechanical power at 60 degrees/s | 186 / 8 W | Laughlin Table II reports peak torque 177.6 N m; P = torque times angular speed gives about 186 W at pi/3 rad/s. This is a same-speed derived scale, not a reported daily power series. |
+| muscle_endurance | Right-knee extension repetitions with load fixed at 40% of preflight 1RM, fixed task/tempo | 14.4 / 1 repetitions, rounded to integers | Hillen Results 3.1 reports about 14 repetitions at 40% 1RM. The population spread/error statistics are not our chosen daily noise. The absolute load stays fixed during the simulated mission. |
+| muscle_tone | Right rectus femoris at rest, fixed MyotonPRO site/posture | 16.3 / 0.4 Hz | Lukas Table 9 healthy-control dominant-side mean 16.28 Hz supports this scale; no daily variance or right-side population norm is inferred. |
+| muscle_stiffness | Same right rectus femoris site/method as tone | 294 / 8 N/m | Lukas Table 9 healthy-control dominant-side mean 294 N/m supports this scale; not a stand-alone atrophy diagnosis. |
+| peripapillary_trt_left/right | OCT BMO-to-250-micrometre annulus, separate eye references | 300 / 5 micrometres each | Existing synthetic anchor and Patel observed-scale comparison. |
+| optic_disc_edema_grade_left/right | Expert Fris?n grade, each eye separately | 0 / 0 grade each, fixed 0 | Selected absence of visible disc edema. Brunstetter 2024 reported grade 0 even with substantial TRT change. No Gaussian grade noise or invented positive SD is added. |
+| refraction_left/right | Cycloplegic spherical-equivalent refraction in D, same instrument/method per eye | -1 / 0.05 D each | Brunstetter's preflight -1 D establishes a plausible mild-myopic magnitude, not a population distribution. Continuous output represents a numeric refraction estimate, not a spectacle prescription rounded to lens steps. |
+| visual_acuity_left/right | Corrected monocular computer-estimated logMAR threshold, fixed FrACT-style task/settings | 0 / 0.03 logMAR each | 0 corresponds to 20/20; a continuous threshold estimate permits hundredths and negative values (better acuity). Bach supports the method/output scale; our chosen noise is not its published limits of agreement. |
+
+Sources checked for these definitions:
+
+- [Hides et al., Spine Journal 2021, Table 1, p. 483](https://australian.physio/sites/default/files/RESEARCH%26PUBLICATIONS/PRF/PRF%3A%20Image%20library/2021_Hides%20Astronaut%20paper_The%20Spine%20Journal-main-min.pdf).
+- [Laughlin et al., NASA ISS isokinetic reliability, Methods/Table I/Table II](https://ntrs.nasa.gov/api/citations/20090019649/downloads/20090019649.pdf). Peak torque is not force in N; only the explicit same-speed power conversion is used here.
+- [Hillen et al., Muscles 2026, Methods/Results 3.1](https://www.mdpi.com/2813-0413/5/2/26). Right-leg testing and load/tempo are fixed; recovery procedures in that study are not replaced with the app's estimated confirmation timer.
+- [Lukas et al., Journal of Neurology 2023, Table 9](https://pmc.ncbi.nlm.nih.gov/articles/PMC10576663/). Dominant-side group values are magnitude anchors; side-specific daily distributions are not available.
+- [Bach, FrACT study, Methods/Results](https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/). This supports computer-estimated logMAR rather than an invented letter-count scale; no equivalence to uncorrected or binocular acuity is assumed.
+
+Representation checks: edema grades are integers fixed to zero and are evaluated
+by raw rules, so a zero-SD grade baseline is intentionally not usable for z-scores.
+All continuous baseline-dependent indicators retain positive sample SD. Endurance
+counts are non-negative integers. Negative refraction and negative logMAR are
+valid and must not be clipped to zero. No cross-indicator covariance is fitted;
+these independent synthetic channels cannot validate a causal muscle/eye model.
+
+With the exact fixed seed, expansion to fourteen consumes different random draws
+for subsequent astronauts. Recompute every personal reference: the original
+three-indicator reference for a2 is obsolete. At the second advance, the background
+also opens a watch for a3 and queues a muscle finding for a1, whose SANS episode
+stays open. These are statistical review events, not extra scripted disease cases.
+Do not hide them or claim an empirical false-alert rate from this fixture.
+
+The final demo story remains Gonzalo's responsibility. The selected anomaly
+values and persistence are unchanged; all fourteen parameter entries are now
+present, matching Fran's current generator catalogue. The initial dataset has
+1008 rows (3 astronauts times 14 indicators times 24 observation dates).
