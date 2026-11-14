@@ -66,7 +66,10 @@ def main() -> None:
     now = mission.now()
     st.caption(f"Mission time: {now.isoformat(timespec='seconds')} | Environment: {environments[environment]['name']}")
     blocked = not problems or any(
-        _unfinished({key: problem.get(key) for key in ("name", "triggers", "confirm_wait_min")})
+        _unfinished({key: problem.get(key) for key in (
+            ("name", "symptoms", "states", "confirm_wait_min")
+            if "symptoms" in problem or "states" in problem else ("name", "triggers", "confirm_wait_min")
+        )})
         for problem in problems.values()
     )
     if blocked:
@@ -119,7 +122,13 @@ def main() -> None:
         mascot.say(message, mood, size="small")
 
     if opened:
-        st.write(f"Alert severity: {opened['severity']}")
+        label = "Problem state" if "symptoms" in problems[opened["problem"]] else "Alert severity"
+        st.write(f"{label}: {opened['severity']}")
+        if opened.get("symptoms"):
+            with st.expander("Symptoms at last detection"):
+                symptom_config = problems[opened["problem"]].get("symptoms", {})
+                st.dataframe([{"Symptom": symptom_config.get(sid, {}).get("name", sid), "Level": level}
+                              for sid, level in opened["symptoms"].items()], hide_index=True)
         if opened["environment"] != environment:
             st.info("This episode keeps the mission environment in which it was opened.")
     if opened and opened["status"] == "active":
