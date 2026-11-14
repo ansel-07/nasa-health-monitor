@@ -136,7 +136,7 @@ def main() -> None:
 
     feedback_key = f"check_in_feedback:{astronaut}:{environment}"
     feedback = st.session_state.pop(feedback_key, None)
-    message, mood = "Choose an indicator and record a new measurement.", "neutral"
+    message, mood = "Record the measurements of this check-in.", "neutral"
     if opened:
         problem_name = problems[opened["problem"]]["name"]
         if _unfinished(problem_name):
@@ -188,18 +188,21 @@ def main() -> None:
                       if definitions.get(item["issue"], {}).get("alarm")]
         except (ValueError, KeyError, OSError):
             alarms = []
-        for alarm in alarms:
-            st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
-                     "When it is no longer present, mark it as resolved in Subjective issues below.")
         list_text, list_mood = (message, mood) if opened else ("Choose a check-in to record your measurements.", mood)
         if alarms:
             list_text, list_mood = ("You reported an urgent symptom. Stop the risky task and contact "
                                     "the crew medical officer now.", "serious")
-        with mascot.beside(list_text, list_mood):
-            st.caption("Bars show time since completion, not health status. You can measure at any time.")
-            if not checkins:
-                st.info("No check-ins are configured yet.")
-            for index, (checkin_id, checkin) in enumerate(checkins.items()):
+        # Big centred mascot, cards below it (docs/FRONTEND_MASCOT_LAYOUT.md 4.1).
+        mascot.say(list_text, list_mood, size="large")
+        for alarm in alarms:
+            st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
+                     "When it is no longer present, mark it as resolved in Subjective issues below.")
+        st.caption("Bars show time since completion, not health status. You can measure at any time.")
+        if not checkins:
+            st.info("No check-ins are configured yet.")
+        grid = st.columns(3)
+        for index, (checkin_id, checkin) in enumerate(checkins.items()):
+            with grid[index % 3]:
                 with st.container(border=True, key=f"check_in_activity_{index}"):
                     if st.button(checkin["name"], key=f"check_in_card:{checkin_id}", width="stretch"):
                         st.session_state[selection_key] = checkin_id
@@ -233,19 +236,12 @@ def main() -> None:
     confirmation = (opened is not None and opened["status"] == "pending_confirmation"
                     and opened["trigger"]["indicator"] in group and draft_key not in st.session_state)
     if confirmation:
-        indicator_id = opened["trigger"]["indicator"]
+        repeat_id = opened["trigger"]["indicator"]
         st.subheader("Repeat measurement")
-        name = indicators[indicator_id]["name"]
+        name = indicators[repeat_id]["name"]
         st.write(f"Indicator: {'Unavailable indicator' if _unfinished(name) else name}")
-    else:
-        indicator_id = st.selectbox(
-            "Indicator", group,
-            format_func=lambda key: ("Unavailable indicator" if _unfinished(indicators[key]["name"])
-                                     else indicators[key]["name"]),
-            key=f"check_in_indicator:{astronaut}:{environment}:{selected}",
-        )
-    indicator = indicators[indicator_id]
-    field_ids = [indicator_id] if confirmation else group
+    # One chart per indicator of the check-in; only the repeated one in repeat mode (4.2).
+    field_ids = [opened["trigger"]["indicator"]] if confirmation else group
     assessment_environment = opened["environment"] if confirmation else environment
     issues = [] if blocked else list(dict.fromkeys(
         issue for key in field_ids
@@ -261,12 +257,17 @@ def main() -> None:
                              else "Your alert is confirmed; open Protocol to continue.")
                 message = next_step + " Some assessments are incomplete; see the warnings below."
             mood = "worried"
-    if any(_unfinished(indicator.get(key)) for key in ("name", "unit", "how_to_measure", "why_it_matters")):
-        message, mood = "Measurement guidance is not available yet. This indicator cannot be submitted.", "serious"
+    if any(_unfinished(indicators[key].get(field)) for key in field_ids
+           for field in ("name", "unit", "how_to_measure", "why_it_matters")):
+        message, mood = "Measurement guidance is not available yet. This check-in cannot be submitted.", "serious"
     with mascot.beside(message, mood):
-        st.plotly_chart(charts.indicator_chart(
-            astronaut, indicator_id, compact=True, environment=assessment_environment,
-        ))
+        for key in field_ids:
+            if len(field_ids) > 1:
+                name = indicators[key].get("name")
+                st.caption("Unavailable indicator" if _unfinished(name) else name)
+            st.plotly_chart(charts.indicator_chart(
+                astronaut, key, compact=True, environment=assessment_environment,
+            ), key=f"check_in_chart:{key}")
 
     if opened:
         label = "Problem state" if "symptoms" in problems[opened["problem"]] else "Alert severity"
@@ -370,7 +371,7 @@ def main() -> None:
             report("error", "Enter a finite measured value for every indicator before submitting.")
         try:
             if confirmation:
-                m = _measurement(astronaut, indicator_id, indicator["unit"], values[indicator_id])
+                m = _measurement(astronaut, repeat_id, indicators[repeat_id]["unit"], values[repeat_id])
                 result = episodes.confirm(opened["id"], m)
                 text = ("Repeat measurement recorded. The alert is confirmed; open Protocol to continue."
                         if result["status"] == "active" else "Repeat measurement recorded. The alert was not confirmed and has been dismissed.")

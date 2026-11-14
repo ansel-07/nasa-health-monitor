@@ -130,7 +130,7 @@ def test_form_is_empty_unbounded_and_hides_fixtures(screen):
     app, state = screen
     app.run()
     assert not app.exception
-    assert app.selectbox[0].options == ["Indicator x"]
+    assert not app.selectbox      # one chart per indicator of the check-in, no indicator picker
     assert app.number_input[0].value is None
     assert len(app.toggle) == 1
     assert state["chart_calls"][-1] == ("a1", "x", True, "mars")
@@ -270,7 +270,7 @@ def test_dismissal_is_shown_and_manual_form_returns(screen, monkeypatch):
     button(app, "Confirm repeat measurement").click().run()
     assert not app.exception
     assert "dismissed" in app.success[0].value
-    assert app.selectbox
+    assert button(app, "Record measurement")     # the manual form is back
 
 
 def test_core_error_is_displayed_without_success(screen, monkeypatch):
@@ -289,7 +289,7 @@ def test_core_error_is_displayed_without_success(screen, monkeypatch):
     assert state["speech"][-1][0] == app.error[0].value
     app.run()
     assert not app.error
-    assert state["speech"][-1][0] == "Choose an indicator and record a new measurement."
+    assert state["speech"][-1][0] == "Record the measurements of this check-in."
 
 
 def test_simulate_wait_advances_real_clock_and_processes_revealed_measurements(screen, monkeypatch):
@@ -543,7 +543,7 @@ def test_list_cards_use_configured_groups_and_allow_full_bars(screen, monkeypatc
     assert not app.number_input
     assert [item.value for item in app.get('progress')] == [100, 100]
     assert calls == [('a1', 'check_in', 'x'), ('a1', 'check_in', 'y')]
-    assert state['speech'][-1][2] == 'small'
+    assert state['speech'][-1][2] == 'large'      # list: big mascot, cards below
     assert not button(app, 'Check y').disabled
     button(app, 'Check y').click().run()
     assert state['chart_calls'][-1][1] == 'y'
@@ -753,3 +753,13 @@ def test_subjective_report_failure_preserves_existing_issue(screen, monkeypatch)
     assert any('could not be fully saved' in item.value for item in app.error)
     assert state['issue_calls'] == []
     assert state['issue_records']['a1'][0]['issue'] == 'issue_a'
+
+
+def test_detail_shows_one_chart_per_indicator_of_the_check_in(screen):
+    """docs/FRONTEND_MASCOT_LAYOUT.md 4.2: the visual is every indicator's compact chart, stacked."""
+    app, state = screen
+    state["checkins"]["x"]["indicators"] = ["x", "y"]
+    app.run()
+    assert not app.exception
+    assert [call[1] for call in state["chart_calls"][-2:]] == ["x", "y"]
+    assert len(app.number_input) == 2
