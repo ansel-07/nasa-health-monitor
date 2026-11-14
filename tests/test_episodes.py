@@ -592,6 +592,8 @@ def test_check_in_reviews_and_confirms_pending_with_real_storage(pending_state, 
     monkeypatch.setattr(config, "load_checkins", lambda **kwargs: {
         "synthetic": {"name": "Synthetic check", "indicators": ["x"], "bar_full_hours": 24}})
     monkeypatch.setattr(models, "ACTIVITY_FILE", tmp_path / "activity.json")
+    import streamlit as st
+    monkeypatch.setattr(st, "switch_page", lambda destination: st.rerun())
     monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
     data.save_episode({"id": "ep-0001", "astronaut": "a1", "problem": "other", "status": "resolved"})
     page = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
