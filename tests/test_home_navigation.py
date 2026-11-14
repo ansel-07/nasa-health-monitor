@@ -54,3 +54,49 @@ def test_reset_demo_clears_check_in_session_state(monkeypatch):
     assert "check_in_completion:a1:iss" not in app.session_state
     assert app.session_state["tutorial_run"] == {"kept": True}
     assert app.session_state["astronaut"] == "a1" and app.session_state["environment"] == "iss"
+
+
+def _menu():
+    app = AppTest.from_file("../app.py").run()
+    app.selectbox[0].select("a1").run()
+    app.selectbox[1].select("iss").run()
+    button(app, "NEXT").click().run()
+    return app
+
+
+def test_advance_error_is_shown_not_raised(monkeypatch):
+    """docs/CODE_REVIEW.md BUG-1: a detection error must not crash the Main Menu."""
+    from core import mission
+
+    def fail(hours, environment):
+        raise ValueError("synthetic detection failure.")
+    monkeypatch.setattr(mission, "advance_and_detect", fail)
+    app = _menu()
+    button(app, "Advance mission 24 h").click().run()
+    assert not app.exception
+    assert any("could not be fully advanced" in e.value and "synthetic detection failure" in e.value
+               for e in app.error)
+
+
+def test_reset_error_is_shown_and_check_in_state_is_kept(monkeypatch):
+    from core import data
+
+    def fail():
+        raise FileNotFoundError("no seed files")
+    monkeypatch.setattr(data, "reset_demo", fail)
+    app = _menu()
+    app.session_state["check_in_draft:a1:iss"] = {"kept": True}
+    button(app, "Reset demo").click().run()
+    assert not app.exception
+    assert any("could not be reset" in e.value for e in app.error)
+    assert app.session_state["check_in_draft:a1:iss"] == {"kept": True}
+
+
+def test_advance_success_message_mentions_recovered_rows(monkeypatch):
+    from core import mission
+    monkeypatch.setattr(mission, "advance_and_detect",
+                        lambda hours, environment: {"revealed": 3, "new_alerts": [], "recovered": 2})
+    app = _menu()
+    button(app, "Advance mission 24 h").click().run()
+    assert not app.exception
+    assert any("3 new simulated measurement(s), 2 left from an earlier advance" in i.value for i in app.info)

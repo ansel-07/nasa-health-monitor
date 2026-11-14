@@ -64,18 +64,35 @@ with st.expander("Demo controls"):
     st.caption(f"Mission time: {now:%Y-%m-%d %H:%M} (day {day}) · {config.load_environments()[environment]['name']}")
     advance_col, reset_col = st.columns(2)
     if advance_col.button("Advance mission 24 h", use_container_width=True):
-        result = mission.advance_and_detect(24, environment)
-        st.session_state["menu_feedback"] = (
-            f"Mission time advanced 24 h: {result['revealed']} new simulated measurement(s)"
-            + (f"; new alert for {', '.join(names[a] for a in result['new_alerts'])}." if result["new_alerts"] else "."))
+        try:
+            with st.spinner("Advancing mission time and checking the new measurements…"):
+                result = mission.advance_and_detect(24, environment)
+        except (ValueError, KeyError, OSError) as error:
+            # The clock may have moved; rows not processed are kept and retried on the next
+            # advance (AGENTS.md 5.5, #77). Show it instead of a Python error page.
+            st.session_state["menu_feedback"] = ("error", "Mission time could not be fully advanced: "
+                                                 f"{error} Unprocessed measurements are kept and will be "
+                                                 "checked on the next advance.")
+        else:
+            text = f"Mission time advanced 24 h: {result['revealed']} new simulated measurement(s)"
+            if result.get("recovered"):
+                text += f", {result['recovered']} left from an earlier advance"
+            text += (f"; new alert for {', '.join(names[a] for a in result['new_alerts'])}."
+                     if result["new_alerts"] else ".")
+            st.session_state["menu_feedback"] = ("info", text)
         st.rerun()
     if reset_col.button("Reset demo", use_container_width=True):
-        data.reset_demo()
-        # Check-in keeps drafts, retries and feedback in the session (#132): drop them with
-        # the data. Astronaut, environment, voice and other screens' state are kept.
-        for key in [k for k in st.session_state if str(k).startswith("check_in_")]:
-            del st.session_state[key]
-        st.session_state["menu_feedback"] = "Demo data reset."
+        try:
+            data.reset_demo()
+        except OSError as error:
+            st.session_state["menu_feedback"] = ("error", f"Demo data could not be reset: {error}")
+        else:
+            # Check-in keeps drafts, retries and feedback in the session (#132): drop them with
+            # the data. Astronaut, environment, voice and other screens' state are kept.
+            for key in [k for k in st.session_state if str(k).startswith("check_in_")]:
+                del st.session_state[key]
+            st.session_state["menu_feedback"] = ("info", "Demo data reset.")
         st.rerun()
     if feedback := st.session_state.pop("menu_feedback", None):
-        st.info(feedback)
+        level, text = feedback
+        (st.error if level == "error" else st.info)(text)
