@@ -5,9 +5,139 @@
     "source": "Demo placeholders from docs/ASTRONAUT_HEALTH_APP_SPEC.md section 4; not medical decisions."
   },
   "issues": {
+    "MUS_01": {
+      "label": "Weaker muscles than usual",
+      "question": "Do your muscles respond with less strength than usual when you do the same task?",
+      "check_ins": [
+        "muscle_strength_test"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "MUS_02": {
+      "label": "Muscles tire earlier",
+      "question": "Do your muscles tire earlier than usual with a comparable activity?",
+      "check_ins": [
+        "muscle_endurance_test"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "MUS_03": {
+      "label": "More effort for the same task",
+      "question": "Does the same task take more muscular effort than before, even if you can complete it?",
+      "check_ins": [
+        "muscle_performance"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "MUS_04": {
+      "label": "Heavy legs, arms or back",
+      "question": "Do your legs, arms or back feel unusually heavy or hard to move?",
+      "check_ins": [
+        "muscle_strength_test"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "MUS_05": {
+      "label": "Poor recovery after rest",
+      "question": "Do your muscles still feel exhausted after the rest that normally lets you recover?",
+      "check_ins": [
+        "muscle_endurance_test"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "MUS_06": {
+      "label": "Unusual muscle tightness or pain",
+      "question": "Do you notice muscle tightness, discomfort or pain different from usual? (Not specific to muscle atrophy.)",
+      "check_ins": [
+        "muscle_tone"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "VIS_01": {
+      "label": "Blurred near vision",
+      "question": "With your usual correction, do nearby letters or details look less sharp than before?",
+      "check_ins": [
+        "visual_acuity"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "VIS_02": {
+      "label": "Blurred middle or far vision",
+      "question": "Do screens, instruments or objects at middle or long distance look less clear?",
+      "check_ins": [
+        "visual_acuity"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "VIS_03": {
+      "label": "Vision sharpness changes",
+      "question": "Does the sharpness of your vision change during the day or between similar tasks?",
+      "check_ins": [
+        "visual_acuity"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "VIS_04": {
+      "label": "Glasses less comfortable",
+      "question": "Do your usual glasses no longer let you read or work with the same comfort?",
+      "check_ins": [
+        "refraction"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "VIS_05": {
+      "label": "Harder to see in dim light",
+      "question": "Is it harder than usual to make out details in low light?",
+      "check_ins": [
+        "visual_acuity"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "VIS_06": {
+      "label": "Harder to judge distances",
+      "question": "Is it harder to judge distances or the position of objects?",
+      "check_ins": [
+        "visual_acuity"
+      ],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+    },
+    "ALM_01": {
+      "label": "Sudden vision loss or a new dark or missing area",
+      "question": "Have you noticed a sudden loss of vision, or a new dark, empty or missing area in what you see?",
+      "alarm": true,
+      "action": "Stop the risky task and tell the crew medical officer immediately.",
+      "check_ins": [],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3; [4] https://ntrs.nasa.gov/citations/20220014606 . Not a diagnosis of SANS; prototype triage proposal."
+    },
+    "ALM_02": {
+      "label": "New distortion in the centre of vision",
+      "question": "Do you newly see straight lines bent, letters deformed or a distortion in the centre of your vision?",
+      "alarm": true,
+      "action": "Get medical attention immediately.",
+      "check_ins": [],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3; [4] https://ntrs.nasa.gov/citations/20220014606 . Not a diagnosis of SANS; prototype triage proposal."
+    },
+    "ALM_03": {
+      "label": "Sudden weakness or cannot move safely",
+      "question": "Do you have weakness that came on suddenly, or that stops you from moving safely?",
+      "alarm": true,
+      "action": "Get medical attention and assistance immediately.",
+      "check_ins": [],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3. Not a diagnosis of SANS or muscle atrophy; prototype triage proposal."
+    },
+    "ALM_04": {
+      "label": "New severe pain with other warning signs",
+      "question": "Do you have new severe pain together with vision changes, marked weakness or difficulty doing a basic task?",
+      "alarm": true,
+      "action": "Get medical attention immediately to find the cause.",
+      "check_ins": [],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3. Not a diagnosis of SANS or muscle atrophy; prototype triage proposal."
+    },
     "_example_issue": {
       "label": "Example issue (test fixture)",
-      "check_ins": ["_example"]
+      "check_ins": [
+        "_example"
+      ]
     }
   }
 }

@@ -35,6 +35,8 @@ Welcome → Main Menu → Check-in (9 grouped check-ins with bars, multi-field f
 
 ### P1
 
+- **Subjective-symptom details** [Edu content for wording]: v1 only records "I have it now" for the 12 symptoms and 4 alarms. Edu's document (section 4) also asks for onset (sudden/gradual), trend, location, impact (`task_not_completed` must trigger an immediate safety assessment, triage rule 3), optional intensity 0-10, context and notes. Also his note: new double vision or severe headache with neurological signs needs urgent assessment (not yet an alarm item).
+
 4. **Protocol structure** [Edu content] (#137, Javi → Edu): loop, flight-surgeon contacts, redundant steps.
 5. **Review intervals** [Edu content] (#98): `tutorial_bar_full_days` per protocol (now `TODO_EDU`) and `bar_full_hours` per check-in (24 h placeholders; Gonzalo did not approve one value for all).
 6. **Shorter protocol texts** [Edu content]: the mascot reads every step aloud; one or two sentences per step (`AGENTS.md` 15).
@@ -47,6 +49,7 @@ Welcome → Main Menu → Check-in (9 grouped check-ins with bars, multi-field f
 
 ## 5. Before submission (after the Sunday 16:00 freeze, Ansel)
 
+- Translate `docs/sintomas_subjetivos_atrofia_SANS.md` (Edu's source for the symptoms) to English, or replace it with an English summary.
 - Delete the internal Spanish documents in `docs/` (`ESTRUCTURA.md`, `Preparación del entorno · NASA Space Apps 2026.md`, `WORKFLOW.md`).
 - No `TODO` left in the README; slides link.
 - Make the repository public (the app already is).
