@@ -148,3 +148,50 @@ def test_caches_are_safe_with_many_sessions_in_threads(tmp_path, monkeypatch):
         thread.join()
     assert errors == []
     assert len(data._PARSED) <= data._PARSED_MAX and len(data._BASELINES) <= data._PARSED_MAX
+
+
+def test_filtered_tables_match_filtering_without_the_cache(files):
+    """Tables are cached already sorted and split by (astronaut, indicator); rows and order must
+    be the same as filtering the file first and sorting after (equal timestamps keep file order)."""
+    write_rows(files, ["2027-03-30T08:00:00,a1,_example_indicator,61,u,preflight,simulated",
+                       "2027-03-29T08:00:00,a2,_example_indicator,70,u,preflight,simulated",
+                       "2027-03-30T08:00:00,a1,_example_indicator,62,u,preflight,manual",
+                       "2027-03-30T08:00:00,a1,_other,5,u,preflight,simulated",
+                       "2027-03-29T08:00:00,a1,_example_indicator,60,u,mission,manual",
+                       "2027-04-03T08:00:00,a1,_example_indicator,99,u,mission,simulated"])
+    raw = pd.read_csv(files / "measurements.csv")
+    raw = raw[~((raw["source"] == "simulated") & (pd.to_datetime(raw["timestamp"]) > START))]
+    for astronaut in (None, "a1", "a2", "a3"):
+        for indicator in (None, "_example_indicator", "_other"):
+            for phase in (None, "preflight", "mission"):
+                expected = raw
+                for column, wanted in (("astronaut", astronaut), ("indicator", indicator), ("phase", phase)):
+                    if wanted is not None:
+                        expected = expected[expected[column] == wanted]
+                expected = expected.sort_values("timestamp", kind="stable")
+                got = data.load_measurements(astronaut, indicator, phase)
+                assert list(got["value"]) == list(expected["value"]), (astronaut, indicator, phase)
+                assert list(got.index) == list(range(len(got)))
+    assert data.latest_values("a1") == {"_example_indicator": 62.0, "_other": 5.0}
+
+
+def test_changing_returned_rows_or_latest_values_does_not_change_the_cache(files):
+    write_rows(files, ["2027-03-30T08:00:00,a1,_example_indicator,61,u,preflight,simulated"])
+    rows = data.load_measurements("a1", "_example_indicator")
+    rows.loc[0, "value"] = 999.0
+    latest = data.latest_values("a1")
+    latest["_example_indicator"] = 999.0
+    assert list(data.load_measurements("a1", "_example_indicator")["value"]) == [61.0]
+    assert data.latest_values("a1") == {"_example_indicator": 61.0}
+
+
+def test_latest_values_follow_new_rows_and_the_clock(files):
+    write_rows(files, ["2027-03-30T08:00:00,a1,_example_indicator,61,u,preflight,simulated",
+                       "2027-04-01T08:00:00,a1,_example_indicator,70,u,mission,simulated"])
+    assert data.latest_values("a1") == {"_example_indicator": 61.0}
+    mission.advance(24)
+    assert data.latest_values("a1") == {"_example_indicator": 70.0}
+    data.add_measurement({"timestamp": "2027-04-01T09:00:00", "astronaut": "a1",
+                          "indicator": "_example_indicator", "value": 72, "unit": "u",
+                          "phase": "mission", "source": "manual"})
+    assert data.latest_values("a1") == {"_example_indicator": 72.0}
