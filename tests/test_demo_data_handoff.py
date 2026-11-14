@@ -48,6 +48,25 @@ def test_documented_parameters_are_complete_and_reproducible(spec, generated):
     assert (baselines.std(ddof=1) > 0).all()
 
 
+def test_selected_magnitudes_and_persistence_are_human_plausible(generated):
+    """Study envelopes are plausibility checks, not medical normality thresholds."""
+    frame, args = generated
+    trt = frame[frame.indicator.str.startswith("peripapillary_trt_")]
+    assert trt.value.between(272, 420).all()  # Patel 2018, BMO-250 observed preflight range.
+    force = frame[frame.indicator == "muscle_strength"]
+    # Dodds 2014, male age-30 10th-90th centiles; selected fictional grip profiles only.
+    assert (force.value / 9.80665).between(38, 64).all()
+    start = args[4]
+    for astronaut, indicator, day, value in (
+        ("a1", "peripapillary_trt_left", 1, 360), ("a2", "muscle_strength", 2, 390)
+    ):
+        after = frame[(frame.astronaut == astronaut) & (frame.indicator == indicator)
+                      & (frame.phase == "mission")
+                      & (frame.timestamp >= (start + timedelta(days=day-1)).isoformat())]
+        assert len(after) == args[6] - day + 1
+        assert (after.value == value).all()  # No scripted overnight recovery.
+
+
 @pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
 def test_documented_data_reaches_real_confirmation_and_protocol(tmp_path, monkeypatch, spec,
                                                                generated, environment):

@@ -2,8 +2,10 @@
 
 # Synthetic demo data handoff
 
-Status: proposed parameter specification for an explicitly synthetic software
-benchmark, reviewed against primary sources on 2026-11-14 for issue #36.
+Status: Edu accepts design A (declared synthetic data) on 2026-11-14, conditional
+on human plausibility. This specifies the three-indicator proposal and its
+plausibility checks; the final indicator coverage/story still needs the team
+decision in #78/#34. It is reviewed against primary sources for issue #36.
 It supplements the research table in #35/#36; it does not supply validated
 healthy-astronaut population or daily-variability parameters. It is not a physiological model,
 an astronaut reference population, or a validated disease trajectory. The
@@ -67,18 +69,25 @@ INDICATOR_PARAMS = {
 }
 
 ANOMALIES = [
-    {
-        "astronaut": "a1",
-        "indicator": "peripapillary_trt_left",
-        "day": 1,
-        "value": 360.0,
-    },
-    {
-        "astronaut": "a2",
-        "indicator": "muscle_strength",
-        "day": 2,
-        "value": 390.0,
-    },
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 1, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 2, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 3, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 4, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 5, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 6, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 7, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 8, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 9, "value": 360.0},
+    {"astronaut": "a1", "indicator": "peripapillary_trt_left", "day": 10, "value": 360.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 2, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 3, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 4, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 5, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 6, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 7, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 8, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 9, "value": 390.0},
+    {"astronaut": "a2", "indicator": "muscle_strength", "day": 10, "value": 390.0},
 ]
 ```
 
@@ -95,10 +104,18 @@ ANOMALIES = [
 | 360 micrometres | Synthetic left-eye case chosen above the PDF's +55 micrometre review boundary, with margin for the sampled reference. It is not a clinical recommendation or a reported patient observation. |
 | 390 N | Synthetic muscle-force case chosen below 80% of the nominal 500 N example. Verify against the sampled personal baseline rather than assuming it is exactly 500 N. |
 
-The benchmark uses a single fixed synthetic force task for `muscle_strength`,
-not pooled muscles, sides, methods or instruments. A future empirical simulator
-must first select and document a real task. Both eye indicators use the same
-synthetic TRT definition and preserve eye identity throughout.
+For this demo only, `muscle_strength` represents right-hand isometric grip force
+in N, with the same dynamometer method/posture/summary statistic at every visit.
+Do not mix left-hand, knee-extension or whole-body force under this id. This
+measurement definition is not a clinical how-to or a replacement for Gonzalo's
+instructions. Grip changes alone do not establish whole-body muscle atrophy.
+TRT uses the OCT annulus from the Bruch membrane opening to 250 micrometres,
+separately for each eye, with the same acquisition/segmentation definition.
+
+The scripted abnormal readings persist to the end of the window; neither case
+automatically returns to baseline the next day. The flat plateau is a software
+simplification, not a claim of constant disease severity. The first abnormal date
+is when the observation becomes available, not a model of onset after launch.
 
 ## 3. Time, anomaly and confirmation checks
 
@@ -201,8 +218,30 @@ with Gonzalo, have Fran generate the seed, confirm the reference-dependent rules
 against the real evaluator, and run the full detection-confirmation-protocol path.
 This document does not change the generator, runtime files, seed or medical rules.
 An evidence/documentation PR can be reviewed without activating the benchmark.
-Keep #36 open if its acceptance still requires empirical healthy-astronaut means,
-daily SDs and between-astronaut distributions: those are not delivered here.
+Edu now accepts a synthetic solution. Keep #36/#78 open until Ansel/Gonzalo/Fran
+agree whether this three-indicator subset meets the demo coverage, the remaining
+catalogue entries stay unsimulated, and the app/README labelling is integrated.
+This does not authorize copying these numbers to other sites or filling the other
+eleven indicators with placeholders. Empirical astronaut distributions are not delivered.
+
+### Human plausibility of the selected magnitudes
+
+[Dodds et al., PLOS ONE 2014, Table 2](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0113637)
+reports a 51 kg grip median and 38-64 kg 10th-90th centiles for men aged 30.
+These dynamometer readings are force-equivalent (kgf); conversion uses
+1 kgf = 9.80665 N. The proposed 500 N is about 51.0 kgf, and the complete
+generated force set (390.0-559.3 N) is about 39.8-57.0 kgf. This supports physical
+plausibility for selected fictional adult grip profiles, not a universal normal
+range, an astronaut norm, or suitability for all ages/sexes. No demographic
+inference about the fictional astronauts is made from this example comparison.
+
+The generated TRT values (285.5-360.0 micrometres) fall within the 272-420
+micrometre preflight range reported for the selected annulus in Patel Table 2.
+This is an observed-cohort envelope used as a plausibility check, not a clinical
+reference interval: within it, an individual's change can still be concerning.
+The 5 micrometre and 25 N noise SDs remain deliberate synthetic choices, not
+empirical daily SDs; their small scales do not establish validated repeatability.
+Zero trend and person offsets describe the controlled fixture, not human biology.
 
 ## 7. Scientific review and acceptance
 
