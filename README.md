@@ -41,15 +41,73 @@ Architecture and contracts: see [`AGENTS.md`](AGENTS.md).
 
 ## Health indicators and problems
 
-TODO: table of indicators and of the problems covered, each with its source.
+Two problems are covered: [SANS (NASA HRP)](https://www.nasa.gov/reference/risk-of-spaceflight-associated-neuro-ocular-syndrome-sans/) and [reduced muscle size, strength and endurance (NASA HRP)](https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/). The nine check-ins contain fourteen indicators; each eye/site keeps its own personal baseline.
+
+| Problem | Check-in | Indicators and units | Public method reference |
+| --- | --- | --- | --- |
+| SANS | Eye scan (OCT) | Left/right peripapillary total retinal thickness (?m), BMO-to-250-?m annulus | [Patel et al., 2018](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551) |
+| SANS | Optic disc check | Left/right clinician-assessed Fris?n grade | [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/) |
+| SANS | Refraction | Left/right cycloplegic spherical-equivalent refraction (D) | [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/); [scalar definition](https://pmc.ncbi.nlm.nih.gov/articles/PMC3930272/) |
+| SANS | Visual acuity | Left/right corrected monocular acuity (logMAR) | [Bach/FrACT](https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/); [MedlinePlus](https://medlineplus.gov/ency/article/003396.htm) |
+| Muscle | Muscle strength | Right-hand grip force (N), not knee strength | [PhenX/NHANES protocol](https://www.phenxtoolkit.org/protocols/view/150302) |
+| Muscle | Muscle size | Right L5 multifidus cross-sectional area (cm?) | [Hides et al., 2021](https://australian.physio/sites/default/files/RESEARCH%26PUBLICATIONS/PRF/PRF%3A%20Image%20library/2021_Hides%20Astronaut%20paper_The%20Spine%20Journal-main-min.pdf) |
+| Muscle | Muscle power | Right-knee isokinetic mechanical power (W); project derivation from torque ? angular speed | [Laughlin et al., NASA ISS reliability](https://ntrs.nasa.gov/api/citations/20090019649/downloads/20090019649.pdf) |
+| Muscle | Muscle endurance | Right-knee repetitions at a fixed preflight load and tempo | [Hillen et al., 2026](https://www.mdpi.com/2813-0413/5/2/26) |
+| Muscle | Muscle tone and stiffness | Right rectus femoris: frequency (Hz) and stiffness (N/m) | [MyotonPRO guide](https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf); [ESA Myotones](https://www.esa.int/ESA_Multimedia/Images/2018/07/Tricorder) |
+
+Method references do not validate every alert threshold. NASA's muscle-strength retention requirement and published SANS criteria are distinguished from the team's experimental statistical bands, triage choices and estimated confirmation waits in [`config/`](config/). Criteria are version-specific; source/access limitations are recorded in the [medical source review](docs/MEDICAL_SOURCE_REVIEW.md). Numerical concern requests priority review, not an automatic diagnosis or medical urgency. Activity-bar timers are [synthetic, non-clinical demo choices](docs/CHECK_IN_INTERVALS.md).
 
 ## NASA data and resources used
 
-TODO: which NASA resources were used and for what.
+The demo uses locally generated fictional observations, not downloaded astronaut patient records. NASA material informs requirements, monitoring context and prototype guidance:
+
+- [NASA-STD-3001 Vol. 1, Rev. C](https://standards.nasa.gov/standard/NASA/NASA-STD-3001_VOL_1), [Human Performance ?4.6.2](https://www.nasa.gov/reference/4-0-human-performance/): muscle-strength retention requirement; not a universal injury threshold.
+- [SANS 2023 Clinical Update](https://ntrs.nasa.gov/citations/20220014606): early/concerning structural findings and functional-impact criteria; [OCHMO-MTB-001](https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf): examinations, monitoring and treatment-evidence limits.
+- [SANS evidence report, 2017/2018](https://ntrs.nasa.gov/api/citations/20180000936/downloads/20180000936.pdf), [HRP SANS evidence report](https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf), and [muscle evidence record](https://ntrs.nasa.gov/citations/20100039152): background for structural/functional monitoring and symptom guidance.
+- [Exercise Overview](https://www.nasa.gov/ochmo-tb-031-exercise-overview-2/), [Astronaut Exercise](https://www.nasa.gov/missions/station/iss-research/astronaut-exercise/), and [nutrition monographs](https://www.nasa.gov/wp-content/uploads/2024/10/human-adaptation-to-spaceflight-the-role-of-nutrition.pdf) ([2021 edition](https://www.nasa.gov/wp-content/uploads/2024/08/human-adaptation-2021-final-b.pdf)): supervised exercise, recovery and nutrition context; no autonomous prescriptions.
+- [Isokinetic reliability study](https://ntrs.nasa.gov/api/citations/20090019649/downloads/20090019649.pdf): task/method evidence; its torque and total-work outcomes are not interchangeable with force, power or repetition counts.
+- [Astronaut health care](https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/), [Distance From Earth](https://www.nasa.gov/hrp/hazard-distance-from-earth/), and [Mars communication delay/disruption](https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf): local care, remote support and communication limits.
+- Environment references: [ISS microgravity](https://www.nasa.gov/wp-content/uploads/2023/03/np-2015-03-018-jsc-cellular-biology-iss-mini-book-508.pdf), [ISS communications](https://www.nasa.gov/missions/station/the-space-network-cell-towers-for-astronauts/), [Moon gravity](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/moon/), [Mars facts](https://www.jpl.nasa.gov/news/press_kits/insight/landing/facts/mars-at-a-glance/), and [Mars signal travel](https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/). Gravity does not scale medical thresholds; signal travel does not guarantee a clinical reply.
+- Research context: [partial-gravity review](https://ntrs.nasa.gov/citations/20210019591), [Thigh Cuff](https://www.nasa.gov/reference/thigh-cuff/), [HRP 2026 research plans](https://www.nasa.gov/wp-content/uploads/2026/08/hrp-rap-for-web-62026-hhc.pdf), and [Why Moon and Mars](https://ntrs.nasa.gov/api/citations/20250009282/downloads/2025%20IAC%20-%20Why%20Moon%20and%20Mars%20-%200916%20Edits.pdf): background/research, not approved treatment instructions.
 
 ## Other data and references
 
-TODO: every external dataset, code, text and image used, with its source.
+The following references support methods, context or research comparisons; they are not imported clinical datasets. The [synthetic-data handoff](docs/DEMO_DATA_HANDOFF.md) distinguishes integrated inputs, proposed inputs and empirical alternatives. The team's supplied guides are independently authored prototype material, not NASA publications; their public references and access limitations are catalogued in the [25-source extraction](docs/MEDICAL_SOURCE_REVIEW.md). [Protocol diagrams](docs/PROTOCOL_FLOWCHARTS.md) map that evidence to guidance; [subjective-issue provenance](docs/sintomas_subjetivos_atrofia_SANS.md) distinguishes symptoms from alarms.
+
+- [Patel et al., 2018](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551): OCT region and observed cohort magnitudes, not personal daily SDs.
+- [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/): eye-specific case observations; grade 0 does not exclude OCT changes.
+- [Gew et al., 2026 consensus](https://pmc.ncbi.nlm.nih.gov/articles/PMC13462731/): guide-selected refractive criterion profile; full-text verification limits are explicit in the source review.
+- [Pardon et al., 2022](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2797831): alternative OCT cohort context; standard error is not daily SD.
+- [Macias et al., 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7118682/): time/region-specific ocular research, not a synthetic disease trajectory.
+- [Kita et al., 2015](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0144721): alternative OCT repeatability method, not proof of equivalence to the configured region/device.
+- [OCT repeatability study](https://doi.org/10.1371/journal.pone.0221466): acquisition-duration analogy for an explicitly estimated prototype timer, not a prescribed SANS wait.
+- [Hides et al., 2021](https://australian.physio/sites/default/files/RESEARCH%26PUBLICATIONS/PRF/PRF%3A%20Image%20library/2021_Hides%20Astronaut%20paper_The%20Spine%20Journal-main-min.pdf): multifidus ultrasound acquisition and research magnitude context.
+- [Scott et al., 2021, Tele-SUS](https://pmc.ncbi.nlm.nih.gov/articles/PMC8047175/): teleguided muscle-ultrasound research, not autonomous acquisition validation.
+- [Hillen et al., 2026](https://www.mdpi.com/2813-0413/5/2/26): repetition-endurance task and reliability.
+- [Lukas et al., 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10576663/): terrestrial myotonometry magnitude comparisons, not astronaut daily variation.
+- [MyotonPRO Quick Guide](https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf): marked-site acquisition and separate frequency/stiffness outputs.
+- [PhenX/NHANES grip protocol](https://www.phenxtoolkit.org/protocols/view/150302): standardized dynamometer setup.
+- [Dodds et al., 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0113637): adult grip magnitude comparison, not universal astronaut norms.
+- [Aben et al., 2020](https://www.mdpi.com/2075-4663/8/5/73): alternative force-task evidence, not the configured grip task.
+- [CDC/NIOSH strength assessment](https://stacks.cdc.gov/view/cdc/9182/cdc_9182_DS1.pdf): rest-period analogy for a prototype timer; no universal post-anomaly recovery claim.
+- [Bach/FrACT](https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/): computer-estimated logMAR method.
+- [Refraction scalar definition](https://pmc.ncbi.nlm.nih.gov/articles/PMC3930272/): spherical equivalent is distinct from an unqualified sphere reading.
+- [MedlinePlus visual-acuity test](https://medlineplus.gov/ency/article/003396.htm): monocular assessment and correction.
+- [ESA Tricorder/Myotones](https://www.esa.int/ESA_Multimedia/Images/2018/07/Tricorder): tone/stiffness research context.
+- [DLR-NASA functional performance study](https://www.dlr.de/en/blog/archive/2025/dlr-nasa-bed-rest-study-functional-performance-test): task performance and unloading context.
+- [Canadian Space Agency reconditioning](https://www.asc-csa.gc.ca/eng/youth-educators/activities/fitness-and-nutrition/return-and-reconditioning.asp): educational postflight-rehabilitation context.
+- [ESA bedrest](https://explorationscience.esa.int/platforms/bedrest/): terrestrial analogue background.
+- [ESA Extended space dive](https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Extended_space_dive): dry-immersion research background.
+- [ESA Nebula communications project](https://nebula.esa.int/4000136202): latency context; access limitation recorded in the source review.
+- [ESA Moon calling Earth](https://www.esa.int/media/ten-things-you-didn-t-know-about-the-moon-moon-calling-earth): lunar light-time reference.
+- [American Heart Association pulse measurement](https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse): retained legacy-catalogue measurement guidance.
+- [American Heart Association cuff technique](https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings/monitoring-your-blood-pressure-at-home): retained legacy blood-pressure acquisition guidance.
+- [American Heart Association blood-pressure terms](https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings): retained legacy blood-pressure definitions.
+- [CDC glucose monitoring](https://www.cdc.gov/diabetes/diabetes-testing/monitoring-blood-sugar.html): retained legacy-catalogue guidance.
+- [MedlinePlus temperature measurement](https://medlineplus.gov/ency/article/003400.htm): retained legacy-catalogue guidance.
+- [NHLBI sleep diary](https://www.nhlbi.nih.gov/resources/sleep-diary): retained legacy-catalogue recording convention.
+
+Legacy catalogue entries are not additional supported problems or real check-in cards. The mascot is rendered from in-repository SVG/CSS/JS with browser speech synthesis; application dependencies are declared in [`requirements.txt`](requirements.txt).
 
 ## AI usage
 
