@@ -21,6 +21,17 @@ def _require_complete(value, path: str = "protocol") -> None:
         for index, child in enumerate(value):
             _require_complete(child, f"{path}[{index}]")
 
+def _var_indicators(protocol: dict) -> dict[str, str]:
+    """Build variable-to-indicator metadata from the protocol on each run."""
+    mapping = {}
+    for node in protocol["nodes"].values():
+        if node.get("type") != "measure":
+            continue
+        name, indicator = node.get("save_as"), node.get("indicator")
+        if name in mapping and mapping[name] != indicator:
+            raise ValueError(f"Protocol variable '{name}' maps to multiple indicators.")
+        mapping[name] = indicator
+    return mapping
 
 def _remaining_wait(node: dict, episode: dict, at: datetime) -> float:
     """Use a persisted log entry so reloads and earlier confirmation time do not count."""
@@ -84,6 +95,7 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     updated = deepcopy(episode)
     protocol = load_protocol(updated["problem"])
     _require_complete(protocol)
+    var_indicators = _var_indicators(protocol)
     updated["current_node"] = updated.get("current_node") or protocol["start"]
     updated.setdefault("vars", {})
     updated.setdefault("answers", {})
@@ -107,6 +119,7 @@ def submit(episode: dict, user_input: dict | None) -> dict:
         if kind == "decision":
             ctx = {key: updated[key] for key in ("astronaut", "environment", "severity", "vars", "answers")}
             ctx["latest"] = latest
+            ctx["var_indicators"] = var_indicators
             target = node["default"]
             for branch in node["branches"]:
                 if conditions.check(branch["if"], ctx):
