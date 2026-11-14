@@ -60,6 +60,8 @@ def workspace(tmp_path, monkeypatch):
     for filename, content in {
         "mission.json": {"start": START.isoformat(), "environment": "mars"},
         "indicators.json": indicators, "problems.json": problems,
+        "checkins.json": {key: {"name": f"Check {key}", "indicators": [key], "bar_full_hours": 24} for key in ("x", "y")},
+        "subjective_issues.json": {"settings": {"persistence_days": 3, "speed_multiplier": 2}, "issues": {}},
         "environments.json": {key: {"name": key.upper(), "comm_delay_min": 0, "gravity_g": 1}
                               for key in ("iss", "moon", "mars")},
     }.items():
