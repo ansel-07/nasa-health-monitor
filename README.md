@@ -25,7 +25,7 @@ The astronaut chooses who they are and where the mission is (ISS, Moon or Mars).
 
 1. Choose **Astronaut A** and **International Space Station**, then **NEXT**. In Main Menu → *Demo controls*, press **Reset demo**. You will explore fictional, synthetic measurements.
 2. Press **Advance mission 24 h** to reveal an ocular measurement alert. Open **Check-in** to compare it with your personal pre-flight baseline.
-3. Use **Simulate wait** and repeat the flagged measurement with the demo value to confirm the anomaly.
+3. Use **Simulate wait** and repeat the flagged measurement with the demo value (**360** µm) to confirm the anomaly.
 4. Open **Protocols** and follow the guidance through to medical follow-up. SpaceDoc guides you; it does not diagnose.
 
 ## Meet the mascot
