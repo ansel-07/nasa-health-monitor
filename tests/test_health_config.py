@@ -4,7 +4,16 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from core import config, data, episodes, mission, models, protocol_engine, triggers
+from core import charts, config, data, episodes, mission, models, protocol_engine, triggers
+
+
+@pytest.mark.parametrize("eye", ["left", "right"])
+def test_trt_chart_uses_absolute_units_for_configured_delta(monkeypatch, eye):
+    monkeypatch.setattr(data, "get_baseline", lambda *args: {"mean": 300, "std": 5, "n": 14})
+    bands = charts.threshold_bands("a1", f"peripapillary_trt_{eye}", "mars")
+    assert [(band["severity"], band["low"], band["high"]) for band in bands] == [
+        ("watch", 320, 355), ("concern", 355, None),
+    ]
 
 
 @pytest.mark.parametrize("indicator,mean,std,value,level", [
