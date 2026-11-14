@@ -84,15 +84,15 @@ def test_real_config_detection_confirmation_protocol(tmp_path, monkeypatch, pid,
         visited.append(step["id"])
         if step["type"] == "question":
             answer = red_flags if step["save_as"] == "red_flags" else "no"
-            if step["id"] == "u_reviewed":
-                answer = "yes" if refused_review else "not_yet"
-                refused_review = True
             user_input = {"answer": answer}
         else:
             user_input = {"action": "done" if step["type"] == "action" else "continue"}
+            if step["id"] == "u_handover" and not refused_review:
+                user_input = {"action": "cannot"}
+                refused_review = True
         episode = protocol_engine.submit(episode, user_input)
-        if step["id"] == "u_reviewed" and user_input["answer"] == "not_yet":
-            assert episode["status"] == "active"
+        if step["id"] == "u_handover" and user_input["action"] == "cannot":
+            assert episode["status"] == "active" and episode["current_node"] == "u_handover"
     assert episode["status"] == ("handed_over" if red_flags == "yes" else "monitoring")
     assert episode["severity"] == ("medical_urgency" if red_flags == "yes" else "watch")
     if red_flags == "no":
