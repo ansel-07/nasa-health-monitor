@@ -33,7 +33,7 @@ The app **guides, it does not diagnose**.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
 - Multipage Streamlit app: `app.py` is the entry point and only sets the navigation (`st.navigation`); every screen is a file in `pages/`. **A new page must be added to the list in `app.py`**, or it will not appear.
-- **No sidebar menu** (provisional, until Gonzalo's UI document): people move with buttons. The Home has Start check-in, Continue protocol (only with an active episode), View history and Reset demo; `app.py` adds "← Back to Home" to every other screen. Use `st.switch_page("pages/<file>.py")` for any new button that changes screen.
+- **Screens and navigation** follow `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (Gonzalo) with the overrides of section 16. No sidebar menu: people move with buttons and cards. Welcome → Main Menu → Check-in (list → detail) · Trends · Tutorials; Protocols opens only from a confirmed alert (or an active episode). Use `st.switch_page("pages/<file>.py")` for every button that changes screen. Theme: `.streamlit/config.toml` (colours of the spec).
 - Mascot: SVG/CSS/JS inside `streamlit.components.v1.html`. No image files, no external services.
 
 ## 4. Repository layout and owners
@@ -42,15 +42,18 @@ Each file has **one owner**. Only change files you were asked to change. If you 
 
 ```
 app.py                      Ansel        Entry point: page config and navigation (sidebar names); things shown on every screen
-pages/0_Home.py             Ansel        Home ("login"): pick astronaut and environment, mascot greeting, Reset demo
+pages/0_Home.py             Ansel        Welcome: pick astronaut and mission (no default), NEXT
+pages/5_Menu.py             Ansel        Main Menu: Check-in, Trends, Tutorials cards; demo controls
 pages/1_Check_in.py         Juan Carlos  Measurement form, trigger alert, confirmation step (with mascot)
-pages/2_Protocol.py         Javi         Active protocol, step by step (with mascot)
+pages/2_Protocol.py         Javi         Protocols: active/pending ones by severity, step by step (with mascot)
+pages/4_Tutorials.py        Javi         One practice tutorial per protocol, with its bar (with mascot)
 pages/3_Trends.py           Fran         History charts with colour bands and personal baseline (no mascot)
 core/models.py              Ansel        Shared constants: severities, statuses, node types, moods, paths
 core/config.py              Ansel        Load and validate config/*.json
 core/mascot.py              Ansel        The mascot: face, expressions, speech bubble, voice
 core/data.py                Fran         Measurements, baseline, astronauts, episodes (read/write)
 core/mission.py             Fran         Simulated mission clock
+core/activity.py            Fran         Activity bars (check-ins, tutorials) and subjective-issue history
 core/charts.py              Fran         Reusable Plotly charts (used by Trends AND by Check-in)
 core/conditions.py          Juan Carlos  Shared condition evaluator (section 5)
 core/triggers.py            Juan Carlos  Evaluate a new measurement against the problems
@@ -58,6 +61,7 @@ core/episodes.py            Juan Carlos  Open, confirm, dismiss, pending list, o
 core/protocol_engine.py     Javi         Current step and advance with the astronaut's input
 config/*.json               Edu          Health content (format owned by Ansel)
 config/protocols/*.json     Edu          Protocol flowcharts (format owned by Ansel)
+.streamlit/config.toml      Ansel        Theme (colours of the spec)
 data/                       Fran         data/seed/ = demo starting point, copied into every new browser session (5.5); data/*.csv|json = used by scripts only
 scripts/generate_data.py    Fran         Generates pre-flight and simulated mission data
 tests/                      Ansel        Each builder adds tests for their own part
@@ -137,6 +141,16 @@ The app is deployed on Streamlit, so all judges use **one server**. To keep them
 - So `data/seed/` **is the demo**: what a new session sees first. To change the demo starting point, regenerate `data/seed/` (`scripts/generate_data.py`); the app never writes to it.
 - Tests: `tests/conftest.py` turns session data off (`models.SESSION_DATA = False`), so tests keep patching `models.<X>_FILE`. `tests/test_session_data.py` covers the per-session behaviour.
 
+### 5.6 Check-ins, activity bars and subjective issues
+
+From `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (sections 3-4), adapted to this repo:
+
+- `config/checkins.json`: `{checkin_id: {name, indicators: [...], bar_full_hours}}`. A **check-in** is a group of indicators measured in the same test (one card in the Check-in list, one form). Every indicator used by a real problem is in **exactly one** check-in. Each submitted value still goes through detection and confirmation **per indicator** (section 10).
+- **Activity bars** (`core/activity.py`): `BAR_LEVELS` 100..0 in 10-point steps, from the last completion and the **mission clock** (`mission.now()`), so advancing mission time drains them. Never completed = 0. A check-in bar refills to 100 when its check-in session ends; a tutorial bar when the tutorial is completed. **A bar is not a health status and never blocks a measurement or an active protocol.**
+- Durations: check-in bar 100 → 0 in `bar_full_hours` (spec demo default 24); tutorial bar 100 → 0 in `tutorial_bar_full_days` of each problem (`problems.json`, Edu: more important protocols are reviewed more often). A tutorial can be repeated only when its bar is **below 80** (`TUTORIAL_REPEAT_BELOW`).
+- `config/subjective_issues.json`: `{"settings": {persistence_days, speed_multiplier}, "issues": {issue_id: {label, check_ins: [...]}}}`. Issues and their check-in links come from Edu; settings are demo placeholders from the spec. An issue reported on `persistence_days` calendar days makes its linked check-in bars drain `speed_multiplier` times faster from then on (not retroactively); resolving it stops the acceleration (no refill). A subjective issue never opens an episode by itself.
+- Storage: `data/activity.json` (completions and issue history, per astronaut) through `models.data_file()`.
+
 ## 6. Condition language (`core/conditions.py`)
 
 One evaluator for **both** triggers and protocol decisions. A condition is a JSON object:
@@ -178,6 +192,8 @@ load_indicators() -> dict
 load_environments() -> dict
 load_problems(include_examples: bool = False) -> dict
 load_protocol(problem_id: str) -> dict
+load_checkins(include_examples: bool = False) -> dict
+load_subjective_issues(include_examples: bool = False) -> dict
 validate_all(strict: bool = False) -> list[str]   # error messages; empty if OK
 
 # core/mascot.py  (Ansel)
@@ -204,6 +220,14 @@ reset_demo() -> None                               # copy data/seed/* over this 
 now() -> datetime
 advance(hours: int = 24) -> list[dict]             # new simulated measurements now visible
 advance_and_detect(hours: int, environment: str) -> dict   # advance + detection for every astronaut (#58)
+
+# core/activity.py  (Fran)  -- 5.6
+bar_level(astronaut: str, kind: str, activity_id: str) -> int   # kind: "check_in" | "tutorial"; a BAR_LEVELS value
+complete(astronaut: str, kind: str, activity_id: str) -> None   # bar back to 100 (mission time)
+can_repeat_tutorial(astronaut: str, protocol_id: str) -> bool   # bar < TUTORIAL_REPEAT_BELOW
+report_issues(astronaut: str, issue_ids: list[str], source: str) -> None   # source: "check_in_list" | "check_in_detail"
+resolve_issue(astronaut: str, issue_id: str) -> None
+active_issues(astronaut: str) -> list[dict]   # [{"issue", "since", "persistent"}]
 
 # core/charts.py  (Fran)
 indicator_chart(astronaut: str, indicator: str, compact: bool = False,
@@ -243,7 +267,8 @@ Streamlit session state (created by the Home, `pages/0_Home.py`): `st.session_st
 
 Provisional layout, until Gonzalo's UI document:
 
-- **Where it appears:** Home, Check-in and Protocol. **Not** on Trends.
+- **Where it appears:** Welcome, Main Menu, Check-in, Protocols and Tutorials. **Not** on Trends.
+- **Screens with cards** (Main Menu, Check-in list, Tutorials list) use the same layout as a visual: `mascot.beside()` with the cards on the right (section 16 overrides the spec here).
 - **Look:** the face with **subtitles below it** (no speech bubble).
 - **Alone on the screen:** `mascot.say(text, mood, size="large")`, big and centered (the Home, and Check-in / Protocol while there is no visual).
 - **With a visual** (a measurement chart in Check-in, the protocol flowchart in Protocol): the mascot moves small to the left and the visual takes the right. **Buttons always go below**, full width; if there are none at that moment, the space stays empty.
@@ -388,3 +413,14 @@ The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **ab
 - It must be **complete**: both problems, every protocol path, Trends, all environments.
 - It must be **self-explanatory**: the Home says in a few lines what the app does and how to try it in one minute, and the README explains what it does, what it does not do (it guides, it does not diagnose) and where every health value comes from.
 - Each judge has their own data (section 5.5); a refresh starts again from the demo starting point.
+
+## 16. Product specification (Gonzalo) and its overrides
+
+`docs/ASTRONAUT_HEALTH_APP_SPEC.md` is the product reference for screens, navigation, bars, subjective issues, tutorials and the visual style. Read it before UI work. Where it says to reuse the repository (medical rules, severities, protocols), this file and `config/` win. **Decisions that override the spec (Ansel):**
+
+1. **Mascot:** keeps subtitles and voice. Large and centered when alone (Welcome); small **on the left** with the visual or the cards on the right (`mascot.beside()`), not on the right. Its look is provisional (Ansel).
+2. **Check-ins are grouped by test** (`config/checkins.json`, 5.6), not one card per indicator.
+3. **Bars use the mission clock**, not real time, so the live demo can show them draining.
+4. **Tutorials = practising a real protocol**: the same engine and flowchart, in practice mode (the episode dict has `"practice": true` and nothing is saved: no measurements, no detection, no episode). Each protocol has its own review interval (`tutorial_bar_full_days`).
+5. **Data per astronaut**, not per (astronaut, mission): the environment only changes rules and branches, as before (spec section 5 allows keeping the repo behaviour).
+6. The confirmation wait (`confirm_wait_min`) and the one-open-episode rule (section 10) stay; the Protocols screen shows the active episode and the pending alerts by severity.

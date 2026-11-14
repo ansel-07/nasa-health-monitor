@@ -46,6 +46,23 @@ def load_problems(include_examples: bool = False) -> dict:
     return {pid: p for pid, p in problems.items() if not pid.startswith("_")}
 
 
+def load_checkins(include_examples: bool = False) -> dict:
+    """Check-ins (groups of indicators measured together) by id; "_" ids are test fixtures."""
+    checkins = _read_json(CONFIG_DIR / "checkins.json")
+    if include_examples:
+        return checkins
+    return {cid: c for cid, c in checkins.items() if not cid.startswith("_")}
+
+
+def load_subjective_issues(include_examples: bool = False) -> dict:
+    """{"settings": {...}, "issues": {issue_id: {"label", "check_ins"}}}; "_" issues are fixtures."""
+    content = _read_json(CONFIG_DIR / "subjective_issues.json")
+    if not include_examples:
+        content = {**content, "issues": {i: v for i, v in content.get("issues", {}).items()
+                                         if not i.startswith("_")}}
+    return content
+
+
 def load_protocol(problem_id: str) -> dict:
     problem = load_problems(include_examples=True)[problem_id]
     return _read_json(CONFIG_DIR / problem["protocol"])
@@ -222,6 +239,55 @@ def _contains_todo(value) -> bool:
     return False
 
 
+def _positive_or_todo(value) -> bool:
+    if isinstance(value, str):
+        return value.startswith(TODO_MARK)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+
+
+def validate_activities(indicators: dict, problems: dict) -> list:
+    """checkins.json, subjective_issues.json and the tutorial interval of each problem (AGENTS.md 5.6)."""
+    errors = []
+    try:
+        checkins = load_checkins(include_examples=True)
+        subjective = load_subjective_issues(include_examples=True)
+    except (OSError, json.JSONDecodeError) as e:
+        return [f"config: cannot read an activity file: {e}"]
+    owner = {}
+    for cid, checkin in checkins.items():
+        where = f"checkins.json[{cid}]"
+        if "name" not in checkin:
+            errors.append(f"{where}: missing 'name'")
+        ids = checkin.get("indicators")
+        if not isinstance(ids, list) or not ids:
+            errors.append(f"{where}: 'indicators' must be a non-empty list")
+            ids = []
+        for ind in ids:
+            if ind not in indicators:
+                errors.append(f"{where}: unknown indicator '{ind}'")
+            elif ind in owner:
+                errors.append(f"{where}: indicator '{ind}' is already in check-in '{owner[ind]}'")
+            else:
+                owner[ind] = cid
+        if not _positive_or_todo(checkin.get("bar_full_hours")):
+            errors.append(f"{where}: 'bar_full_hours' must be a positive number")
+    settings = subjective.get("settings", {})
+    for key in ("persistence_days", "speed_multiplier"):
+        if not _positive_or_todo(settings.get(key)):
+            errors.append(f"subjective_issues.json[settings]: '{key}' must be a positive number")
+    for iid, issue in subjective.get("issues", {}).items():
+        where = f"subjective_issues.json[{iid}]"
+        if "label" not in issue:
+            errors.append(f"{where}: missing 'label'")
+        for cid in issue.get("check_ins", []):
+            if cid not in checkins:
+                errors.append(f"{where}: unknown check-in '{cid}'")
+    for pid, problem in problems.items():
+        if "tutorial_bar_full_days" in problem and not _positive_or_todo(problem["tutorial_bar_full_days"]):
+            errors.append(f"problems.json[{pid}]: 'tutorial_bar_full_days' must be a positive number")
+    return errors
+
+
 def validate_all(strict: bool = False) -> list:
     """Check every config file. Returns a list of error messages (empty = OK).
 
@@ -274,11 +340,16 @@ def validate_all(strict: bool = False) -> list:
             if _contains_todo(protocol):
                 errors.append(f"{problem['protocol']}: still has TODO values")
 
+    errors.extend(validate_activities(indicators, problems))
+
     if strict:
         for name, content in (("indicators.json", indicators), ("environments.json", environments)):
             for key, value in content.items():
                 if not key.startswith("_") and _contains_todo(value):
                     errors.append(f"{name}[{key}]: still has TODO values")
+        for cid, checkin in load_checkins().items():
+            if _contains_todo(checkin):
+                errors.append(f"checkins.json[{cid}]: still has TODO values")
     return errors
 
 

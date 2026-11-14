@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "persistence_days": 3,
+    "speed_multiplier": 2,
+    "source": "Demo placeholders from docs/ASTRONAUT_HEALTH_APP_SPEC.md section 4; not medical decisions."
+  },
+  "issues": {
+    "_example_issue": {
+      "label": "Example issue (test fixture)",
+      "check_ins": ["_example"]
+    }
+  }
+}
