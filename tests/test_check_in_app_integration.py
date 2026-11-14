@@ -89,10 +89,13 @@ def snapshot(folder):
 
 
 def browser(environment="mars"):
+    """Welcome -> NEXT -> Main Menu (docs/ASTRONAUT_HEALTH_APP_SPEC.md screens 1-2)."""
     app = AppTest.from_file(str(APP))
+    app.session_state["astronaut"] = "a1"
     app.session_state["environment"] = environment
     app.run()
     assert not app.exception
+    click(app, "NEXT")
     return app
 
 
@@ -101,24 +104,23 @@ def click(app, label):
     assert not app.exception
 
 
-def back_home(app):
+def back_to_menu(app):
     labels = [item.label for item in app.button]
-    assert any("Back to Home" in label for label in labels), (labels, [item.value for item in app.title])
-    click(app, next(label for label in labels if "Back to Home" in label))
+    assert "← Main Menu" in labels, (labels, [item.value for item in app.title])
+    click(app, "← Main Menu")
 
 
 @pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
-def test_home_trends_confirmation_protocol_and_next_alert(workspace, environment):
+def test_menu_confirmation_protocol_and_next_alert(workspace, environment):
     _, seed = workspace
     seed_before = snapshot(seed)
     app = browser(environment)
     assert data.load_episodes() == []  # Stored history never opens episodes.
-    click(app, "View history")
-    click(app, "Advance 24 h")
+    click(app, "Advance mission 24 h")
     initial = data.get_open_episode("a1")
     assert initial["problem"] == "synthetic_a" and initial["environment"] == environment
     assert [item["problem"] for item in data.load_pending("a1")] == ["synthetic_b"]
-    click(app, "Go to Check-in")
+    click(app, "Check-in")
     assert next(item for item in app.button if item.label == "Confirm repeat measurement").disabled
     click(app, "Simulate wait")
     app.number_input[0].set_value(20)
@@ -128,8 +130,8 @@ def test_home_trends_confirmation_protocol_and_next_alert(workspace, environment
     click(app, "Continue")
     assert data.get_open_episode("a1") is None
     assert data.load_episodes()[0]["status"] == "resolved"
-    back_home(app)
-    click(app, "Start check-in")
+    back_to_menu(app)
+    click(app, "Check-in")
     click(app, "Review next alert")
     next_episode = data.get_open_episode("a1")
     assert next_episode["problem"] == "synthetic_b"
@@ -147,8 +149,7 @@ def test_second_session_and_reset_do_not_change_first_session(workspace):
     current, seed = workspace
     seed_before = snapshot(seed)
     first = browser()
-    click(first, "View history")
-    click(first, "Advance 24 h")
+    click(first, "Advance mission 24 h")
     first_folder = models.data_dir()
     first_before = snapshot(first_folder)
     assert data.get_open_episode("a1") is not None
@@ -156,9 +157,7 @@ def test_second_session_and_reset_do_not_change_first_session(workspace):
     second = browser()
     assert data.load_episodes() == []
     assert mission.now() == START
-    click(second, "View history")
-    click(second, "Advance 24 h")
-    back_home(second)
+    click(second, "Advance mission 24 h")
     click(second, "Reset demo")
     assert data.load_episodes() == [] and mission.now() == START
     assert snapshot(first_folder) == first_before
