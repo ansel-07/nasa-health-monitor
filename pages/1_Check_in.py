@@ -258,7 +258,7 @@ def main() -> None:
         if opened.get("symptoms"):
             with st.expander("Symptoms at last detection"):
                 symptom_config = problems[opened["problem"]].get("symptoms", {})
-                st.dataframe([{"Symptom": symptom_config.get(sid, {}).get("name", sid), "Level": level}
+                st.table([{"Symptom": symptom_config.get(sid, {}).get("name", sid), "Level": level}
                               for sid, level in opened["symptoms"].items()], hide_index=True)
         if opened["environment"] != environment:
             original_environment = environments.get(opened["environment"], {}).get("name")

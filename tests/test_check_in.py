@@ -482,15 +482,23 @@ def test_unfinished_symptom_configuration_blocks_submission(screen):
     assert button(app, "Record measurement").disabled
 
 
-def test_symptom_state_and_detection_snapshot_are_displayed(screen):
+@pytest.mark.parametrize("status", ["pending_confirmation", "active"])
+def test_symptom_state_and_detection_snapshot_are_displayed(screen, status):
     app, state = screen
     symptom_problem(state)
-    opened(state)
-    state["open"].update(severity="watch", symptoms={"a": "watch"})
+    opened(state, status)
+    state["open"].update(severity="watch", symptoms={"a": "watch", "older": "concern", "absent": "not_present"})
+    before = deepcopy(state["open"])
     app.run()
     assert not app.exception
     assert any("Problem state: watch" in text.value for text in app.markdown)
-    assert app.dataframe[0].value.iloc[0]["Symptom"] == "Synthetic symptom"
+    assert not app.dataframe
+    assert app.table[0].value.to_dict("records") == [
+        {"Symptom": "Synthetic symptom", "Level": "watch"},
+        {"Symptom": "older", "Level": "concern"},
+        {"Symptom": "absent", "Level": "not_present"},
+    ]
+    assert state["open"] == before
 
 
 @pytest.mark.parametrize("status", [None, "pending_confirmation", "active"])
