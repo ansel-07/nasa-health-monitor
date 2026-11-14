@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
+import pandas as pd
 from streamlit.testing.v1 import AppTest
 
-from core import charts, config, data, episodes, mascot, mission
+from core import charts, config, data, episodes, mascot, mission, triggers
 
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
@@ -29,6 +30,7 @@ def screen(monkeypatch):
     monkeypatch.setattr(config, "load_environments", lambda: {"mars": {"name": "Mars"}, "iss": {"name": "ISS"}})
     monkeypatch.setattr(data, "get_open_episode", lambda astronaut: deepcopy(state["open"]))
     monkeypatch.setattr(data, "latest_values", lambda astronaut: {"x": 20, "y": 20})
+    monkeypatch.setattr(data, "load_astronauts", lambda: pd.DataFrame({"id": ["a1", "a2"]}))
     monkeypatch.setattr(episodes, "get_pending", lambda astronaut: deepcopy(state["pending"]))
     monkeypatch.setattr(mission, "now", lambda: state["now"])
     monkeypatch.setattr(mascot, "say", lambda text, mood="neutral", size="large": state["speech"].append((text, mood, size)))
@@ -176,6 +178,32 @@ def test_pending_confirmation_locks_indicator_and_wait(screen):
     assert "Repeat measurement" in app.subheader[0].value
 
 
+@pytest.mark.parametrize("status,expected_environment", [
+    ("pending_confirmation", "mars"), ("active", "iss"), (None, "iss"),
+])
+def test_chart_and_assessment_share_environment_after_home_selection_changes(screen, monkeypatch, status, expected_environment):
+    app, state = screen
+    if status:
+        opened(state, status)
+    app.session_state["environment"] = "iss"
+    assessment_environments = []
+    original_assessment = triggers.assessment_issues
+
+    def assessment(problems, astronaut, indicator, environment):
+        assessment_environments.append(environment)
+        return original_assessment(problems, astronaut, indicator, environment)
+
+    monkeypatch.setattr(triggers, "assessment_issues", assessment)
+    before = deepcopy(state["open"])
+    app.run()
+    assert not app.exception
+    assert state["chart_calls"][-1] == ("a1", "x", True, expected_environment)
+    assert assessment_environments == [expected_environment]
+    assert state["open"] == before
+    if status:
+        assert any("original environment: Mars" in item.value for item in app.info)
+
+
 def test_ready_repeat_calls_confirm_and_offers_protocol(screen):
     app, state = screen
     opened(state)
@@ -246,6 +274,31 @@ def test_simulate_wait_advances_real_clock_and_processes_revealed_measurements(s
     assert state["calls"] == [("record", revealed, "mars")]
     assert not app.number_input[0].disabled
     assert state["open"]["status"] == "pending_confirmation"
+
+
+@pytest.mark.parametrize("clock_moved", [False, True])
+def test_simulate_wait_reports_shared_detection_failure_without_confirming(screen, monkeypatch, clock_moved):
+    app, state = screen
+    opened(state)
+    initial = deepcopy(state["open"])
+    calls = []
+
+    def fail(hours, environment):
+        calls.append((hours, environment))
+        if clock_moved:
+            state["now"] += timedelta(hours=hours)
+        raise OSError("Synthetic storage failure.")
+
+    monkeypatch.setattr(mission, "advance_and_detect", fail)
+    app.run()
+    button(app, "Simulate wait").click().run()
+    assert not app.exception
+    assert calls == [(1, "mars")]
+    assert "Synthetic storage failure" in app.error[0].value
+    assert ("Mission time advanced, but detection could not finish" in app.error[0].value) is clock_moved
+    assert not app.success
+    assert state["open"] == initial
+    assert state["calls"] == []
 
 
 def test_stub_clock_cannot_bypass_confirmation_wait(screen, monkeypatch):

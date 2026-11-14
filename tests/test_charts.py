@@ -19,23 +19,23 @@ def tmp_data(tmp_path, monkeypatch):
 
 @pytest.fixture
 def fake_problems(monkeypatch):
-    """Problems with numeric test thresholds on heart_rate (fake values for the test)."""
+    """Problems with numeric test thresholds on _example_indicator (fake values for the test)."""
     problems = {
         "p": {"triggers": [
-            {"severity": "mild", "when": {"indicator": "heart_rate", "z_above": 2}},
-            {"severity": "severe", "when": {"indicator": "heart_rate", "above": 100}},
-            {"severity": "moderate", "when": {"indicator": "heart_rate", "below": 40}},
-            {"severity": "severe", "when": {"indicator": "heart_rate", "above": 90},
+            {"severity": "mild", "when": {"indicator": "_example_indicator", "z_above": 2}},
+            {"severity": "severe", "when": {"indicator": "_example_indicator", "above": 100}},
+            {"severity": "moderate", "when": {"indicator": "_example_indicator", "below": 40}},
+            {"severity": "severe", "when": {"indicator": "_example_indicator", "above": 90},
              "environments": ["mars"]},
-            {"severity": "mild", "when": {"indicator": "heart_rate", "above": "TODO_EDU"}},
-            {"severity": "mild", "when": {"indicator": "sleep_hours", "below": 5}},
-            {"severity": "mild", "when": {"all": [{"indicator": "heart_rate", "above": 1}]}},
+            {"severity": "mild", "when": {"indicator": "_example_indicator", "above": "TODO_EDU"}},
+            {"severity": "mild", "when": {"indicator": "_example_indicator_2", "below": 5}},
+            {"severity": "mild", "when": {"all": [{"indicator": "_example_indicator", "above": 1}]}},
         ]},
     }
     monkeypatch.setattr(charts.config, "load_problems", lambda: problems)
 
 
-def add(timestamp, value, phase="mission", indicator="heart_rate"):
+def add(timestamp, value, phase="mission", indicator="_example_indicator"):
     data.add_measurement({"timestamp": timestamp, "astronaut": "a1", "indicator": indicator,
                           "value": value, "unit": "bpm", "phase": phase,
                           "source": "simulated" if phase == "preflight" else "manual"})
@@ -48,7 +48,7 @@ def add_preflight_60_62_64():
 
 def test_threshold_bands_from_config(tmp_data, fake_problems):
     add_preflight_60_62_64()  # baseline 62 ± 2
-    bands = charts.threshold_bands("a1", "heart_rate")
+    bands = charts.threshold_bands("a1", "_example_indicator")
     assert [(b["severity"], b["direction"], b["value"]) for b in bands] == [
         ("mild", "above", 66.0),       # z_above 2 -> 62 + 2 * 2
         ("moderate", "below", 40.0),
@@ -57,10 +57,10 @@ def test_threshold_bands_from_config(tmp_data, fake_problems):
 
 
 def test_threshold_bands_for_an_environment(tmp_data, fake_problems):
-    on_mars = charts.threshold_bands("a1", "heart_rate", environment="mars")
+    on_mars = charts.threshold_bands("a1", "_example_indicator", environment="mars")
     assert [(b["severity"], b["value"]) for b in on_mars] == [
         ("moderate", 40.0), ("severe", 100.0), ("severe", 90.0)]  # + the Mars-only trigger
-    on_iss = charts.threshold_bands("a1", "heart_rate", environment="iss")
+    on_iss = charts.threshold_bands("a1", "_example_indicator", environment="iss")
     assert [b["value"] for b in on_iss] == [40.0, 100.0]
 
 
@@ -68,23 +68,23 @@ def test_chart_passes_environment_to_bands(tmp_data, fake_problems):
     add("2027-04-10T08:00:00", 70)
     def severe_bands(fig):
         return [s for s in fig.layout.shapes if s.fillcolor == charts.SEVERITY_COLORS["severe"]]
-    assert len(severe_bands(charts.indicator_chart("a1", "heart_rate"))) == 1
-    assert len(severe_bands(charts.indicator_chart("a1", "heart_rate", environment="mars"))) == 2
+    assert len(severe_bands(charts.indicator_chart("a1", "_example_indicator"))) == 1
+    assert len(severe_bands(charts.indicator_chart("a1", "_example_indicator", environment="mars"))) == 2
 
 
 def test_threshold_bands_skip_z_without_baseline(tmp_data, fake_problems):
-    assert [b["value"] for b in charts.threshold_bands("a1", "heart_rate")] == [40.0, 100.0]
+    assert [b["value"] for b in charts.threshold_bands("a1", "_example_indicator")] == [40.0, 100.0]
 
 
 def test_real_config_todo_thresholds_give_no_bands(tmp_data):
     add_preflight_60_62_64()
-    for band in charts.threshold_bands("a1", "heart_rate"):
+    for band in charts.threshold_bands("a1", "_example_indicator"):
         assert isinstance(band["value"], float)
 
 
 @pytest.mark.parametrize("compact", [False, True])
 def test_empty_chart(tmp_data, compact):
-    fig = charts.indicator_chart("a1", "heart_rate", compact=compact)
+    fig = charts.indicator_chart("a1", "_example_indicator", compact=compact)
     assert isinstance(fig, go.Figure)
     assert fig.data == ()
     assert fig.layout.annotations[0].text == "No measurements yet"
@@ -96,9 +96,9 @@ def test_full_chart(tmp_data, fake_problems):
     add("2027-04-11T08:00:00", 72)
     data.save_episode({"id": "ep-0001", "astronaut": "a1", "problem": "p", "status": "active",
                        "severity_initial": "mild", "severity": "mild",
-                       "trigger": {"indicator": "heart_rate", "value": 70, "z": 4.0,
+                       "trigger": {"indicator": "_example_indicator", "value": 70, "z": 4.0,
                                    "measured_at": "2027-04-10T08:00:00"}})
-    fig = charts.indicator_chart("a1", "heart_rate")
+    fig = charts.indicator_chart("a1", "_example_indicator")
 
     assert [t.name for t in fig.data] == ["Pre-flight", "Mission", "Alert"]
     assert fig.layout.showlegend is True
@@ -112,7 +112,7 @@ def test_full_chart(tmp_data, fake_problems):
 def test_compact_chart_shows_mission_only(tmp_data, fake_problems):
     add_preflight_60_62_64()
     add("2027-04-10T08:00:00", 70)
-    fig = charts.indicator_chart("a1", "heart_rate", compact=True)
+    fig = charts.indicator_chart("a1", "_example_indicator", compact=True)
     assert [t.name for t in fig.data] == ["Mission"]
     assert fig.layout.showlegend is False
     assert fig.layout.height == charts.COMPACT_HEIGHT
@@ -120,13 +120,13 @@ def test_compact_chart_shows_mission_only(tmp_data, fake_problems):
 
 def test_compact_chart_without_mission_data_shows_preflight(tmp_data):
     add_preflight_60_62_64()
-    fig = charts.indicator_chart("a1", "heart_rate", compact=True)
+    fig = charts.indicator_chart("a1", "_example_indicator", compact=True)
     assert [t.name for t in fig.data] == ["Pre-flight"]
 
 
 def test_single_value_has_a_visible_range(tmp_data):
     add("2027-04-10T08:00:00", 70)
-    low, high = charts.indicator_chart("a1", "heart_rate").layout.yaxis.range
+    low, high = charts.indicator_chart("a1", "_example_indicator").layout.yaxis.range
     assert low < 70 < high
 
 
@@ -165,18 +165,18 @@ def test_symptom_bands_inclusive_z_todo_and_compound(tmp_data, monkeypatch):
     add_preflight_60_62_64()  # baseline 62 ± 2
     problems = {"p": {"symptoms": {
         "s1": {"name": "TODO_EDU", "levels": [
-            {"level": "concern", "when": {"indicator": "heart_rate", "at_least": 100}},
-            {"level": "watch", "when": {"indicator": "heart_rate", "z_above": 2}},
-            {"level": "watch", "when": {"indicator": "heart_rate", "at_most": 40}},
+            {"level": "concern", "when": {"indicator": "_example_indicator", "at_least": 100}},
+            {"level": "watch", "when": {"indicator": "_example_indicator", "z_above": 2}},
+            {"level": "watch", "when": {"indicator": "_example_indicator", "at_most": 40}},
         ]},
         "s2": {"name": "Skipped", "levels": [
-            {"level": "watch", "when": {"indicator": "heart_rate", "above": "TODO_EDU"}},
-            {"level": "concern", "when": {"all": [{"indicator": "heart_rate", "above": 1}]}},
-            {"level": "not_present", "when": {"indicator": "heart_rate", "above": 1}},
+            {"level": "watch", "when": {"indicator": "_example_indicator", "above": "TODO_EDU"}},
+            {"level": "concern", "when": {"all": [{"indicator": "_example_indicator", "above": 1}]}},
+            {"level": "not_present", "when": {"indicator": "_example_indicator", "above": 1}},
         ]},
     }}}
     monkeypatch.setattr(charts.config, "load_problems", lambda: problems)
-    bands = charts.threshold_bands("a1", "heart_rate")
+    bands = charts.threshold_bands("a1", "_example_indicator")
     assert [(b["severity"], b["direction"], b["value"], b["label"]) for b in bands] == [
         ("watch", "above", 66.0, "Watch"),      # z_above 2 -> 62 + 2 * 2; TODO name -> no name
         ("watch", "below", 40.0, "Watch"),      # at_most
@@ -205,12 +205,12 @@ def test_chart_draws_symptom_bands_and_new_state_marks(tmp_data, example_problem
 # --- metric conditions (issue #56). Synthetic baseline 62 ± 2 (n=3); fake thresholds ------
 
 def symptom_problems(*levels):
-    """One fake symptom whose level rules are the given conditions on heart_rate."""
+    """One fake symptom whose level rules are the given conditions on _example_indicator."""
     return {"p": {"symptoms": {"s": {"name": "S", "levels": [
-        {"level": "concern", "when": {"indicator": "heart_rate", **cond}} for cond in levels]}}}}
+        {"level": "concern", "when": {"indicator": "_example_indicator", **cond}} for cond in levels]}}}}
 
 
-def ranges(monkeypatch, *levels, indicator="heart_rate"):
+def ranges(monkeypatch, *levels, indicator="_example_indicator"):
     monkeypatch.setattr(charts.config, "load_problems", lambda: symptom_problems(*levels))
     return [(b["low"], b["high"], b["direction"]) for b in charts.threshold_bands("a1", indicator)]
 
@@ -266,7 +266,7 @@ def test_chart_draws_a_between_band_with_both_edges(tmp_data, monkeypatch):
     add("2027-04-10T08:00:00", 90)
     monkeypatch.setattr(charts.config, "load_problems", lambda: symptom_problems(
         {"metric": "baseline_delta", "at_least": 20, "below": 55}))
-    fig = charts.indicator_chart("a1", "heart_rate")
+    fig = charts.indicator_chart("a1", "_example_indicator")
     band = next(s for s in fig.layout.shapes if s.fillcolor == charts.SERIOUS)
     assert (band.y0, band.y1) == (pytest.approx(82.0), pytest.approx(117.0))
     assert fig.layout.yaxis.range[1] > 117

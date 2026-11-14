@@ -127,7 +127,7 @@ def main() -> None:
         message, mood = "Measurement guidance is not available yet. This indicator cannot be submitted.", "serious"
     with mascot.beside(message, mood):
         st.plotly_chart(charts.indicator_chart(
-            astronaut, indicator_id, compact=True, environment=environment,
+            astronaut, indicator_id, compact=True, environment=assessment_environment,
         ))
 
     if opened:
@@ -139,7 +139,10 @@ def main() -> None:
                 st.dataframe([{"Symptom": symptom_config.get(sid, {}).get("name", sid), "Level": level}
                               for sid, level in opened["symptoms"].items()], hide_index=True)
         if opened["environment"] != environment:
-            st.info("This episode keeps the mission environment in which it was opened.")
+            original_environment = environments.get(opened["environment"], {}).get("name")
+            if _unfinished(original_environment):
+                original_environment = opened["environment"]
+            st.info(f"This episode keeps its original environment: {original_environment}.")
     if opened and opened["status"] == "active":
         if st.button("Open Protocol", width="stretch"):
             st.switch_page("pages/2_Protocol.py")
@@ -168,13 +171,14 @@ def main() -> None:
                 st.caption(f"For the demo, Simulate wait advances mission time by {hours} hour(s).")
                 if st.button("Simulate wait", disabled=blocked, width="stretch"):
                     try:
-                        new_measurements = mission.advance(hours=hours)
+                        mission.advance_and_detect(hours=hours, environment=environment)
                         if mission.now() <= now:
                             raise ValueError("The mission clock did not advance. The confirmation wait is still pending.")
-                        for new_measurement in new_measurements:
-                            episodes.on_new_measurement(new_measurement, environment)
                     except (ValueError, KeyError, OSError) as error:
-                        report("error", str(error))
+                        text = str(error)
+                        if mission.now() > now:
+                            text = "Mission time advanced, but detection could not finish. " + text
+                        report("error", text)
                     report("info", "Mission time advanced. Check the remaining wait before repeating the measurement.")
 
     version_key = f"check_in_form_version:{astronaut}:{environment}"

@@ -1,0 +1,47 @@
+{
+  "eye_oct": {
+    "name": "Eye scan (OCT)",
+    "indicators": ["peripapillary_trt_left", "peripapillary_trt_right"],
+    "bar_full_hours": 24
+  },
+  "optic_disc": {
+    "name": "Optic disc check",
+    "indicators": ["optic_disc_edema_grade_left", "optic_disc_edema_grade_right"],
+    "bar_full_hours": 24
+  },
+  "refraction": {
+    "name": "Refraction",
+    "indicators": ["refraction_left", "refraction_right"],
+    "bar_full_hours": 24
+  },
+  "visual_acuity": {
+    "name": "Visual acuity",
+    "indicators": ["visual_acuity_left", "visual_acuity_right"],
+    "bar_full_hours": 24
+  },
+  "muscle_strength_test": {
+    "name": "Muscle strength",
+    "indicators": ["muscle_strength"],
+    "bar_full_hours": 24
+  },
+  "muscle_size": {
+    "name": "Muscle size",
+    "indicators": ["muscle_area"],
+    "bar_full_hours": 24
+  },
+  "muscle_performance": {
+    "name": "Muscle power and endurance",
+    "indicators": ["muscle_power", "muscle_endurance"],
+    "bar_full_hours": 24
+  },
+  "muscle_tone": {
+    "name": "Muscle tone and stiffness",
+    "indicators": ["muscle_tone", "muscle_stiffness"],
+    "bar_full_hours": 24
+  },
+  "_example": {
+    "name": "Example check-in (test fixture)",
+    "indicators": ["_example_indicator", "_example_indicator_2"],
+    "bar_full_hours": 1
+  }
+}

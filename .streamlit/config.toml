@@ -1,0 +1,9 @@
+# AI-assisted: generated with Claude Code and reviewed by Ansel.
+# Dark theme from docs/ASTRONAUT_HEALTH_APP_SPEC.md §2 (colour tokens). Owner: Ansel.
+[theme]
+base = "dark"
+backgroundColor = "#111111"
+primaryColor = "#5EF2FF"
+secondaryBackgroundColor = "#2D2B27"
+borderColor = "#4A4742"
+textColor = "#EDEBE8"

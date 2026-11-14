@@ -41,7 +41,7 @@ def page(astronaut="a1"):
     app = AppTest.from_file("../app.py").run()
     if astronaut:
         app.session_state["astronaut"] = astronaut
-    else:
+    elif "astronaut" in app.session_state:  # the Welcome no longer pre-selects one
         del app.session_state["astronaut"]
     app.switch_page("pages/2_Protocol.py").run()
     assert not app.exception
@@ -227,3 +227,14 @@ def test_screens_without_an_active_protocol_show_no_flowchart(context):
     assert not page().get("graphviz_chart")
     context["episode"] = None
     assert not page().get("graphviz_chart")
+
+
+def test_flowchart_is_focused_by_default_and_whole_on_request(context):
+    app = page()
+    focused = app.get("graphviz_chart")[0].proto.spec
+    assert '"handed_over" [' not in focused  # far from the current step
+    app.toggle(key="protocol_whole_a1").set_value(True).run()
+    whole = app.get("graphviz_chart")[0].proto.spec
+    for node_id in protocol_engine.load_protocol("_example")["nodes"]:
+        assert f'"{node_id}" [' in whole
+    assert current_in_chart(app) == "intro"
