@@ -394,7 +394,7 @@ def edge_line(dot: str, source: str, target: str) -> str:
 def test_flowchart_highlights_current_and_marks_visited_route(episode):
     episode.update(current_node="symptoms", log=[{"at": "t", "node": "route", "input": None},
                                                 {"at": "t", "node": "intro_mars", "input": "continue"}])
-    dot = engine.flowchart_dot(episode)
+    dot = engine.flowchart_dot(episode, whole=True)
     assert 'fillcolor="#fef3c7"' in node_line(dot, "symptoms") and "penwidth=2.5" in node_line(dot, "symptoms")
     for visited in ("route", "intro_mars"):
         assert 'fillcolor="#dcfce7"' in node_line(dot, visited)
@@ -406,7 +406,7 @@ def test_flowchart_highlights_current_and_marks_visited_route(episode):
 
 def test_flowchart_starts_at_the_start_node_and_draws_the_whole_protocol(episode):
     protocol = engine.load_protocol("_example")
-    dot = engine.flowchart_dot(episode)
+    dot = engine.flowchart_dot(episode, whole=True)
     assert 'fillcolor="#fef3c7"' in node_line(dot, protocol["start"])
     for node_id in protocol["nodes"]:
         node_line(dot, node_id)
@@ -414,7 +414,7 @@ def test_flowchart_starts_at_the_start_node_and_draws_the_whole_protocol(episode
 
 
 def test_flowchart_labels_are_short_and_readable(episode):
-    dot = engine.flowchart_dot(episode)
+    dot = engine.flowchart_dot(episode, whole=True)
     assert 'label="Check", shape=diamond' in node_line(dot, "route")
     assert 'label="Contact flight\\nsurgeon"' in node_line(dot, "contact_now")
     assert 'label="End: Handed over"' in node_line(dot, "handed_over")
@@ -439,3 +439,42 @@ def test_flowchart_ignores_wait_entries_and_marks_a_finished_protocol(episode):
     assert '"do_action" -> "do_action"' not in dot
     assert "penwidth=2.5" in edge_line(dot, "do_action", "contact_crew")
     assert 'fillcolor="#fef3c7"' in node_line(dot, "handed_over")
+
+
+def drawn_nodes(dot: str) -> set[str]:
+    return {line.split('"')[1] for line in dot.splitlines() if line.startswith('"') and " -> " not in line}
+
+
+def test_focused_flowchart_shows_recent_steps_current_and_where_options_lead(episode):
+    # Visited: route > intro_mars > symptoms > do_action > remeasure; current: contact_crew.
+    path = ["route", "intro_mars", "symptoms", "do_action", "remeasure"]
+    episode.update(current_node="contact_crew", log=[{"at": "t", "node": n, "input": "x"} for n in path])
+    dot = engine.flowchart_dot(episode)
+    # Last three visited steps, the current one and its exit; earlier steps collapse into one box.
+    assert drawn_nodes(dot) == {"_earlier", "symptoms", "do_action", "remeasure", "contact_crew", "monitor"}
+    assert 'label="… 2 earlier steps"' in dot
+    assert '"_earlier" -> "symptoms"' in dot
+    assert "fontsize=16" in dot
+
+
+def test_focused_flowchart_follows_automatic_nodes_and_hides_unrelated_edges(episode):
+    episode.update(current_node="symptoms", log=[{"at": "t", "node": "route", "input": None},
+                                                {"at": "t", "node": "intro_mars", "input": "continue"}])
+    dot = engine.flowchart_dot(episode)
+    # "yes" leads through set_severity (automatic) to contact_now, so both are shown.
+    assert drawn_nodes(dot) == {"route", "intro_mars", "symptoms", "escalate", "contact_now", "do_action"}
+    assert "_earlier" not in dot
+    assert '[label="Yes"' in edge_line(dot, "symptoms", "escalate")
+    assert edge_line(dot, "escalate", "contact_now")
+    # A visited node's other branches are not drawn, even if their target is on screen.
+    assert '"route" -> "contact_now"' not in dot
+    assert "penwidth=2.5" in edge_line(dot, "route", "intro_mars")
+
+
+@pytest.mark.parametrize("cond,label", [
+    ({"any": [{"symptom": "a", "level_is": "concern"}, {"symptom": "b", "level_is": "concern"}]}, "Any finding: Concern"),
+    ({"all": [{"symptom": "a", "level_at_least": "watch"}, {"symptom": "b", "level_at_least": "watch"}]}, "All findings: Watch"),
+    ({"count_at_least": 2, "of": [{"symptom": "a", "level_is": "concern"}, {"symptom": "b", "level_is": "concern"}]}, "2+ findings: Concern"),
+    ({"any": [{"symptom": "a", "level_is": "concern"}, {"environment_in": ["mars"]}]}, "Condition met")])
+def test_symptom_group_branches_get_short_labels(cond, label):
+    assert engine._condition_label(cond) == label
