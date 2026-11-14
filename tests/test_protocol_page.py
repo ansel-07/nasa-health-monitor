@@ -246,3 +246,14 @@ def test_lists_active_protocol_and_all_pending_by_severity(context):
     text = "\n".join(item.value for item in app.markdown)
     assert "In progress" in text
     assert text.index("Severity: Severe · Waiting") < text.index("Severity: Mild · Waiting")
+
+
+def test_cannot_is_hidden_when_the_step_has_no_route(context, monkeypatch):
+    protocol = protocol_engine.load_protocol("_example")  # the fixture copy from context
+    protocol["nodes"]["do_action"].pop("next_if_cannot")
+    protocol["nodes"]["do_action"].pop("wait_min", None)
+    monkeypatch.setattr(protocol_engine, "load_protocol", lambda _: deepcopy(protocol))
+    context["episode"]["current_node"] = "do_action"
+    app = page()
+    labels = [item.label for item in app.button]
+    assert "Done" in labels and "I can't" not in labels
