@@ -55,7 +55,7 @@ Mientras esperas la revisión, **no te quedes parado**: vuelve al paso 1 con la 
 1. **Nunca se hace commit directamente en `main`.** Nadie, tampoco Ansel.
 2. **`main` siempre arranca.** Lo que entra en `main` ha pasado `python -m pytest` y se ha probado con `streamlit run app.py`.
 3. **Una rama = una tarea pequeña** (1-2 horas como mucho). Si mezcla dos cosas, se separa en dos.
-4. **Solo tocas tus archivos** (tabla de dueños en `AGENTS.md`, sección 4). Si necesitas un cambio en un archivo de otro, se lo pides a su dueño.
+4. **Solo tocas tus archivos** (tabla de dueños en `AGENTS.md`, sección 4). Si necesitas un cambio en un archivo de otro, se lo pides a su dueño **con una issue de GitHub** (`AGENTS.md`, sección 14), no de palabra.
 5. **Nunca `git push --force`** ni `git reset --hard` sobre algo que ya has subido.
 6. **Quien fusiona es Ansel**, después de revisar. Tú abres el pull request; no lo fusionas.
 7. **Siempre dentro del entorno virtual (`.venv`)**, y los tests siempre con `python -m pytest`, no con `pytest` a secas: así se usan el Python y las librerías del proyecto, no los del sistema.
