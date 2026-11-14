@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from core import config, data, mascot, mission, models
+from core import config, data, episodes, mascot, mission, models, protocol_engine
 
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
@@ -211,3 +211,56 @@ def test_missing_baseline_keeps_reading_and_shows_incomplete_assessment(mission_
     assert not app.exception
     assert disk_snapshot() == before
     assert any("Cannot evaluate x" in item.value for item in app.warning)
+
+
+def test_new_mission_alert_replaces_previous_no_alert_feedback(mission_workspace, monkeypatch):
+    speech = []
+    monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))
+    app = screen()
+    app.number_input[0].set_value(0)
+    button(app, "Record measurement").click().run()
+    assert "No alert was opened" in app.success[0].value
+
+    for measurement in mission.advance(hours=1):
+        episodes.on_new_measurement(measurement, "mars")
+    before = disk_snapshot()
+    app.run()
+
+    assert not app.exception
+    assert not app.success
+    assert "needs a repeat measurement" in speech[-1]
+    assert button(app, "Confirm repeat measurement").disabled
+    assert data.get_open_episode("a1")["problem"] == "synthetic_b"
+    assert disk_snapshot() == before
+
+
+@pytest.mark.parametrize("finish", ["protocol", "reset"])
+def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_workspace, monkeypatch, finish):
+    speech = []
+    monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))
+    app, _ = record_and_wait()
+    assert "needs a repeat measurement" in speech[-1]
+    app.number_input[0].set_value(16)
+    button(app, "Confirm repeat measurement").click().run()
+    assert "alert is confirmed" in app.success[0].value
+    assert speech[-1] == "Your alert is confirmed. Open Protocol to continue with the guided steps."
+
+    if finish == "protocol":
+        result = protocol_engine.submit(data.get_open_episode("a1"), {"action": "continue"})
+        assert result["status"] == "resolved"
+    else:
+        seed = mission_workspace / "seed"
+        seed.mkdir()
+        (seed / "episodes.json").write_text(json.dumps({"episodes": [], "pending": []}), encoding="utf-8")
+        monkeypatch.setattr(models, "DATA_DIR", mission_workspace)
+        monkeypatch.setattr(models, "SEED_DIR", seed)
+        data.reset_demo()
+    before = disk_snapshot()
+    app.run()
+
+    assert not app.exception
+    assert data.get_open_episode("a1") is None
+    assert not app.success
+    assert all(item.label != "Open Protocol" for item in app.button)
+    assert speech[-1] == "Choose an indicator and record a new measurement."
+    assert disk_snapshot() == before
