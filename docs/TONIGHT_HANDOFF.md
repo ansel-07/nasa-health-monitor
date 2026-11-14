@@ -46,7 +46,7 @@ Welcome → Main Menu → Check-in (9 grouped check-ins with bars, multi-field f
 
 ## 4. Live demo script (30 seconds)
 
-**Before the pitch starts** (Advance takes 8-10 s on the deployed app, see task 1): open the app, choose Astronaut A + International Space Station → NEXT → Main Menu → Demo controls → **Reset demo**, then **Advance mission 24 h**, and wait until the mascot says an alert needs a repeat measurement. Turn **Voice** on (browsers need one click before audio).
+**Before the pitch starts** (Advance takes 8-10 s on the deployed app, see task 1): open the app, choose Astronaut A + International Space Station (NEXT until the Welcome buttons of task 3 are merged) → Main Menu → Demo controls → **Reset demo**, then **Advance mission 24 h**, and wait until the mascot says an alert needs a repeat measurement. Turn **Voice** on (browsers need one click before audio).
 
 **On stage:** Main Menu (alert waiting) → **Check-in** (chart with the personal baseline) → **Simulate wait** → enter **360** → **Confirm** → Protocols opens → answer **No** to the symptom question → stop at *"Ask the crew medical officer for priority medical review"*.
 
@@ -56,14 +56,15 @@ Welcome → Main Menu → Check-in (9 grouped check-ins with bars, multi-field f
 
 1. **Make "Advance mission 24 h" fast** (Juan Carlos: detection; Fran: data) — the task for the strongest model. It processes 42 rows one by one and each call re-reads the CSV, baselines and config: 8-10 s on the deployed app. Goal: under 2 s, same results. Ideas: read config, latest values and baselines once per batch and pass them down; avoid rewriting `measurements.csv` per row. Detection semantics, tests and contracts must not change (`advance_and_detect()` keeps its signature and its `revealed` / `new_alerts` / `recovered` keys).
 2. **Check-in texts with an active alarm** (Juan Carlos): the mascot still says "Choose a check-in…" while an urgent symptom is active (the Main Menu already says it), and the caption "objective measurements determine alerts" is no longer exact for alarms.
+3. **Mascot-first layout** (Ansel's decisions, all taken): big centred mascot with word-by-word subtitles, small on the left with an animation only beside a chart or flowchart, conversational full-viewport Welcome, no mascot on Trends and Tutorials. Full specification: [`FRONTEND_MASCOT_LAYOUT.md`](FRONTEND_MASCOT_LAYOUT.md). Start it after tasks 1 and 2.
 
 ### P1
 
-3. **Subjective-symptom details** [Edu content for wording]: v1 only records "I have it now". Edu's `docs/sintomas_subjetivos_atrofia_SANS.md` (section 4) also asks for onset (sudden/gradual), trend, location, **impact** (`task_not_completed` must trigger an immediate safety assessment, triage rule 3), optional intensity 0-10, context and notes. Also his note: new double vision or severe headache with neurological signs needs urgent assessment (not yet an alarm item).
-4. **Shorter protocol texts** [Edu content]: the mascot reads every step aloud; one or two sentences per step (`AGENTS.md` 15).
-5. **README**: indicators and sources (#111, Edu), remaining AI-usage lines (#113: Edu, Ansel), "Meet the mascot" (Ansel).
-6. **Mascot look and name** (Ansel; `core/mascot.py`, `MASCOT_NAME`). Long term, replace `components.html` (deprecated; Streamlit is pinned to 1.67.0 because of it).
-7. **Narrow screens**: the spec asks for usable layouts at narrow widths; not checked yet.
+4. **Subjective-symptom details** [Edu content for wording]: v1 only records "I have it now". Edu's `docs/sintomas_subjetivos_atrofia_SANS.md` (section 4) also asks for onset (sudden/gradual), trend, location, **impact** (`task_not_completed` must trigger an immediate safety assessment, triage rule 3), optional intensity 0-10, context and notes. Also his note: new double vision or severe headache with neurological signs needs urgent assessment (not yet an alarm item).
+5. **Shorter protocol texts** [Edu content]: the mascot reads every step aloud; one or two sentences per step (`AGENTS.md` 15).
+6. **README**: indicators and sources (#111, Edu), remaining AI-usage lines (#113: Edu, Ansel), "Meet the mascot" (Ansel).
+7. **Mascot name** (Ansel; `MASCOT_NAME`; the look is decided in task 3). Long term, replace `components.html` (deprecated; Streamlit is pinned to 1.67.0 because of it).
+8. **Narrow screens**: the spec asks for usable layouts at narrow widths; not checked yet.
 
 Done since the first version of this file: subjective-symptom list (#146), check-in groups and intervals (#133, #138), protocol structure (#147), Check-in returns to its list without stale messages (#149).
 
