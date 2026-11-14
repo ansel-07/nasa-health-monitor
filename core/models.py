@@ -19,6 +19,7 @@ MEASUREMENTS_FILE = DATA_DIR / "measurements.csv"
 ASTRONAUTS_FILE = DATA_DIR / "astronauts.csv"
 EPISODES_FILE = DATA_DIR / "episodes.json"
 MISSION_STATE_FILE = DATA_DIR / "mission_state.json"
+ACTIVITY_FILE = DATA_DIR / "activity.json"
 
 # Per-session data (AGENTS.md, section 5.5). Inside the Streamlit app every browser session
 # works on its own copy of data/seed/, so people using the deployed app at the same time
@@ -98,6 +99,12 @@ PROBLEM_STATES = ["no_concern", "watch", "medical_urgency"]
 #   raw: x · baseline_fraction: x / mu · baseline_delta: x - mu (signed)
 #   z_score: (x - mu) / sigma · abs_z_score: |(x - mu) / sigma|
 CONDITION_METRICS = ["raw", "baseline_fraction", "baseline_delta", "z_score", "abs_z_score"]
+
+# Activity bars (AGENTS.md 5.6, docs/ASTRONAUT_HEALTH_APP_SPEC.md 4): how recently an activity
+# was done, NOT a health status. 10-point steps; 0 = never done or overdue.
+BAR_LEVELS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
+ACTIVITY_KINDS = ["check_in", "tutorial"]
+TUTORIAL_REPEAT_BELOW = 80   # a tutorial can be done again only when its bar is below this
 
 EPISODE_STATUSES = [
     "pending_confirmation",
