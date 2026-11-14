@@ -12,8 +12,10 @@ from core.models import (
     CONTACT_TARGETS,
     NODE_TYPES,
     OUTCOMES,
+    PROBLEM_STATES,
     PROTOCOLS_DIR,
     SEVERITIES,
+    SYMPTOM_LEVELS,
     TODO_MARK,
 )
 
@@ -64,8 +66,96 @@ def _node_targets(node: dict) -> list:
     return targets
 
 
-def validate_protocol(protocol: dict, where: str, indicators: dict) -> list:
+def _leaf_conditions(cond):
+    """Every simple condition inside `cond`, looking through all / any / of."""
+    if not isinstance(cond, dict):
+        return
+    nested = False
+    for key in ("all", "any", "of"):
+        if isinstance(cond.get(key), list):
+            nested = True
+            for child in cond[key]:
+                yield from _leaf_conditions(child)
+    if not nested:
+        yield cond
+
+
+def _check_condition_refs(cond, where: str, indicators: dict, symptoms) -> list:
+    """Unknown indicators, symptoms and symptom levels used by a condition.
+
+    symptoms=None means symptom conditions are not allowed here.
+    """
     errors = []
+    if isinstance(cond, dict) and "at_least" in cond:
+        if not isinstance(cond.get("of"), list) or not cond["of"]:
+            errors.append(f"{where}: 'at_least' needs a non-empty 'of' list")
+        elif isinstance(cond["at_least"], int) and not 1 <= cond["at_least"] <= len(cond["of"]):
+            errors.append(f"{where}: 'at_least' must be between 1 and the size of 'of'")
+    for leaf in _leaf_conditions(cond):
+        if "indicator" in leaf and leaf["indicator"] not in indicators:
+            errors.append(f"{where}: unknown indicator '{leaf['indicator']}'")
+        if "symptom" in leaf:
+            if symptoms is None:
+                errors.append(f"{where}: symptom conditions are not allowed here")
+            elif leaf["symptom"] not in symptoms:
+                errors.append(f"{where}: unknown symptom '{leaf['symptom']}'")
+            for key in ("level_at_least", "level_is"):
+                if key in leaf and leaf[key] not in SYMPTOM_LEVELS:
+                    errors.append(f"{where}: unknown symptom level '{leaf[key]}'")
+    return errors
+
+
+def validate_symptoms(problem: dict, where: str, indicators: dict, environments: dict) -> list:
+    """Check the `symptoms` and `states` of a symptom-based problem (AGENTS.md, 5.3)."""
+    errors = []
+    symptoms = problem.get("symptoms")
+    states = problem.get("states")
+    if not isinstance(symptoms, dict) or not symptoms:
+        return [f"{where}: 'symptoms' must be a non-empty object"]
+    if not isinstance(states, list) or not states:
+        errors.append(f"{where}: 'states' must be a non-empty list")
+        states = []
+
+    for sid, symptom in symptoms.items():
+        swhere = f"{where}.symptoms[{sid}]"
+        if not isinstance(symptom, dict):
+            errors.append(f"{swhere}: must be an object")
+            continue
+        if "name" not in symptom:
+            errors.append(f"{swhere}: missing 'name'")
+        levels = symptom.get("levels")
+        if not isinstance(levels, list) or not levels:
+            errors.append(f"{swhere}: 'levels' must be a non-empty list")
+            continue
+        for i, rule in enumerate(levels):
+            rwhere = f"{swhere}.levels[{i}]"
+            if not isinstance(rule, dict) or "when" not in rule:
+                errors.append(f"{rwhere}: needs 'level' and 'when'")
+                continue
+            if rule.get("level") not in SYMPTOM_LEVELS[1:]:
+                errors.append(f"{rwhere}: level must be one of {SYMPTOM_LEVELS[1:]}")
+            for env in rule.get("environments", []):
+                if env not in environments:
+                    errors.append(f"{rwhere}: unknown environment '{env}'")
+            if not any("indicator" in leaf for leaf in _leaf_conditions(rule["when"])):
+                errors.append(f"{rwhere}: 'when' must use at least one indicator")
+            errors.extend(_check_condition_refs(rule["when"], rwhere, indicators, None))
+
+    for i, rule in enumerate(states):
+        rwhere = f"{where}.states[{i}]"
+        if not isinstance(rule, dict) or "when" not in rule:
+            errors.append(f"{rwhere}: needs 'state' and 'when'")
+            continue
+        if rule.get("state") not in PROBLEM_STATES[1:]:
+            errors.append(f"{rwhere}: state must be one of {PROBLEM_STATES[1:]}")
+        errors.extend(_check_condition_refs(rule["when"], rwhere, indicators, symptoms))
+    return errors
+
+
+def validate_protocol(protocol: dict, where: str, indicators: dict, symptoms: dict | None = None,
+                      severities: list | None = None) -> list:
+    errors = []
+    allowed = SEVERITIES if severities is None else severities
     nodes = protocol.get("nodes")
     start = protocol.get("start")
     if not isinstance(nodes, dict) or not nodes:
@@ -86,12 +176,16 @@ def validate_protocol(protocol: dict, where: str, indicators: dict) -> list:
                 errors.append(f"{where}: node '{nid}' points to missing node '{target}'")
         if ntype == "measure" and node.get("indicator") not in indicators:
             errors.append(f"{where}: node '{nid}' uses unknown indicator '{node.get('indicator')}'")
-        if ntype == "set_severity" and node.get("severity") not in SEVERITIES:
+        if ntype == "set_severity" and node.get("severity") not in allowed:
             errors.append(f"{where}: node '{nid}' uses unknown severity '{node.get('severity')}'")
         if ntype == "end" and node.get("outcome") not in OUTCOMES:
             errors.append(f"{where}: node '{nid}' uses unknown outcome '{node.get('outcome')}'")
         if ntype == "contact" and node.get("target") not in CONTACT_TARGETS:
             errors.append(f"{where}: node '{nid}' uses unknown contact target '{node.get('target')}'")
+        for i, branch in enumerate(node.get("branches", []) if ntype == "decision" else []):
+            if isinstance(branch, dict):
+                errors.extend(_check_condition_refs(
+                    branch.get("if"), f"{where}: node '{nid}' branch {i}", indicators, symptoms))
 
     # Reachability from the start node.
     if start in nodes:
@@ -140,9 +234,14 @@ def validate_all(strict: bool = False) -> list:
 
     for pid, problem in problems.items():
         where = f"problems.json[{pid}]"
-        for field in ("name", "protocol", "triggers", "confirm_wait_min"):
+        for field in ("name", "protocol", "confirm_wait_min"):
             if field not in problem:
                 errors.append(f"{where}: missing '{field}'")
+        # TRANSITION: a problem uses the legacy 'triggers' or the new 'symptoms' + 'states'.
+        if "symptoms" in problem or "states" in problem:
+            errors.extend(validate_symptoms(problem, where, indicators, environments))
+        elif "triggers" not in problem:
+            errors.append(f"{where}: needs 'symptoms' and 'states' (or legacy 'triggers')")
         for i, trig in enumerate(problem.get("triggers", [])):
             if trig.get("severity") not in SEVERITIES:
                 errors.append(f"{where}.triggers[{i}]: unknown severity '{trig.get('severity')}'")
@@ -157,7 +256,10 @@ def validate_all(strict: bool = False) -> list:
             errors.append(f"{where}: protocol file '{problem.get('protocol')}' not found")
             continue
         protocol = _read_json(path)
-        errors.extend(validate_protocol(protocol, problem["protocol"], indicators))
+        symptoms = problem.get("symptoms") if isinstance(problem.get("symptoms"), dict) else None
+        # TRANSITION: symptom-based problems use PROBLEM_STATES, legacy ones SEVERITIES.
+        severities = (PROBLEM_STATES if symptoms is not None else []) + (SEVERITIES if "triggers" in problem else [])
+        errors.extend(validate_protocol(protocol, problem["protocol"], indicators, symptoms, severities))
         if strict and not pid.startswith("_"):
             if _contains_todo(problem):
                 errors.append(f"{where}: still has TODO values")
