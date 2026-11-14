@@ -41,7 +41,7 @@ def page(astronaut="a1"):
     app = AppTest.from_file("../app.py").run()
     if astronaut:
         app.session_state["astronaut"] = astronaut
-    else:
+    elif "astronaut" in app.session_state:  # the Welcome no longer pre-selects one
         del app.session_state["astronaut"]
     app.switch_page("pages/2_Protocol.py").run()
     assert not app.exception
