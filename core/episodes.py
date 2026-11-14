@@ -1,21 +1,227 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
+# AI-assisted: lifecycle implementation generated with Codex; human review pending.
 """Episode lifecycle: open, confirm, dismiss, pending list. Owner: Juan Carlos.
 
-Rules: AGENTS.md, section 8. Storage goes through core/data.py only.
+Rules: AGENTS.md, sections 5.4, 7 and 10. Storage goes through core/data.py only.
 """
+from copy import deepcopy
+from datetime import datetime, timedelta
+from math import isfinite
+from numbers import Real
+
+from core import conditions, config, data, mission, triggers
+from core.models import MEASUREMENT_COLUMNS, OPEN_STATUSES, SOURCES, severity_rank
+
+
+def _at(value) -> datetime:
+    try:
+        at = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise ValueError("Expected an ISO 8601 mission timestamp.") from None
+    if at.tzinfo is not None:
+        raise ValueError("Mission timestamps must not include a timezone.")
+    return at
+
+
+def _finite(value) -> bool:
+    return isinstance(value, Real) and not isinstance(value, bool) and isfinite(value)
+
+
+def _measurement(measurement: dict, now: datetime) -> dict:
+    if not isinstance(measurement, dict) or any(k not in measurement for k in MEASUREMENT_COLUMNS):
+        raise ValueError("Measurement must contain all measurement columns.")
+    m = {key: measurement[key] for key in MEASUREMENT_COLUMNS}
+    for key in ("astronaut", "indicator", "unit"):
+        if not isinstance(m[key], str) or not m[key].strip() or m[key].startswith("TODO"):
+            raise ValueError(f"Measurement {key} is missing or still TODO.")
+    if m["phase"] != "mission" or m["source"] not in SOURCES or not _finite(m["value"]):
+        raise ValueError("Expected a finite new mission measurement with a supported source.")
+    at = _at(m["timestamp"])
+    if at > now:
+        raise ValueError("Measurement cannot be later than the mission clock.")
+    m["timestamp"] = at.isoformat()
+    m["value"] = float(m["value"])
+    return m
+
+
+def _save_measurement_once(m: dict) -> None:
+    rows = data.load_measurements(astronaut=m["astronaut"], indicator=m["indicator"])
+    for row in rows.to_dict("records"):
+        if _at(row["timestamp"]) == _at(m["timestamp"]) and all(
+            row[key] == m[key] for key in MEASUREMENT_COLUMNS if key != "timestamp"
+        ):
+            return
+    data.add_measurement(m)
+
+
+def _open(episodes: list[dict], astronaut: str) -> dict | None:
+    opened = [e for e in episodes if e["astronaut"] == astronaut and e["status"] in OPEN_STATUSES]
+    if len(opened) > 1:
+        raise ValueError("Astronaut has multiple open episodes; repair the stored state first.")
+    return opened[0] if opened else None
+
+
+def _wait(problem: dict) -> timedelta:
+    minutes = problem.get("confirm_wait_min")
+    if not _finite(minutes) or minutes < 0:
+        raise ValueError("confirm_wait_min must be a configured non-negative number; resolve any TODO.")
+    return timedelta(minutes=float(minutes))
+
+
+def _pending_items(items: list[dict], matches: list[dict], m: dict, exclude: str | None) -> list[dict]:
+    """Keep one pending item per astronaut/problem, with the most recent evidence."""
+    updated = deepcopy(items)
+    for match in matches:
+        if match["problem"] == exclude:
+            continue
+        item = {"astronaut": m["astronaut"], **match, "measured_at": m["timestamp"]}
+        previous = next((p for p in updated if p["astronaut"] == item["astronaut"]
+                         and p["problem"] == item["problem"]), None)
+        if previous is None:
+            updated.append(item)
+        elif _at(item["measured_at"]) > _at(previous["measured_at"]):
+            previous.update(item)
+    return [p for p in updated if not (p["astronaut"] == m["astronaut"] and p["problem"] == exclude)]
+
+
+def _references(cond: dict, indicator: str) -> bool:
+    if cond.get("indicator") == indicator:
+        return True
+    return any(_references(child, indicator) for op in ("all", "any") for child in cond.get(op, []))
+
+
+def _known_result(cond: dict, ctx: dict) -> bool | None:
+    """Use three-valued logic so unavailable data cannot silently dismiss an episode."""
+    for op in ("all", "any"):
+        if op in cond:
+            values = [_known_result(child, ctx) for child in cond[op]]
+            decisive = False if op == "all" else True
+            if decisive in values:
+                return decisive
+            if None in values:
+                return None
+            return not decisive
+    if "indicator" in cond:
+        indicator = cond["indicator"]
+        value = ctx["latest"].get(indicator)
+        if not _finite(value):
+            return None
+        absolute = {k: v for k, v in cond.items() if k not in ("z_above", "z_below")}
+        if len(absolute) > 1 and not conditions.check(absolute, ctx):
+            return False
+        if "z_above" in cond or "z_below" in cond:
+            if not _finite(data.z_score(ctx["astronaut"], indicator, value)):
+                return None
+    return conditions.check(cond, ctx)
+
+
+def _require_confirmation_data(problem: dict, m: dict, environment: str, match: dict | None) -> None:
+    latest = dict(data.latest_values(m["astronaut"]))
+    latest[m["indicator"]] = m["value"]
+    ctx = {"astronaut": m["astronaut"], "environment": environment, "latest": latest}
+    for trigger in problem["triggers"]:
+        if "environments" in trigger and environment not in trigger["environments"]:
+            continue
+        if not _references(trigger["when"], m["indicator"]):
+            continue
+        if _known_result(trigger["when"], ctx) is None and (
+            match is None or severity_rank(trigger["severity"]) > severity_rank(match["severity"])
+        ):
+            raise ValueError("Confirmation needs unavailable measurements or baseline data; episode remains pending.")
 
 
 def on_new_measurement(measurement: dict, environment: str) -> dict | None:
-    # STUB (Juan Carlos): save the measurement, evaluate triggers, open an episode
-    # (pending_confirmation) or add to pending; return the open episode if any.
-    return None
+    """Record one new mission measurement, opening at most one episode.
+
+    Callers must not replay simulated history. Already stored protocol/simulated
+    measurements are evaluated without appending another CSV row. An open
+    episode is never confirmed or escalated here. Same-problem matches are
+    suppressed while it is open. Other matches update the pending queue.
+    """
+    now = mission.now()
+    m = _measurement(measurement, now)
+    stored = data.load_episodes()
+    opened = _open(stored, m["astronaut"])
+    matches = triggers.evaluate(m, environment)
+    # Replaying the evidence that originally opened an episode must not reopen it.
+    matches = [match for match in matches if not any(
+        e["astronaut"] == m["astronaut"] and e["problem"] == match["problem"]
+        and e.get("trigger", {}).get("indicator") == m["indicator"]
+        and e["trigger"].get("value") == m["value"]
+        and _at(e["trigger"]["measured_at"]) == _at(m["timestamp"])
+        for e in stored
+    )]
+    created = False
+    if opened is None and matches:
+        chosen = max(matches, key=lambda item: severity_rank(item["severity"]))
+        _wait(config.load_problems()[chosen["problem"]])
+        numbers = [int(e["id"][3:]) for e in stored
+                   if e["id"].startswith("ep-") and e["id"][3:].isdigit()]
+        opened = {
+            "id": f"ep-{max(numbers, default=0) + 1:04d}", "astronaut": m["astronaut"],
+            "problem": chosen["problem"], "environment": environment,
+            "status": "pending_confirmation", "severity_initial": chosen["severity"],
+            "severity": chosen["severity"],
+            "trigger": {"indicator": m["indicator"], "value": m["value"], "z": chosen["z"],
+                        "measured_at": m["timestamp"]},
+            "current_node": None, "vars": {}, "answers": {}, "log": [],
+            "opened_at": now.isoformat(), "closed_at": None, "outcome": None,
+        }
+        created = True
+    pending = data.load_pending()
+    updated = _pending_items(pending, matches, m, opened["problem"] if opened else None)
+    _save_measurement_once(m)
+    if created:
+        data.save_episode(opened)
+    if updated != pending:
+        data.save_pending(updated)
+    return deepcopy(opened)
 
 
 def confirm(episode_id: str, measurement: dict) -> dict:
-    # STUB (Juan Carlos): repeat measurement -> "active" (severity from this measurement) or "dismissed".
-    return {"id": episode_id, "status": "dismissed"}
+    """Confirm only the original problem using a later, explicitly submitted repeat.
+
+    Both the repeat timestamp and mission clock must satisfy the configured
+    wait from opened_at. Invalid or unevaluable repeats leave storage unchanged.
+    Confirmation sets severity from the repeat; subsequent changes belong to
+    protocol set_severity nodes. Pending promotion is a separate integration.
+    """
+    stored = data.load_episodes()
+    episode = next((e for e in stored if e["id"] == episode_id), None)
+    if episode is None or episode["status"] != "pending_confirmation":
+        raise ValueError("Confirmation requires an existing pending_confirmation episode.")
+    _open(stored, episode["astronaut"])
+    now = mission.now()
+    m = _measurement(measurement, now)
+    if m["astronaut"] != episode["astronaut"] or m["indicator"] != episode["trigger"]["indicator"]:
+        raise ValueError("Repeat the same indicator for the same astronaut.")
+    problem = config.load_problems()[episode["problem"]]
+    ready = _at(episode["opened_at"]) + _wait(problem)
+    at = _at(m["timestamp"])
+    if at <= _at(episode["trigger"]["measured_at"]) or at < ready or now < ready:
+        raise ValueError("Repeat measurement must be later than the original and after confirm_wait_min.")
+    matches = triggers.evaluate(m, episode["environment"])
+    match = next((item for item in matches if item["problem"] == episode["problem"]), None)
+    _require_confirmation_data(problem, m, episode["environment"], match)
+    updated = deepcopy(episode)
+    if match is not None:
+        updated.update(status="active", severity=match["severity"],
+                       current_node=config.load_protocol(episode["problem"])["start"])
+    else:
+        updated.update(status="dismissed", closed_at=now.isoformat())
+    pending = data.load_pending()
+    new_pending = _pending_items(pending, matches, m, episode["problem"])
+    _save_measurement_once(m)
+    data.save_episode(updated)
+    if new_pending != pending:
+        data.save_pending(new_pending)
+    return updated
 
 
 def get_pending(astronaut: str) -> list[dict]:
-    # STUB (Juan Carlos): pending triggers for this astronaut, most severe first.
-    return []
+    """Read pending items by descending severity, preserving queue order on ties.
+
+    This function never opens episodes. Accepting a pending item requires a
+    promotion contract agreed with Ansel; it must start confirmation again.
+    """
+    return sorted(data.load_pending(astronaut), key=lambda item: severity_rank(item["severity"]), reverse=True)

@@ -6,12 +6,15 @@ data in the right format so the rest of the app can be built.
 File paths always come from core.models (read at call time, so tests can redirect them).
 """
 import csv
+import json
+import os
+import tempfile
 
 import pandas as pd
 
 from core import models
 from core.config import load_indicators
-from core.models import MEASUREMENT_COLUMNS, PHASES, SOURCES
+from core.models import MEASUREMENT_COLUMNS, OPEN_STATUSES, PHASES, SOURCES
 
 ASTRONAUT_COLUMNS = ["id", "name", "role"]
 
@@ -89,13 +92,29 @@ def add_measurement(m: dict) -> None:
 
 
 def get_baseline(astronaut: str, indicator: str) -> dict | None:
-    # STUB (Fran): mean and std of the preflight measurements
-    return None
+    """Personal baseline: mean and sample std of the preflight measurements.
+
+    Returns {"mean": float, "std": float, "n": int}, or None if there are no preflight values.
+    With a single value the std is 0.0 (z_score then returns None).
+    """
+    values = load_measurements(astronaut=astronaut, indicator=indicator, phase="preflight")["value"]
+    values = values.dropna()
+    n = len(values)
+    if n == 0:
+        return None
+    std = float(values.std(ddof=1)) if n > 1 else 0.0
+    return {"mean": float(values.mean()), "std": std, "n": n}
 
 
 def z_score(astronaut: str, indicator: str, value: float) -> float | None:
-    # STUB (Fran): (value - mean) / std using get_baseline
-    return None
+    """(value - mean) / std against the astronaut's baseline.
+
+    None if there is no baseline or its std is 0 (cannot divide by zero).
+    """
+    baseline = get_baseline(astronaut, indicator)
+    if baseline is None or baseline["std"] == 0:
+        return None
+    return (float(value) - baseline["mean"]) / baseline["std"]
 
 
 def latest_values(astronaut: str) -> dict:
@@ -109,10 +128,6 @@ def latest_values(astronaut: str) -> dict:
 
 def _read_episodes_file() -> dict:
     """Whole content of data/episodes.json; empty lists if the file is missing or empty."""
-    import json
-
-    from core import models
-
     path = models.EPISODES_FILE
     if not path.exists() or path.stat().st_size == 0:
         return {"episodes": [], "pending": []}
@@ -125,12 +140,6 @@ def _read_episodes_file() -> dict:
 
 def _write_episodes_file(content: dict) -> None:
     """Write data/episodes.json safely: temporary file first, then replace the old one."""
-    import json
-    import os
-    import tempfile
-
-    from core import models
-
     path = models.EPISODES_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".episodes-", suffix=".tmp")
@@ -173,8 +182,6 @@ def get_open_episode(astronaut: str) -> dict | None:
 
     There should be at most one (AGENTS.md 10.3); if there are several, the latest stored wins.
     """
-    from core.models import OPEN_STATUSES
-
     open_episodes = [e for e in load_episodes(astronaut) if e.get("status") in OPEN_STATUSES]
     return open_episodes[-1] if open_episodes else None
 
