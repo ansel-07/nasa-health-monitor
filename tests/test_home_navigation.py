@@ -1,5 +1,5 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
-"""Button navigation from the Home (no sidebar menu), through app.py."""
+"""Welcome and Main Menu (docs/ASTRONAUT_HEALTH_APP_SPEC.md screens 1-2), through app.py."""
 from streamlit.testing.v1 import AppTest
 
 
@@ -7,18 +7,33 @@ def button(app, label):
     return next(item for item in app.button if item.label == label)
 
 
-def test_home_has_the_navigation_buttons_and_no_back_button():
+def test_welcome_has_no_default_choice_and_next_is_disabled():
     app = AppTest.from_file("../app.py").run()
     assert not app.exception
+    assert [box.value for box in app.selectbox] == [None, None]
+    assert button(app, "NEXT").disabled
+    app.selectbox[0].select("a1").run()
+    assert button(app, "NEXT").disabled          # only one of the two chosen
+
+
+def test_next_opens_the_main_menu_with_the_chosen_context():
+    app = AppTest.from_file("../app.py").run()
+    app.selectbox[0].select("a2").run()
+    app.selectbox[1].select("mars").run()
+    assert not button(app, "NEXT").disabled
+    button(app, "NEXT").click().run()
+    assert not app.exception
+    assert app.session_state["astronaut"] == "a2" and app.session_state["environment"] == "mars"
     labels = [item.label for item in app.button]
-    assert {"Start check-in", "View history", "Reset demo"} <= set(labels)
-    assert "← Back to Home" not in labels
+    assert {"Check-in", "Trends", "Tutorials"} <= set(labels)
+    assert "Protocols" not in labels             # only with an active episode or pending alerts
 
 
-def test_view_history_opens_trends():
-    # AppTest runs the target page directly (not through app.py), so the "Back to Home"
-    # button added by app.py is checked manually in the browser, not here.
+def test_menu_cards_open_their_screens():
     app = AppTest.from_file("../app.py").run()
-    button(app, "View history").click().run()
+    app.selectbox[0].select("a1").run()
+    app.selectbox[1].select("iss").run()
+    button(app, "NEXT").click().run()
+    button(app, "Tutorials").click().run()
     assert not app.exception
-    assert any(item.value == "Trends" for item in app.title)
+    assert any(item.value == "Tutorials" for item in app.title)
