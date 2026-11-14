@@ -82,7 +82,12 @@ def test_reset_demo_restarts_the_clock(tmp_files, monkeypatch):
     assert mission.now() == START
 
 
-def test_repository_seed_has_the_clock_at_mission_start():
+def test_repository_seed_clock_is_a_midnight_during_the_mission():
+    """The generator leaves the seed clock at 00:00 of the demo day (scripts/generate_data.py)."""
     from core.config import load_mission
     seed_file = models.SEED_DIR / "mission_state.json"
-    assert json.loads(seed_file.read_text(encoding="utf-8")) == {"now": load_mission()["start"]}
+    state = json.loads(seed_file.read_text(encoding="utf-8"))
+    assert set(state) == {"now"}
+    clock = datetime.fromisoformat(state["now"])
+    assert clock >= datetime.fromisoformat(load_mission()["start"])
+    assert (clock.hour, clock.minute, clock.second) == (0, 0, 0)
