@@ -77,6 +77,36 @@ def _symptom_levels(problem: dict, ctx: dict) -> dict:
     return levels
 
 
+def _assessment_issues(problems: dict, astronaut: str, indicator: str, environment: str) -> list[str]:
+    """Check-in diagnostics only; detection results and shared contracts stay unchanged."""
+    ctx = {"astronaut": astronaut, "environment": environment, "latest": data.latest_values(astronaut)}
+    issues = []
+    for pid, problem in problems.items():
+        if pid.startswith("_"):
+            continue
+        rules = ([rule for symptom in problem["symptoms"].values() for rule in symptom["levels"]]
+                 if "symptoms" in problem else problem.get("triggers", []))
+        rules = [rule for rule in rules if "environments" not in rule or environment in rule["environments"]]
+        if not any(_indicator_ids(rule["when"]) & {indicator} for rule in rules):
+            continue
+        for rule in rules:
+            for leaf in _leaves(rule["when"]):
+                name = leaf.get("indicator")
+                if name is None:
+                    continue
+                value = ctx["latest"].get(name)
+                if not conditions._is_number(value):
+                    issues.append(f"Cannot evaluate {name}: a measurement is unavailable.")
+                elif conditions._metric_value(leaf, ctx) is None or (
+                    {"z_above", "z_below"}.intersection(leaf)
+                    and not conditions._is_number(data.z_score(astronaut, name, value))
+                ):
+                    issues.append(f"Cannot evaluate {name}: no valid pre-flight baseline "
+                                  "(at least two measurements and positive standard deviation; "
+                                  "baseline fractions also require a positive mean).")
+    return list(dict.fromkeys(issues))
+
+
 def _validate_trigger(trigger: dict) -> set[str]:
     if not isinstance(trigger, dict) or not {"severity", "when"} <= trigger.keys():
         raise ValueError("A trigger requires severity and when fields.")

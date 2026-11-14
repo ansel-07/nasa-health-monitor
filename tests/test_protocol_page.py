@@ -128,12 +128,16 @@ def test_contact_displays_configured_delay_and_finishes(context, monkeypatch):
     assert app.success[0].value == "Protocol completed: Handed over"
 
 
-def test_zero_contact_delay_is_valid(context, monkeypatch):
+@pytest.mark.parametrize("one_way,shown", [
+    (0, "less than 1 second"), (1.27 / 60, "about 3 seconds"), (0.25, "about 30 seconds"),
+    (0.5, "1 minute"), (7, "14 minutes"), (10.26, "20.5 minutes")])
+def test_contact_delay_is_readable_and_zero_is_valid(context, monkeypatch, one_way, shown):
+    # Synthetic one-way delays; the step shows the round trip (2 x one-way).
     context["episode"].update(current_node="contact_now", environment="iss")
-    monkeypatch.setattr(protocol_engine, "load_environments", lambda: {"iss": {"comm_delay_min": 0}})
+    monkeypatch.setattr(protocol_engine, "load_environments", lambda: {"iss": {"comm_delay_min": one_way}})
     app = page()
     assert not app.error
-    assert any("0 minutes" in item.value for item in app.caption)
+    assert any(item.value == f"Estimated response delay: {shown}." for item in app.caption)
     assert button(app, "Continue")
 
 
