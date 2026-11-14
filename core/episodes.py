@@ -151,7 +151,7 @@ def _known_result(cond: dict, ctx: dict) -> bool | None:
     return conditions.check(cond, ctx)
 
 
-def _require_symptom_confirmation_data(problem: dict, ctx: dict, match: dict | None) -> None:
+def _require_symptom_confirmation_data(problem: dict, ctx: dict, match: dict | None, indicator: str) -> None:
     """Block confirmation only when missing data could change the ordered state result."""
     possibilities = {}
     for sid, symptom in problem["symptoms"].items():
@@ -160,6 +160,8 @@ def _require_symptom_confirmation_data(problem: dict, ctx: dict, match: dict | N
             if "environments" in rule and ctx["environment"] not in rule["environments"]:
                 continue
             result = _known_result(rule["when"], ctx)
+            if match is None and result is None and _references(rule["when"], indicator):
+                raise ValueError("Confirmation needs unavailable measurements or baseline data; episode remains pending.")
             if result is not False:
                 levels.append(rule["level"])
             if result is True:
@@ -167,7 +169,11 @@ def _require_symptom_confirmation_data(problem: dict, ctx: dict, match: dict | N
         else:
             levels.append(SYMPTOM_LEVELS[0])
         possibilities[sid] = list(dict.fromkeys(levels))
-    expected = match["severity"] if match else PROBLEM_STATES[0]
+    # No alert can also mean that this repeat is normal while another symptom
+    # remains positive. Compare uncertain states with the actual latest state.
+    current = {**ctx, "symptoms": triggers._symptom_levels(problem, ctx)}
+    expected = next((rule["state"] for rule in problem["states"]
+                     if conditions.check(rule["when"], current)), PROBLEM_STATES[0])
     for combination in product(*possibilities.values()):
         hypothetical = {**ctx, "symptoms": dict(zip(possibilities, combination))}
         state = next((rule["state"] for rule in problem["states"]
@@ -181,7 +187,7 @@ def _require_confirmation_data(problem: dict, m: dict, environment: str, match: 
     latest[m["indicator"]] = m["value"]
     ctx = {"astronaut": m["astronaut"], "environment": environment, "latest": latest}
     if "symptoms" in problem or "states" in problem:
-        _require_symptom_confirmation_data(problem, ctx, match)
+        _require_symptom_confirmation_data(problem, ctx, match, m["indicator"])
         return
     for trigger in problem["triggers"]:
         if "environments" in trigger and environment not in trigger["environments"]:
@@ -206,8 +212,7 @@ def on_new_measurement(measurement: dict, environment: str) -> dict | None:
     m = _measurement(measurement, now)
     stored = data.load_episodes()
     opened = _open(stored, m["astronaut"])
-    matches = [match for match in triggers.evaluate(m, environment)
-               if triggers._measurement_supports_match(m, environment, match)]
+    matches = triggers.evaluate(m, environment)
     # Replaying the evidence that originally opened an episode must not reopen it.
     matches = [match for match in matches if not any(
         e["astronaut"] == m["astronaut"] and e["problem"] == match["problem"]
@@ -270,9 +275,7 @@ def confirm(episode_id: str, measurement: dict) -> dict:
     else:
         updated.update(status="dismissed", closed_at=now.isoformat())
     pending = data.load_pending()
-    supported = [item for item in matches if item["problem"] != episode["problem"]
-                 and triggers._measurement_supports_match(m, episode["environment"], item)]
-    new_pending = _pending_items(pending, supported, m, episode["problem"])
+    new_pending = _pending_items(pending, matches, m, episode["problem"])
     _save_measurement_once(m)
     data.save_episode(updated)
     if new_pending != pending:

@@ -577,7 +577,7 @@ def test_accept_unconfigured_wait_or_environment_keeps_alert_pending(pending_sta
     assert data.load_episodes() == []
 
 
-def test_check_in_reviews_and_confirms_pending_with_real_storage(pending_state, monkeypatch):
+def test_check_in_reviews_and_confirms_pending_with_real_storage(pending_state, monkeypatch, tmp_path):
     from pathlib import Path
 
     from streamlit.testing.v1 import AppTest
@@ -589,6 +589,9 @@ def test_check_in_reviews_and_confirms_pending_with_real_storage(pending_state, 
     metadata = {"name": "Synthetic indicator", "unit": "example",
                 "how_to_measure": "Synthetic test instructions.", "why_it_matters": "Synthetic test content."}
     monkeypatch.setattr(config, "load_indicators", lambda: {"x": metadata})
+    monkeypatch.setattr(config, "load_checkins", lambda **kwargs: {
+        "synthetic": {"name": "Synthetic check", "indicators": ["x"], "bar_full_hours": 24}})
+    monkeypatch.setattr(models, "ACTIVITY_FILE", tmp_path / "activity.json")
     monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
     data.save_episode({"id": "ep-0001", "astronaut": "a1", "problem": "other", "status": "resolved"})
     page = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"

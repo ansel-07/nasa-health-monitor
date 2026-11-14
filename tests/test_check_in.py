@@ -8,7 +8,7 @@ import pytest
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
-from core import charts, config, data, episodes, mascot, mission, triggers
+from core import activity, charts, config, data, episodes, mascot, mission, triggers
 
 
 PAGE = Path(__file__).resolve().parents[1] / "pages" / "1_Check_in.py"
@@ -25,6 +25,10 @@ def screen(monkeypatch):
     problems = {"problem_a": {"name": "Example alert A", "confirm_wait_min": 5,
                               "triggers": [{"severity": "mild", "when": {"indicator": "x", "above": 10}}]}}
     state.update(indicators=indicators, problems=problems)
+    state["checkins"] = {key: {"name": f"Check {key}", "indicators": [key], "bar_full_hours": 24}
+                         for key in ("x", "y")}
+    monkeypatch.setattr(config, "load_checkins", lambda: state["checkins"])
+    monkeypatch.setattr(activity, "bar_level", lambda *args: 0)
     monkeypatch.setattr(config, "load_indicators", lambda: indicators)
     monkeypatch.setattr(config, "load_problems", lambda: problems)
     monkeypatch.setattr(config, "load_environments", lambda: {"mars": {"name": "Mars"}, "iss": {"name": "ISS"}})
@@ -69,6 +73,7 @@ def screen(monkeypatch):
     app = AppTest.from_file(str(PAGE))
     app.session_state["astronaut"] = "a1"
     app.session_state["environment"] = "mars"
+    app.session_state["check_in_selected:a1:mars"] = "x"
     return app, state
 
 
@@ -97,7 +102,7 @@ def test_form_is_empty_unbounded_and_hides_fixtures(screen):
     app, state = screen
     app.run()
     assert not app.exception
-    assert app.selectbox[0].options == ["Indicator x", "Indicator y"]
+    assert app.selectbox[0].options == ["Indicator x"]
     assert app.number_input[0].value is None
     assert len(app.toggle) == 1
     assert state["chart_calls"][-1] == ("a1", "x", True, "mars")
@@ -122,7 +127,8 @@ def test_chart_is_right_of_mascot_and_controls_are_below_both(screen, status):
     assert all(not column.get("button") and not column.get("form") for column in columns)
     visual_row = next(index for index, node in app.main.children.items()
                       if hasattr(node, "children") and node.get("plotly_chart"))
-    controls = [index for index, node in app.main.children.items() if node.type in ("button", "form")]
+    controls = [index for index, node in app.main.children.items() if node.type in ("button", "form")
+                and getattr(node, "label", "") != "Back to check-ins"]
     assert controls and all(index > visual_row for index in controls)
     assert state["speech"][-1][2] == "small"
 
@@ -158,7 +164,8 @@ def test_selecting_indicator_changes_chart_and_submitted_unit(screen):
     app, state = screen
     state["indicators"]["y"]["unit"] = "other units"
     app.run()
-    app.selectbox[0].select("y").run()
+    button(app, "Back to check-ins").click().run()
+    button(app, "Check y").click().run()
     assert state["chart_calls"][-1] == ("a1", "y", True, "mars")
     assert "other units" in app.number_input[0].label
     app.number_input[0].set_value(12)
@@ -186,6 +193,7 @@ def test_chart_and_assessment_share_environment_after_home_selection_changes(scr
     if status:
         opened(state, status)
     app.session_state["environment"] = "iss"
+    app.session_state["check_in_selected:a1:iss"] = "x"
     assessment_environments = []
     original_assessment = triggers.assessment_issues
 
@@ -486,3 +494,44 @@ def test_incomplete_assessments_have_focused_warnings_and_brief_mascot_guidance(
         assert not app.success
         assert app.warning[0].value == "Measurement recorded. Assessment is incomplete; see the warnings below."
         assert "standard deviation" not in state["speech"][-1][0]
+
+
+def test_list_cards_use_configured_groups_and_allow_full_bars(screen, monkeypatch):
+    app, state = screen
+    app.session_state['check_in_selected:a1:mars'] = None
+    calls = []
+    monkeypatch.setattr(activity, 'bar_level', lambda *args: calls.append(args) or 100)
+    app.run()
+    assert not app.exception
+    assert not app.number_input
+    assert [item.value for item in app.get('progress')] == [100, 100]
+    assert calls == [('a1', 'check_in', 'x'), ('a1', 'check_in', 'y')]
+    assert state['speech'][-1][2] == 'small'
+    assert not button(app, 'Check y').disabled
+    button(app, 'Check y').click().run()
+    assert state['chart_calls'][-1][1] == 'y'
+    button(app, 'Back to check-ins').click().run()
+    assert not app.number_input
+    assert state['calls'] == []
+
+
+def test_empty_checkin_list_is_honest(screen):
+    app, state = screen
+    state['checkins'].clear()
+    app.run()
+    assert not app.exception
+    assert any('No check-ins' in item.value for item in app.info)
+    assert not app.number_input
+
+
+def test_back_preserves_confirmation_and_can_resume(screen):
+    app, state = screen
+    opened(state)
+    before = deepcopy(state['open'])
+    app.run()
+    button(app, 'Back to check-ins').click().run()
+    assert not app.number_input
+    assert state['open'] == before
+    button(app, 'Continue repeat measurement').click().run()
+    assert button(app, 'Confirm repeat measurement').disabled
+    assert state['calls'] == []
