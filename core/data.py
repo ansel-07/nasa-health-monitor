@@ -8,6 +8,7 @@ File paths always come from core.models (read at call time, so tests can redirec
 import csv
 import json
 import os
+import shutil
 import tempfile
 
 import pandas as pd
@@ -207,8 +208,6 @@ def reset_demo() -> None:
     Files in data/ that are not in data/seed/ are left untouched.
     Raises FileNotFoundError if data/seed/ does not exist or has no files.
     """
-    import shutil
-
     seed_files = [p for p in models.SEED_DIR.glob("*") if p.is_file()] if models.SEED_DIR.is_dir() else []
     if not seed_files:
         raise FileNotFoundError(f"No seed files in {models.SEED_DIR}")
