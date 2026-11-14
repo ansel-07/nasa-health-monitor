@@ -18,7 +18,7 @@ from numbers import Real
 from operator import ge, gt, le, lt
 
 from core import data
-from core.models import SEVERITIES, severity_rank
+from core.models import PROBLEM_STATES, SEVERITIES, SYMPTOM_LEVELS
 
 
 _COMPARISONS = {
@@ -41,6 +41,14 @@ def _validate(cond: dict) -> None:
     if not isinstance(cond, dict) or not cond:
         raise ValueError("A condition must be a non-empty object.")
     keys = set(cond)
+    if "count_at_least" in cond or "of" in cond:
+        count, items = cond.get("count_at_least"), cond.get("of")
+        if (keys != {"count_at_least", "of"} or not isinstance(items, list) or not items
+                or not isinstance(count, int) or isinstance(count, bool) or not 1 <= count <= len(items)):
+            raise ValueError("count_at_least requires an integer from 1 to the size of a non-empty of list.")
+        for child in items:
+            _validate(child)
+        return
     for operator in ("all", "any"):
         if operator in cond:
             if keys != {operator} or not isinstance(cond[operator], list) or not cond[operator]:
@@ -59,8 +67,14 @@ def _validate(cond: dict) -> None:
                 raise ValueError(f"'{operator}' requires a finite numeric threshold; resolve any TODO first.")
         return
     if keys in ({"severity_is"}, {"severity_at_least"}):
-        if next(iter(cond.values())) not in SEVERITIES:
-            raise ValueError("Condition severity must be a value from SEVERITIES.")
+        if next(iter(cond.values())) not in SEVERITIES + PROBLEM_STATES:
+            raise ValueError("Condition severity must be a known severity or problem state.")
+        return
+    if keys in ({"symptom", "level_is"}, {"symptom", "level_at_least"}):
+        _validate_name(cond["symptom"])
+        level = cond.get("level_is", cond.get("level_at_least"))
+        if level not in SYMPTOM_LEVELS:
+            raise ValueError("Condition symptom level must be a value from SYMPTOM_LEVELS.")
         return
     if keys == {"environment_in"}:
         environments = cond["environment_in"]
@@ -82,7 +96,7 @@ def _validate(cond: dict) -> None:
 
 def _validate_variable_indicators(cond: dict, ctx: dict) -> None:
     """Require explicit mappings, including inside branches evaluation may skip."""
-    for operator in ("all", "any"):
+    for operator in ("all", "any", "of"):
         if operator in cond:
             for child in cond[operator]:
                 _validate_variable_indicators(child, ctx)
@@ -98,6 +112,17 @@ def _validate_variable_indicators(cond: dict, ctx: dict) -> None:
 
 
 def _evaluate(cond: dict, ctx: dict) -> bool:
+    if "count_at_least" in cond:
+        return sum(_evaluate(child, ctx) for child in cond["of"]) >= cond["count_at_least"]
+    if "symptom" in cond:
+        level = ctx.get("symptoms", {}).get(cond["symptom"])
+        if level is None:
+            return False
+        if level not in SYMPTOM_LEVELS:
+            raise ValueError("Context symptom level must be a value from SYMPTOM_LEVELS.")
+        if "level_is" in cond:
+            return level == cond["level_is"]
+        return SYMPTOM_LEVELS.index(level) >= SYMPTOM_LEVELS.index(cond["level_at_least"])
     if "all" in cond:
         return all(_evaluate(child, ctx) for child in cond["all"])
     if "any" in cond:
@@ -128,11 +153,13 @@ def _evaluate(cond: dict, ctx: dict) -> bool:
         severity = ctx.get("severity")
         if severity is None:
             return False
-        if severity not in SEVERITIES:
-            raise ValueError("Context severity must be a value from SEVERITIES.")
+        required = cond.get("severity_is", cond.get("severity_at_least"))
+        order = PROBLEM_STATES if required in PROBLEM_STATES else SEVERITIES
+        if severity not in order:
+            raise ValueError("Context severity must use the same severity vocabulary as the condition.")
         if "severity_is" in cond:
             return severity == cond["severity_is"]
-        return severity_rank(severity) >= severity_rank(cond["severity_at_least"])
+        return order.index(severity) >= order.index(required)
     if "environment_in" in cond:
         return ctx.get("environment") in cond["environment_in"]
     answers = ctx.get("answers", {})
