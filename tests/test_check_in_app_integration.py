@@ -14,7 +14,7 @@ import pytest
 from streamlit.runtime.pages_manager import PagesManager
 from streamlit.testing.v1 import AppTest
 
-from core import config, data, mascot, mission, models
+from core import activity, config, data, episodes, mascot, mission, models
 
 
 APP = Path(__file__).resolve().parents[1] / "app.py"
@@ -175,3 +175,78 @@ def test_second_session_and_reset_do_not_change_first_session(workspace):
     assert not first.exception
     assert data.get_open_episode("a1")["problem"] == "synthetic_a"
     assert snapshot(first_folder) == first_before
+
+
+@pytest.mark.parametrize("failure", ["completion", "partial_recording"])
+def test_reset_after_storage_failure_allows_a_fresh_check_in(workspace, monkeypatch, failure):
+    """Exercise #132 with real storage, failure state and the actual Menu reset."""
+    _, seed = workspace
+    if failure == "partial_recording":
+        checkins_path = config.CONFIG_DIR / "checkins.json"
+        checkins_path.write_text(json.dumps({"x": {
+            "name": "Check x", "indicators": ["x", "y"], "bar_full_hours": 24,
+        }}), encoding="utf-8")
+    seed_before = snapshot(seed)
+    fail_once = [True]
+    original_complete = activity.complete
+    original_record = episodes.on_new_measurement
+
+    def complete(*args, **kwargs):
+        if failure == "completion" and fail_once[0]:
+            fail_once[0] = False
+            raise OSError("Synthetic completion storage failure")
+        return original_complete(*args, **kwargs)
+
+    def record(measurement, environment):
+        if failure == "partial_recording" and measurement["indicator"] == "y" and fail_once[0]:
+            fail_once[0] = False
+            raise OSError("Synthetic partial recording failure")
+        return original_record(measurement, environment)
+
+    monkeypatch.setattr(activity, "complete", complete)
+    monkeypatch.setattr(episodes, "on_new_measurement", record)
+    app = browser()
+    app.session_state["voice_on"] = False
+    app.session_state["tutorial_run"] = {"kept": True}
+    mission.advance_and_detect(1, "mars")
+    click(app, "Check-in")
+    click(app, "Check x")
+    for field in app.number_input:
+        field.set_value(0)
+    click(app, "Record measurement")
+    assert app.error and not app.success
+    assert len(data.load_measurements(astronaut="a1").query("source == 'manual'")) == 1
+    retry_key = ("check_in_completion:a1:mars:x" if failure == "completion"
+                 else "check_in_draft:a1:mars:x")
+    assert retry_key in app.session_state
+    assert all(field.disabled for field in app.number_input)
+    assert activity.bar_level("a1", "check_in", "x") == 0
+
+    back_to_menu(app)
+    click(app, "Reset demo")
+    assert not any(str(key).startswith("check_in_") for key in app.session_state.keys())
+    assert app.session_state["astronaut"] == "a1" and app.session_state["environment"] == "mars"
+    assert app.session_state["voice_on"] is False
+    assert app.session_state["tutorial_run"] == {"kept": True}
+    assert mission.now() == START
+    assert data.load_measurements(astronaut="a1").query("source == 'manual'").empty
+    assert data.load_episodes() == [] and data.load_pending() == []
+    assert activity.bar_level("a1", "check_in", "x") == 0
+
+    click(app, "Check-in")
+    assert not app.error
+    assert all(button.label != "Finish check-in" for button in app.button)
+    click(app, "Check x")
+    assert all(field.value is None and not field.disabled for field in app.number_input)
+    assert not next(button.disabled for button in app.button if button.label == "Record measurement")
+    count = len(app.number_input)
+    for field in app.number_input:
+        field.set_value(0)
+    click(app, "Record measurement")
+    assert app.success and not app.error
+    assert activity.bar_level("a1", "check_in", "x") == 100
+    app.run()
+    assert not app.exception
+    assert len(data.load_measurements(astronaut="a1").query("source == 'manual'")) == count
+    assert data.load_episodes() == [] and data.load_pending() == []
+    assert snapshot(seed) == seed_before
