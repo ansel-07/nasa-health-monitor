@@ -9,7 +9,7 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 ## Links
 
-- Live app: TODO
+- Live app: https://nasa-health-monitor-jyjqxq9oyta7gece258ben.streamlit.app/
 - Slides (7 slides, live demo): TODO
 - Space Apps project page: TODO
 
