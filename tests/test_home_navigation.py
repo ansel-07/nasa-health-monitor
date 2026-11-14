@@ -37,3 +37,20 @@ def test_menu_cards_open_their_screens():
     button(app, "Tutorials").click().run()
     assert not app.exception
     assert any(item.value == "Tutorials" for item in app.title)
+
+
+def test_reset_demo_clears_check_in_session_state(monkeypatch):
+    """#132: stale Check-in drafts or retries must not survive Reset demo."""
+    from core import data
+    monkeypatch.setattr(data, "reset_demo", lambda: None)   # no real files in this test
+    app = AppTest.from_file("../app.py").run()
+    app.selectbox[0].select("a1").run()
+    app.selectbox[1].select("iss").run()
+    button(app, "NEXT").click().run()
+    app.session_state["check_in_completion:a1:iss"] = {"level": "error", "text": "stale"}
+    app.session_state["tutorial_run"] = {"kept": True}
+    button(app, "Reset demo").click().run()
+    assert not app.exception
+    assert "check_in_completion:a1:iss" not in app.session_state
+    assert app.session_state["tutorial_run"] == {"kept": True}
+    assert app.session_state["astronaut"] == "a1" and app.session_state["environment"] == "iss"
