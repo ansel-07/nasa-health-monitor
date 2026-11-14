@@ -48,8 +48,21 @@ def screen(monkeypatch):
         state["open"]["status"] = "active"
         return deepcopy(state["open"])
 
+    def accept(astronaut, environment):
+        state["calls"].append(("accept", astronaut, environment))
+        if state["open"] is not None:
+            return deepcopy(state["open"])
+        if not state["pending"]:
+            return None
+        item = state["pending"].pop(0)
+        opened(state)
+        state["open"].update(problem=item["problem"], severity=item["severity"], environment=environment)
+        state["open"]["trigger"] = {"indicator": item["indicator"], "measured_at": item["measured_at"]}
+        return deepcopy(state["open"])
+
     monkeypatch.setattr(episodes, "on_new_measurement", record)
     monkeypatch.setattr(episodes, "confirm", confirm)
+    monkeypatch.setattr(episodes, "accept_pending", accept)
     app = AppTest.from_file(str(PAGE))
     app.session_state["astronaut"] = "a1"
     app.session_state["environment"] = "mars"
@@ -267,3 +280,59 @@ def test_feedback_is_scoped_to_selected_astronaut_and_environment(screen):
     app.session_state["astronaut"] = "a2"
     app.run()
     assert not app.error
+
+
+def waiting(state):
+    state["pending"] = [{"problem": "problem_a", "severity": "severe", "indicator": "y",
+                         "measured_at": (state["now"] - timedelta(hours=1)).isoformat()}]
+
+
+def test_review_pending_starts_confirmation_and_does_not_repeat_on_rerun(screen):
+    app, state = screen
+    waiting(state)
+    app.run()
+    assert not button(app, "Review next alert").disabled
+    button(app, "Review next alert").click().run()
+    assert not app.exception
+    assert state["calls"] == [("accept", "a1", "mars")]
+    assert not app.selectbox
+    assert state["chart_calls"][-1] == ("a1", "y", True)
+    assert button(app, "Confirm repeat measurement").disabled
+    assert state["open"]["status"] == "pending_confirmation"
+    app.run()
+    assert len(state["calls"]) == 1
+
+
+@pytest.mark.parametrize("status", ["pending_confirmation", "active"])
+def test_review_pending_is_unavailable_while_episode_is_open(screen, status):
+    app, state = screen
+    waiting(state)
+    opened(state, status=status)
+    app.run()
+    assert all(b.label != "Review next alert" for b in app.button)
+
+
+def test_review_pending_error_does_not_consume_alert(screen, monkeypatch):
+    app, state = screen
+    waiting(state)
+    before = deepcopy(state["pending"])
+
+    def fail(*args):
+        raise ValueError("The pending alert cannot be accepted.")
+
+    monkeypatch.setattr(episodes, "accept_pending", fail)
+    app.run()
+    button(app, "Review next alert").click().run()
+    assert not app.exception
+    assert app.error[0].value == "The pending alert cannot be accepted."
+    assert state["pending"] == before
+    assert state["open"] is None
+
+
+def test_review_pending_requires_its_own_measurement_guidance(screen):
+    app, state = screen
+    waiting(state)
+    state["indicators"]["y"]["how_to_measure"] = "TODO_EDU"
+    app.run()
+    assert button(app, "Review next alert").disabled
+    assert not button(app, "Record measurement").disabled
