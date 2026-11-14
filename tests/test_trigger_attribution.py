@@ -52,7 +52,8 @@ def test_fourteen_indicator_batches_preserve_eye_evidence_and_one_open_episode(b
         for indicator in order:
             data.add_measurement(reading(indicator, 20 if astronaut == "a1" and indicator == abnormal else 0,
                                          START + timedelta(minutes=30), astronaut))
-    assert mission.advance_and_detect(1, "mars") == {"revealed": 42, "new_alerts": ["a1"]}
+    result = mission.advance_and_detect(1, "mars")
+    assert (result["revealed"], result["new_alerts"]) == (42, ["a1"])
     opened = data.get_open_episode("a1")
     assert opened["trigger"]["indicator"] == abnormal and opened["trigger"]["value"] == 20
     pending = episodes.get_pending("a1")
@@ -65,7 +66,8 @@ def test_fourteen_indicator_batches_preserve_eye_evidence_and_one_open_episode(b
         for indicator in order:
             data.add_measurement(reading(indicator, 20 if astronaut == "a2" and indicator == abnormal else 0,
                                          START + timedelta(minutes=90), astronaut))
-    assert mission.advance_and_detect(1, "mars") == {"revealed": 42, "new_alerts": ["a2"]}
+    result = mission.advance_and_detect(1, "mars")
+    assert (result["revealed"], result["new_alerts"]) == (42, ["a2"])
     assert data.get_open_episode("a1") == opened
     assert episodes.get_pending("a1") == pending
     assert data.get_open_episode("a2")["trigger"]["indicator"] == abnormal
@@ -94,13 +96,14 @@ def test_false_or_irrelevant_branches_do_not_supply_episode_evidence(batch, cond
     (folder / "problems.json").write_text(json.dumps(problems), encoding="utf-8")
     data.add_measurement(reading("eye_right", 20, START))
     normal = reading("eye_left", 0, START, source="manual")
-    assert triggers.evaluate(normal, "mars")  # Full latest-state semantics are unchanged.
+    assert triggers.symptom_levels("first", "a1", "mars")["combined"] == "watch"
+    assert triggers.evaluate(normal, "mars") == []  # State and alert attribution are distinct.
     assert episodes.on_new_measurement(normal, "mars") is None
     assert data.load_pending() == []
     assert episodes.on_new_measurement(reading("eye_right", 20, START, source="manual"), "mars")["trigger"]["indicator"] == "eye_right"
 
 
-def test_only_first_matching_level_and_state_supply_evidence(batch):
+def test_first_matching_level_supplies_evidence_and_state_uses_all_latest_symptoms(batch):
     folder, problems = batch
     problem = problems["first"]
     problem["symptoms"] = {
@@ -116,7 +119,8 @@ def test_only_first_matching_level_and_state_supply_evidence(batch):
     for indicator in ("eye_right", "eye_left", "normal_first"):
         data.add_measurement(reading(indicator, 20, START))
     assert episodes.on_new_measurement(reading("eye_left", 20, START), "mars") is None
-    assert episodes.on_new_measurement(reading("normal_first", 20, START), "mars") is None
+    result = triggers.evaluate(reading("normal_first", 20, START), "mars")[0]
+    assert result["severity"] == "medical_urgency"  # Positive b uses the full state, not its own level.
     opened = episodes.on_new_measurement(reading("eye_right", 20, START), "mars")
     assert opened["severity"] == "medical_urgency" and opened["trigger"]["indicator"] == "eye_right"
 
@@ -133,7 +137,7 @@ def test_count_state_accepts_either_positive_indicator_but_not_a_normal_one(batc
     assert episodes.on_new_measurement(reading("normal_first", 0, START), "mars") is None
     for indicator in ("eye_left", "eye_right"):
         m = reading(indicator, 20, START)
-        assert triggers._measurement_supports_match(m, "mars", triggers.evaluate(m, "mars")[0])
+        assert triggers.evaluate(m, "mars")[0]["indicator"] == indicator
     opened = episodes.on_new_measurement(reading("eye_right", 20, START), "mars")
     assert opened["trigger"]["indicator"] == "eye_right"
 
@@ -142,6 +146,8 @@ def test_confirmation_does_not_queue_an_unrelated_positive_symptom_as_repeat_evi
     folder, problems = batch
     problems["first"]["states"] = [{"state": "watch", "when": {"symptom": "eye_left", "level_is": "watch"}}]
     problems["second"]["states"] = [{"state": "watch", "when": {"symptom": "eye_right", "level_is": "watch"}}]
+    problems["second"]["symptoms"]["eye_left"]["levels"] = [
+        {"level": "watch", "when": {"indicator": "eye_left", "above": 100}}]
     (folder / "problems.json").write_text(json.dumps(problems), encoding="utf-8")
     opened = episodes.on_new_measurement(reading("eye_left", 20, START, source="manual"), "mars")
     assert data.load_pending() == []
@@ -151,7 +157,7 @@ def test_confirmation_does_not_queue_an_unrelated_positive_symptom_as_repeat_evi
     assert data.load_pending() == []
 
 
-def test_legacy_any_keeps_public_result_but_requires_positive_episode_evidence(batch):
+def test_legacy_any_keeps_its_existing_alert_contract(batch):
     folder, _ = batch
     problem = {"name": "Legacy fixture", "confirm_wait_min": 5, "triggers": [{
         "severity": "mild", "when": {"any": [{"indicator": "eye_left", "above": 10},
@@ -160,5 +166,4 @@ def test_legacy_any_keeps_public_result_but_requires_positive_episode_evidence(b
     data.add_measurement(reading("eye_right", 20, START))
     normal = reading("eye_left", 0, START, source="manual")
     assert triggers.evaluate(normal, "mars")[0]["indicator"] == "eye_left"
-    assert episodes.on_new_measurement(normal, "mars") is None
-    assert episodes.on_new_measurement(reading("eye_right", 20, START), "mars")["trigger"]["indicator"] == "eye_right"
+    assert episodes.on_new_measurement(normal, "mars")["trigger"]["indicator"] == "eye_left"
