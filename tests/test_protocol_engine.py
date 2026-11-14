@@ -247,9 +247,11 @@ def test_reentering_timed_action_starts_new_wait(episode, monkeypatch):
         engine.submit(updated, {"action": "done"})
 
 
-@pytest.mark.parametrize("problem", ["problem_1", "problem_2"])
-def test_placeholder_protocol_cannot_close_episode(episode, dependencies, problem):
-    episode["problem"] = problem
+def test_placeholder_protocol_cannot_close_episode(episode, monkeypatch, dependencies):
+    # Same shape as an unwritten protocol, built here so no test depends on real problem ids.
+    placeholder = {"problem": "_example", "start": "todo", "nodes": {"todo": {
+        "type": "end", "outcome": "resolved", "text": "TODO_EDU: write this protocol."}}}
+    monkeypatch.setattr(engine, "load_protocol", lambda _: deepcopy(placeholder))
     before = deepcopy(episode)
     with pytest.raises(ValueError, match="TODO"):
         engine.submit(episode, None)
