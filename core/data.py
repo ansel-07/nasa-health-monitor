@@ -195,5 +195,16 @@ def save_pending(items: list[dict]) -> None:
 
 
 def reset_demo() -> None:
-    # STUB (Fran): copy data/seed/* over data/
-    pass
+    """Restore the demo: copy every file in data/seed/ over the one with the same name in data/.
+
+    Files in data/ that are not in data/seed/ are left untouched.
+    Raises FileNotFoundError if data/seed/ does not exist or has no files.
+    """
+    import shutil
+
+    seed_files = [p for p in models.SEED_DIR.glob("*") if p.is_file()] if models.SEED_DIR.is_dir() else []
+    if not seed_files:
+        raise FileNotFoundError(f"No seed files in {models.SEED_DIR}")
+    models.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    for seed_file in seed_files:
+        shutil.copyfile(seed_file, models.DATA_DIR / seed_file.name)
