@@ -34,44 +34,62 @@ from core.models import MEASUREMENT_COLUMNS, TODO_MARK
 
 # --- Parameters ------------------------------------------------------------------------------
 
+# Synthetic demonstration benchmark proposed by Edu: docs/DEMO_DATA_HANDOFF.md, section 2
+# (#36, #83). Copied exactly and in the same order (the documented baselines depend on it);
+# tests/test_generate_data.py checks this block still matches the document.
+# These are software benchmark values from worked examples, NOT healthy-astronaut norms,
+# daily variability or disease trends; only these 3 indicators have fully specified values.
 SEED = 2027
-PREFLIGHT_DAYS = 14       # days of pre-flight data per astronaut (enough for a baseline)
-MISSION_DAYS = "TODO_EDU"     # simulated mission days (Edu: 10 days is not supported by the sources)
-DEMO_DAY = "TODO_GONZALO"     # mission day of the demo anomaly, revealed by one Advance click
-MEASURE_HOUR = 8          # every simulated measurement is taken at 08:00
+PREFLIGHT_DAYS = 14   # software sampling window, not a validated baseline duration
+MISSION_DAYS = 10     # test horizon, not a claim that SANS or atrophy develop in ten days
+DEMO_DAY = 1          # mission day of the demo anomaly, revealed by one Advance click (story: Gonzalo, #34)
+MEASURE_HOUR = 8      # every simulated measurement is taken at 08:00
 
-# Health values: one entry per indicator used by SANS and muscle atrophy (config/problems.json).
-# Edu (#36): the sources give no daily sd, person_sd or trend for these; never use 0 for unknown.
-#   mean:            typical pre-flight value, same method/site as the indicator (its unit)
-#   sd:              day-to-day variation of one person (standard deviation)
-#   person_sd:       optional, how much the personal level differs between astronauts (default 0)
-#   trend_per_day:   optional, average change per mission day (default 0)
-#   min / max:       optional, values are clipped to this range
-#   decimals:        digits kept when rounding (data format, not a health value)
+# Per indicator (keys of config/indicators.json):
+#   mean, sd:        parameters of the synthetic observations (not empirical astronaut statistics)
+#   person_sd:       offset between astronauts; 0 = fixed benchmark design (optional, default 0)
+#   trend_per_day:   change per mission day; 0 = stationary background on purpose (optional)
+#   min / max:       optional clipping; omitted, no clinical bounds are asserted
+#   decimals:        output precision of the fixture, not instrument accuracy
 INDICATOR_PARAMS = {
-    # SANS (one indicator per eye, AGENTS.md 5.2: never pool sites)
-    "peripapillary_trt_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
-    "peripapillary_trt_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
-    "optic_disc_edema_grade_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
-    "optic_disc_edema_grade_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
-    "refraction_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
-    "refraction_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
-    "visual_acuity_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
-    "visual_acuity_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
-    # Muscle atrophy
-    "muscle_strength": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
-    "muscle_area": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 1},
-    "muscle_power": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
-    "muscle_endurance": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
-    "muscle_tone": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 1},
-    "muscle_stiffness": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "peripapillary_trt_left": {
+        "mean": 300.0,
+        "sd": 5.0,
+        "person_sd": 0.0,
+        "trend_per_day": 0.0,
+        "decimals": 1,
+    },
+    "peripapillary_trt_right": {
+        "mean": 300.0,
+        "sd": 5.0,
+        "person_sd": 0.0,
+        "trend_per_day": 0.0,
+        "decimals": 1,
+    },
+    "muscle_strength": {
+        "mean": 500.0,
+        "sd": 25.0,
+        "person_sd": 0.0,
+        "trend_per_day": 0.0,
+        "decimals": 1,
+    },
 }
 
-# Demo scenario (Gonzalo, values reviewed by Edu): on that mission day (1 = first day),
-# the simulated value of that indicator is replaced by `value`.
+# Synthetic anomalies (Edu's benchmark): on that mission day (1 = first day) the simulated value
+# is replaced by `value`. 360 um is above the +55 um TRT boundary; 390 N is below 80% of baseline.
 ANOMALIES = [
-    {"astronaut": "TODO_GONZALO", "indicator": "TODO_GONZALO", "day": "TODO_GONZALO",
-     "value": "TODO_EDU"},
+    {
+        "astronaut": "a1",
+        "indicator": "peripapillary_trt_left",
+        "day": 1,
+        "value": 360.0,
+    },
+    {
+        "astronaut": "a2",
+        "indicator": "muscle_strength",
+        "day": 2,
+        "value": 390.0,
+    },
 ]
 
 
