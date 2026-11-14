@@ -29,7 +29,8 @@ def context(monkeypatch):
     monkeypatch.setattr(data, "save_episode", lambda episode: state.update(episode=deepcopy(episode)))
     monkeypatch.setattr(data, "latest_values", lambda _: {})
     state["measurements"] = Mock()
-    monkeypatch.setattr(data, "add_measurement", state["measurements"])
+    # Protocol readings are stored through detection (episodes.on_new_measurement).
+    monkeypatch.setattr(episodes, "on_new_measurement", state["measurements"])
     monkeypatch.setattr(episodes, "get_pending", lambda astronaut: deepcopy(state["pending"]))
     monkeypatch.setattr(mission, "now", lambda: state["clock"])
     monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: st.info(text))

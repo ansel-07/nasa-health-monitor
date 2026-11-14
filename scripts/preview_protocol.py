@@ -242,7 +242,9 @@ def main() -> None:
         (data, "get_open_episode", get_open_episode),
         (data, "save_episode", save_episode),
         (data, "latest_values", latest_values),
-        (data, "add_measurement", lambda measurement: state["measurements"].append(deepcopy(measurement))),
+        # Protocol readings go through detection; the sandbox only records them.
+        (episodes, "on_new_measurement",
+         lambda measurement, environment: state["measurements"].append(deepcopy(measurement))),
         (episodes, "get_pending", lambda astronaut: [
             {"astronaut": astronaut, "problem": "sandbox_measure", "severity": "severe"}] if pending else []),
         (st, "page_link", page_link),
