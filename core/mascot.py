@@ -107,7 +107,7 @@ def beside(text: str, mood: str = "neutral"):
             st.plotly_chart(fig)
         # buttons go here, below both
     """
-    mascot_col, visual_col = st.columns([1, 3], vertical_alignment="center")
+    mascot_col, visual_col = st.columns([1, 3], vertical_alignment="top")  # top: visible next to long lists
     with mascot_col:
         say(text, mood, size="small")
     return visual_col
