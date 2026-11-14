@@ -1,0 +1,141 @@
+# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+"""Condition language tests using synthetic values, not medical thresholds."""
+from copy import deepcopy
+
+import pytest
+
+from core import conditions
+from core.models import SEVERITIES
+
+
+@pytest.fixture
+def ctx():
+    return {
+        "astronaut": "a1", "environment": "mars", "severity": "moderate",
+        "latest": {"_example_indicator": 20}, "vars": {"value_after": 20},
+        "answers": {"has_symptom": "yes"},
+    }
+
+
+@pytest.mark.parametrize("selector", ["indicator", "var"])
+@pytest.mark.parametrize("operator,threshold,expected", [
+    ("above", 10, True), ("above", 20, False), ("above", 30, False),
+    ("below", 30, True), ("below", 20, False), ("below", 10, False),
+])
+def test_strict_numeric_comparisons(ctx, selector, operator, threshold, expected):
+    name = "_example_indicator" if selector == "indicator" else "value_after"
+    assert conditions.check({selector: name, operator: threshold}, ctx) is expected
+
+
+def test_multiple_comparisons_require_all(ctx):
+    assert conditions.check({"var": "value_after", "above": 10, "below": 30}, ctx)
+    assert not conditions.check({"var": "value_after", "above": 10, "below": 20}, ctx)
+
+
+@pytest.mark.parametrize("operator,z,expected", [
+    ("z_above", 3, True), ("z_above", 2, False), ("z_above", 1, False),
+    ("z_below", 1, True), ("z_below", 2, False), ("z_below", 3, False),
+])
+def test_z_score_uses_data_contract(ctx, monkeypatch, operator, z, expected):
+    calls = []
+
+    def z_score(*args):
+        calls.append(args)
+        return z
+
+    monkeypatch.setattr(conditions.data, "z_score", z_score)
+    assert conditions.check({"indicator": "_example_indicator", operator: 2}, ctx) is expected
+    assert calls == [("a1", "_example_indicator", 20)]
+
+
+@pytest.mark.parametrize("value", [None, float("nan"), float("inf"), "20", True])
+@pytest.mark.parametrize("selector,section,name", [
+    ("indicator", "latest", "_example_indicator"), ("var", "vars", "value_after"),
+])
+def test_unavailable_or_invalid_measurements(ctx, value, selector, section, name):
+    ctx[section][name] = value
+    assert not conditions.check({selector: name, "above": 10}, ctx)
+
+
+@pytest.mark.parametrize("z", [None, float("nan"), float("inf")])
+def test_unavailable_baseline(ctx, monkeypatch, z):
+    monkeypatch.setattr(conditions.data, "z_score", lambda *args: z)
+    assert not conditions.check({"indicator": "_example_indicator", "z_above": 2}, ctx)
+
+
+@pytest.mark.parametrize("cond", [
+    {"indicator": "missing", "above": 10}, {"var": "missing", "below": 30},
+    {"answer": "missing", "equals": None}, {"severity_is": "mild"},
+    {"environment_in": ["mars"]}, {"indicator": "_example_indicator", "z_above": 2},
+])
+def test_missing_context_does_not_match(cond):
+    assert conditions.check(cond, {}) is False
+
+
+@pytest.mark.parametrize("actual", SEVERITIES)
+@pytest.mark.parametrize("required", SEVERITIES)
+def test_severity_order(ctx, actual, required):
+    ctx["severity"] = actual
+    assert conditions.check({"severity_is": required}, ctx) is (actual == required)
+    assert conditions.check({"severity_at_least": required}, ctx) is (
+        SEVERITIES.index(actual) >= SEVERITIES.index(required)
+    )
+
+
+def test_environment_and_answers(ctx):
+    assert conditions.check({"environment_in": ["iss", "mars"]}, ctx)
+    assert not conditions.check({"environment_in": ["iss"]}, ctx)
+    assert conditions.check({"answer": "has_symptom", "equals": "yes"}, ctx)
+    assert not conditions.check({"answer": "has_symptom", "equals": "no"}, ctx)
+    ctx["answers"]["has_symptom"] = False
+    assert conditions.check({"answer": "has_symptom", "equals": False}, ctx)
+
+
+def test_nested_conditions_and_no_context_mutation(ctx):
+    original = deepcopy(ctx)
+    cond = {"all": [
+        {"environment_in": ["mars"]},
+        {"any": [{"severity_is": "severe"}, {"answer": "has_symptom", "equals": "yes"}]},
+    ]}
+    assert conditions.check(cond, ctx)
+    assert ctx == original
+    ctx["environment"] = "iss"
+    assert not conditions.check(cond, ctx)
+    assert not conditions.check({"any": [{"severity_is": "mild"}, {"severity_is": "severe"}]}, ctx)
+
+
+@pytest.mark.parametrize("cond", [
+    {}, None, [], {"unknown": 1}, {"all": []}, {"any": []}, {"all": {}},
+    {"all": [{"severity_is": "mild"}], "severity_is": "mild"},
+    {"indicator": "x"}, {"indicator": "x", "above": 1, "typo": 2},
+    {"indicator": "x", "var": "x", "above": 1},
+    {"indicator": "x", "above": "TODO_EDU"},
+    {"indicator": "x", "above": True}, {"indicator": "x", "above": float("nan")},
+    {"indicator": "x", "below": float("inf")}, {"indicator": "", "above": 1},
+    {"severity_is": "unknown"}, {"severity_at_least": "TODO_EDU"},
+    {"environment_in": "mars"}, {"environment_in": []}, {"environment_in": [None]},
+    {"answer": "x"}, {"answer": "x", "equals": "TODO_EDU"},
+    {"answer": "x", "equals": []},
+    {"severity_is": "mild", "environment_in": ["mars"]},
+])
+def test_invalid_conditions_raise_even_when_context_is_empty(cond):
+    with pytest.raises(ValueError):
+        conditions.check(cond, {})
+
+
+@pytest.mark.parametrize("operator", ["z_above", "z_below"])
+def test_variable_z_score_requires_mapping(ctx, operator):
+    with pytest.raises(ValueError, match="variable-to-indicator"):
+        conditions.check({"var": "value_after", operator: 2}, ctx)
+
+
+@pytest.mark.parametrize("operator,first", [("all", "mild"), ("any", "moderate")])
+def test_invalid_branches_are_not_hidden_by_short_circuit(ctx, operator, first):
+    with pytest.raises(ValueError):
+        conditions.check({operator: [{"severity_is": first}, {"typo": 1}]}, ctx)
+
+
+def test_invalid_context_severity(ctx):
+    ctx["severity"] = "unknown"
+    with pytest.raises(ValueError, match="Context severity"):
+        conditions.check({"severity_at_least": "mild"}, ctx)
