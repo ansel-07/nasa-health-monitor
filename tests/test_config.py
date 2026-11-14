@@ -81,6 +81,26 @@ def test_inclusive_comparisons_are_valid_in_symptom_levels():
     assert _check(problem) == []
 
 
+def test_baseline_metrics_are_valid_in_symptom_levels():
+    problem = _symptom_problem()
+    problem["symptoms"]["symptom_a"]["levels"][0]["when"] = {
+        "indicator": "_example_indicator", "metric": "baseline_fraction", "below": 0.8}
+    problem["symptoms"]["symptom_b"]["levels"][0]["when"] = {
+        "indicator": "_example_indicator_2", "metric": "baseline_delta", "at_least": 20, "below": 55}
+    assert _check(problem) == []
+
+
+def test_validator_catches_bad_metrics():
+    problem = _symptom_problem()
+    problem["symptoms"]["symptom_a"]["levels"][0]["when"] = {
+        "indicator": "_example_indicator", "metric": "percent", "below": 0.8}
+    problem["symptoms"]["symptom_b"]["levels"][0]["when"] = {
+        "indicator": "_example_indicator_2", "metric": "z_score", "z_above": 2}
+    errors = " | ".join(_check(problem))
+    assert "unknown metric 'percent'" in errors
+    assert "do not mix 'metric'" in errors
+
+
 def test_symptom_levels_cannot_depend_on_other_symptoms():
     problem = _symptom_problem()
     problem["symptoms"]["symptom_b"]["levels"][1]["when"] = {
