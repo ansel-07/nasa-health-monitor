@@ -115,14 +115,10 @@ def show_practice(astronaut: str, episode: dict) -> None:
             else:
                 advance(astronaut, episode, {"value": value})
     elif kind == "question":
-        with st.form(f"{key}_question"):
-            answer = st.radio("Choose an answer", list(step["options"]), index=None,
-                              format_func=readable, key=f"{key}_answer")
-            submitted = st.form_submit_button("Submit answer")
-        if submitted:
-            if answer is None:
-                st.error("Choose an answer before continuing.")
-            else:
+        # One click per answer: each option is its own button.
+        options = list(step["options"])
+        for column, answer in zip(st.columns(len(options)), options):
+            if column.button(readable(answer), key=f"{key}_answer_{answer}", use_container_width=True):
                 advance(astronaut, episode, {"answer": answer})
     close_button("Leave tutorial")
 

@@ -42,8 +42,7 @@ def test_practice_run_saves_nothing_and_refills_the_bar(storage):
     app = page()
     button(app, "Start tutorial").click().run()
     button(app, "Continue").click().run()                   # intro_mars
-    app.radio[0].set_value("no")
-    next(f for f in app.get("form_submit_button") if f.label == "Submit answer").click().run()
+    button(app, "No").click().run()                         # one click per answer
     button(app, "Done").click().run()                       # do_action, no wait in practice
     app.number_input[0].set_value(25)
     next(f for f in app.get("form_submit_button") if f.label == "Continue").click().run()

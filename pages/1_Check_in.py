@@ -40,6 +40,46 @@ def _measurement(astronaut: str, indicator: str, unit: str, value: float) -> dic
             "phase": "mission", "source": "manual"}
 
 
+def _subjective_issues(astronaut: str, source: str, report) -> None:
+    title = "Subjective issues" if source == "check_in_list" else "Report another issue (optional)"
+    with st.expander(title):
+        definitions = config.load_subjective_issues().get("issues", {})
+        if not definitions:
+            st.info("Subjective issues are not configured yet.")
+            return
+        if any(_unfinished(item.get("label")) for item in definitions.values()):
+            st.warning("Subjective-issue labels are unfinished. Reporting is unavailable.")
+            return
+        try:
+            active = [item for item in activity.active_issues(astronaut) if item["issue"] in definitions]
+        except (ValueError, KeyError, OSError) as error:
+            st.error(f"Subjective issues could not be loaded. {error}")
+            return
+        previous = {item["issue"] for item in active}
+        st.caption("Select issues present today. To mark one as resolved, deselect it and save. "
+                   "Reports affect activity reminders; objective measurements determine alerts.")
+        for item in active:
+            state = "persistent" if item["persistent"] else "active"
+            st.caption(f"{definitions[item['issue']]['label']}: {state}, since {item['since']}.")
+        version_key = f"check_in_issues_version:{astronaut}"
+        version = st.session_state.get(version_key, 0)
+        with st.form(f"{source}:issues:{astronaut}:{version}"):
+            selected = st.multiselect("Issues you are experiencing", list(definitions),
+                                      default=[key for key in definitions if key in previous],
+                                      format_func=lambda key: definitions[key]["label"])
+            saved = st.form_submit_button("Save issues", width="stretch")
+        if saved:
+            try:
+                if selected:
+                    activity.report_issues(astronaut, selected, source=source)
+                for issue_id in previous - set(selected):
+                    activity.resolve_issue(astronaut, issue_id)
+            except (ValueError, KeyError, OSError) as error:
+                report("error", f"Issue changes could not be fully saved. Review your selection and retry. {error}")
+            st.session_state[version_key] = version + 1
+            report("success", "Subjective issues updated." if previous or selected else "No subjective issues selected.")
+
+
 def main() -> None:
     st.title("Check-in")
     mascot.voice_toggle()
@@ -119,13 +159,17 @@ def main() -> None:
             st.caption("Bars show time since completion, not health status. You can measure at any time.")
             if not checkins:
                 st.info("No check-ins are configured yet.")
-            for checkin_id, checkin in checkins.items():
-                with st.container(border=True):
+            for index, (checkin_id, checkin) in enumerate(checkins.items()):
+                with st.container(border=True, key=f"check_in_activity_{index}"):
                     if st.button(checkin["name"], key=f"check_in_card:{checkin_id}", width="stretch"):
                         st.session_state[selection_key] = checkin_id
                         st.rerun()
                     level = activity.bar_level(astronaut, "check_in", checkin_id)
+                    color = "#81C995" if level >= 80 else "#FDD663" if level >= 40 else "#F28B82"
+                    st.html(f"<style>.st-key-check_in_activity_{index} [data-testid='stProgressBarTrack'] > div"
+                            f" {{background-color: {color};}}</style>")
                     st.progress(level, text=f"Activity recency: {level}%")
+        _subjective_issues(astronaut, "check_in_list", report)
         if opened and opened["status"] == "pending_confirmation":
             if st.button("Continue repeat measurement", width="stretch"):
                 select_for(opened["trigger"]["indicator"])
@@ -200,7 +244,7 @@ def main() -> None:
     if opened and opened["status"] == "active":
         if st.button("Open Protocol", width="stretch"):
             st.switch_page("pages/2_Protocol.py")
-    elif opened and not confirmation:
+    elif opened and not confirmation and draft_key not in st.session_state:
         if st.button("Continue repeat measurement", width="stretch"):
             select_for(opened["trigger"]["indicator"])
             st.rerun()
@@ -321,6 +365,7 @@ def main() -> None:
         report("warning" if issues else "success", text)
 
     waiting_alerts()
+    _subjective_issues(astronaut, "check_in_detail", report)
 
 
 def _waiting_alerts(astronaut, environment, opened, problems, indicators, blocked, report, select_for):

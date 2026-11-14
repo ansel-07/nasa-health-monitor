@@ -54,6 +54,7 @@ TODO: every external dataset, code, text and image used, with its source.
 AI-generated code is marked with an `AI-assisted` header comment in each file. Which AI tools each team member used, and for what:
 
 - **Fran (data and trends):** Claude Code for code and tests of the data layer, mission clock, charts, Trends page, activity bars and data generator, and for drafting GitHub issues; every change was reviewed and run by Fran before merging.
+- **Javi (protocol execution):** Claude Code and Codex for code and tests of the protocol engine, the Protocols and Tutorials screens, the flowchart and the protocol test sandbox, and for drafting GitHub issues and pull requests; every change was reviewed and run by Javi before merging.
 - **Juan Carlos (detection):** Codex assisted with the condition evaluator, trigger evaluation, episode lifecycle, Check-in UI, automated tests, and GitHub issue and pull-request drafts; Juan Carlos personally reviewed the generated code and tests, with integration review through the repository's pull-request workflow.
 
 ## Run locally
