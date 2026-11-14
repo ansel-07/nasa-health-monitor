@@ -97,12 +97,12 @@ def test_unknown_symptom_data_cannot_silently_dismiss(symptom_state):
     clock, _ = symptom_state
     initial = episodes.on_new_measurement(measurement(clock), "mars")
     rows = data.load_measurements()
-    rows[rows["indicator"] != "y"].to_csv(models.MEASUREMENTS_FILE, index=False)
+    rows[rows["indicator"] != "y"].to_csv(models.MEASUREMENTS_FILE, index=False, date_format="%Y-%m-%dT%H:%M:%S")
     clock[0] += timedelta(minutes=5)
     with pytest.raises(ValueError, match="unavailable"):
         episodes.confirm(initial["id"], measurement(clock, value=0))
     assert data.get_open_episode("a1") == initial
-    assert len(data.load_measurements()) == 1
+    assert len(data.load_measurements()) == 2
 
 
 def test_unknown_baseline_cannot_understate_first_matching_state(symptom_state):

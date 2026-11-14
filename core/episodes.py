@@ -140,7 +140,7 @@ def _known_result(cond: dict, ctx: dict) -> bool | None:
     if "indicator" in cond:
         indicator = cond["indicator"]
         value = ctx["latest"].get(indicator)
-        if not _finite(value):
+        if conditions._metric_value(cond, ctx) is None:
             return None
         absolute = {k: v for k, v in cond.items() if k not in ("z_above", "z_below")}
         if len(absolute) > 1 and not conditions.check(absolute, ctx):
@@ -234,7 +234,8 @@ def confirm(episode_id: str, measurement: dict) -> dict:
     """Confirm only the original problem using a later, explicitly submitted repeat.
 
     Both the repeat timestamp and mission clock must satisfy the configured
-    wait from opened_at. Invalid or unevaluable repeats leave storage unchanged.
+    wait from opened_at. Invalid repeats leave storage unchanged. Unevaluable
+    repeats are retained without changing the episode or consuming pending alerts.
     Confirmation sets severity from the repeat; subsequent changes belong to
     protocol set_severity nodes. Call accept_pending separately to review the queue.
     """
@@ -254,7 +255,11 @@ def confirm(episode_id: str, measurement: dict) -> dict:
         raise ValueError("Repeat measurement must be later than the original and after confirm_wait_min.")
     matches = triggers.evaluate(m, episode["environment"])
     match = next((item for item in matches if item["problem"] == episode["problem"]), None)
-    _require_confirmation_data(problem, m, episode["environment"], match)
+    try:
+        _require_confirmation_data(problem, m, episode["environment"], match)
+    except ValueError as error:
+        _save_measurement_once(m)
+        raise ValueError(f"Repeat measurement recorded. {error}") from error
     updated = deepcopy(episode)
     if match is not None:
         updated.update(status="active", severity=match["severity"],
