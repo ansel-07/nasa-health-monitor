@@ -175,6 +175,44 @@ def test_next_pending_starts_fresh_wait_and_reveals_only_new_rows(mission_worksp
     assert disk_snapshot() == before
 
 
+@pytest.mark.parametrize("confirmation", [False, True])
+def test_missing_baseline_keeps_reading_and_shows_incomplete_assessment(mission_workspace, confirmation):
+    app = screen()
+    initial = None
+    if confirmation:
+        app, initial = record_and_wait()
+    # Remove this indicator's reference only, retaining the other indicator's rows.
+    rows = [row for row in stored_rows() if not (row["indicator"] == "x" and row["phase"] == "preflight")]
+    with models.MEASUREMENTS_FILE.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=models.MEASUREMENT_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+    path = config.CONFIG_DIR / "problems.json"
+    problems = json.loads(path.read_text(encoding="utf-8"))
+    problems["synthetic_a"]["symptoms"]["reading"]["levels"] = [
+        {"level": "concern", "when": {"indicator": "x", "metric": "baseline_delta", "above": 5}}]
+    path.write_text(json.dumps(problems), encoding="utf-8")
+    app.run()
+    assert any("Cannot evaluate x: no valid pre-flight baseline" in item.value for item in app.warning)
+    count = len(stored_rows())
+    app.number_input[0].set_value(0)
+    button(app, "Confirm repeat measurement" if confirmation else "Record measurement").click().run()
+    assert not app.exception
+    assert len(stored_rows()) == count + 1
+    assert not app.success
+    if confirmation:
+        assert "Repeat measurement recorded" in app.error[0].value
+        assert data.get_open_episode("a1") == initial
+    else:
+        assert any("Assessment is incomplete" in item.value for item in app.warning)
+        assert data.get_open_episode("a1") is None
+    before = disk_snapshot()
+    app.run()
+    assert not app.exception
+    assert disk_snapshot() == before
+    assert any("Cannot evaluate x" in item.value for item in app.warning)
+
+
 def test_new_mission_alert_replaces_previous_no_alert_feedback(mission_workspace, monkeypatch):
     speech = []
     monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))

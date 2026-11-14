@@ -28,6 +28,7 @@ def screen(monkeypatch):
     monkeypatch.setattr(config, "load_problems", lambda: problems)
     monkeypatch.setattr(config, "load_environments", lambda: {"mars": {"name": "Mars"}, "iss": {"name": "ISS"}})
     monkeypatch.setattr(data, "get_open_episode", lambda astronaut: deepcopy(state["open"]))
+    monkeypatch.setattr(data, "latest_values", lambda astronaut: {"x": 20, "y": 20})
     monkeypatch.setattr(episodes, "get_pending", lambda astronaut: deepcopy(state["pending"]))
     monkeypatch.setattr(mission, "now", lambda: state["now"])
     monkeypatch.setattr(mascot, "say", lambda text, mood="neutral", size="large": state["speech"].append((text, mood, size)))
