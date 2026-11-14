@@ -385,6 +385,24 @@ def test_duplicate_open_episodes_are_reported_not_silently_modified(state):
         episodes.on_new_measurement(measurement(clock), "mars")
 
 
+@pytest.mark.parametrize("operator,repeat_value,status", [
+    ("at_least", 20, "active"), ("at_least", 19, "dismissed"),
+    ("at_most", 20, "active"), ("at_most", 21, "dismissed"),
+])
+def test_inclusive_triggers_open_at_boundary_and_confirm_consistently(state, operator, repeat_value, status):
+    _, problems = state
+    problems["problem_a"]["triggers"] = [{
+        "severity": "mild", "when": {"indicator": "x", operator: 20},
+    }]
+    initial = open_episode(state)
+    assert initial["status"] == "pending_confirmation"
+    assert initial["trigger"]["value"] == 20
+    result = repeat(state, initial, value=repeat_value)
+    assert result["status"] == status
+    assert data.load_episodes() == [result]
+    assert len(data.load_measurements()) == 2
+
+
 @pytest.fixture
 def pending_state(state, monkeypatch):
     clock, problems = state

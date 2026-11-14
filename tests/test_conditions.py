@@ -1,6 +1,7 @@
 # AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
 """Condition language tests using synthetic values, not medical thresholds."""
 from copy import deepcopy
+from math import nextafter
 
 import pytest
 
@@ -139,6 +140,42 @@ def test_invalid_context_severity(ctx):
     ctx["severity"] = "unknown"
     with pytest.raises(ValueError, match="Context severity"):
         conditions.check({"severity_at_least": "mild"}, ctx)
+
+
+@pytest.mark.parametrize("selector", ["indicator", "var"])
+@pytest.mark.parametrize("operator,threshold,expected", [
+    ("at_least", nextafter(20.0, float("-inf")), True),
+    ("at_least", 20, True),
+    ("at_least", nextafter(20.0, float("inf")), False),
+    ("at_most", nextafter(20.0, float("-inf")), False),
+    ("at_most", 20, True),
+    ("at_most", nextafter(20.0, float("inf")), True),
+])
+def test_inclusive_comparisons_at_and_immediately_around_boundary(ctx, selector, operator, threshold, expected):
+    name = "_example_indicator" if selector == "indicator" else "value_after"
+    assert conditions.check({selector: name, operator: threshold}, ctx) is expected
+
+
+def test_inclusive_range_can_include_both_endpoints(ctx):
+    assert conditions.check({"var": "value_after", "at_least": 20, "at_most": 20}, ctx)
+    assert not conditions.check({"var": "value_after", "above": 20, "at_most": 30}, ctx)
+    assert conditions.check({"all": [
+        {"indicator": "_example_indicator", "at_least": 20},
+        {"any": [{"var": "value_after", "at_most": 20}, {"environment_in": ["iss"]}]},
+    ]}, ctx)
+
+
+@pytest.mark.parametrize("operator", ["at_least", "at_most"])
+@pytest.mark.parametrize("threshold", ["TODO_EDU", None, True, float("nan"), float("inf")])
+def test_inclusive_thresholds_require_finite_numbers(ctx, operator, threshold):
+    with pytest.raises(ValueError, match="finite numeric threshold"):
+        conditions.check({"indicator": "_example_indicator", operator: threshold}, ctx)
+
+
+@pytest.mark.parametrize("operator", ["at_least", "at_most"])
+def test_inclusive_comparison_missing_data_is_false(ctx, operator):
+    assert not conditions.check({"indicator": "missing", operator: 20}, ctx)
+    assert not conditions.check({"var": "missing", operator: 20}, ctx)
 
 
 @pytest.mark.parametrize("operator,z,threshold,expected", [
