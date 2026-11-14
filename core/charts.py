@@ -9,12 +9,13 @@ the `levels` of each symptom (watch / concern) or, for problems still in the leg
 their `triggers`. Thresholds still marked TODO are skipped, so a band only appears once
 Edu has written its value.
 """
+from datetime import datetime, timedelta
 from numbers import Real
 
 import pandas as pd
 import plotly.graph_objects as go
 
-from core import config, data
+from core import config, data, mission
 from core.models import CONDITION_METRICS
 
 # Colours (dataviz reference palette). Severity uses the reserved status colours and
@@ -39,6 +40,10 @@ Z_KEYS = ("z_above", "z_below")  # legacy form of a strict z_score bound
 
 FULL_HEIGHT = 420
 COMPACT_HEIGHT = 220
+# Projector-friendly text (AGENTS.md 15: charts must read well on a projector).
+FULL_FONT_SIZE = 15
+COMPACT_FONT_SIZE = 14
+NOW_COLOR = "#52514e"
 
 
 def _is_number(x) -> bool:
@@ -183,6 +188,12 @@ def _empty_figure(message: str, compact: bool) -> go.Figure:
     return fig
 
 
+def _mission_day(moment) -> float:
+    """Mission day of a time: 1.0 at the mission start, 2.0 a day later; pre-flight is <= 0."""
+    start = datetime.fromisoformat(config.load_mission()["start"])
+    return (pd.Timestamp(moment).to_pydatetime() - start) / timedelta(days=1) + 1
+
+
 def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
                     environment: str | None = None) -> go.Figure:
     """One indicator over time: personal baseline, severity bands and episode marks.
@@ -207,15 +218,19 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
     marks = _episode_marks(astronaut, indicator)
 
     fig = go.Figure()
-    hover = f"%{{x|%Y-%m-%d %H:%M}}<br>%{{y:.1f}} {unit}<extra>%{{fullData.name}}</extra>"
+    # x = mission day (projector-friendly); the real time stays in the hover text.
+    hover = f"Day %{{x:.1f}} · %{{customdata}}<br>%{{y:.1f}} {unit}<extra>%{{fullData.name}}</extra>"
+    marker_size = 10 if compact else 8
     for phase, color, label in (("preflight", PREFLIGHT_COLOR, "Pre-flight"),
                                 ("mission", MISSION_COLOR, "Mission")):
         part = df[df["phase"] == phase]
         if part.empty:
             continue
         fig.add_trace(go.Scatter(
-            x=part["timestamp"], y=part["value"], name=label, mode="lines+markers",
-            line=dict(color=color, width=2), marker=dict(color=color, size=8),
+            x=[_mission_day(t) for t in part["timestamp"]], y=part["value"], name=label,
+            mode="lines+markers", line=dict(color=color, width=2),
+            marker=dict(color=color, size=marker_size),
+            customdata=[t.strftime("%Y-%m-%d %H:%M") for t in part["timestamp"]],
             hovertemplate=hover,
         ))
 
@@ -247,24 +262,33 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
 
     if marks:
         fig.add_trace(go.Scatter(
-            x=[m["x"] for m in marks], y=[m["y"] for m in marks], name="Alert",
+            x=[_mission_day(m["x"]) for m in marks], y=[m["y"] for m in marks], name="Alert",
             mode="markers",
             marker=dict(symbol="x", size=12, line=dict(width=2),
                         color=[SEVERITY_COLORS.get(m["severity"], BASELINE_COLOR) for m in marks]),
-            customdata=[[m["problem"], m["severity"], m["status"]] for m in marks],
-            hovertemplate=("%{x|%Y-%m-%d %H:%M}<br>%{y:.1f} " + unit
+            customdata=[[m["problem"], m["severity"], m["status"], m["x"].strftime("%Y-%m-%d %H:%M")]
+                        for m in marks],
+            hovertemplate=("Day %{x:.1f} · %{customdata[3]}<br>%{y:.1f} " + unit
                            + "<br>%{customdata[0]}: %{customdata[1]} (%{customdata[2]})<extra>Alert</extra>"),
         ))
 
+    # Launch (mission day 1) separates pre-flight from mission; "Now" is the mission clock.
+    if (df["phase"] == "preflight").any() and (df["phase"] == "mission").any():
+        fig.add_vline(x=1, line=dict(color=BASELINE_COLOR, width=1, dash="dot"),
+                      annotation_text=None if compact else "Launch", annotation_position="top")
+    fig.add_vline(x=_mission_day(mission.now()), line=dict(color=NOW_COLOR, width=2),
+                  annotation_text="Now", annotation_position="top")
+
     fig.update_yaxes(range=[y_low, y_high], title=None if compact else unit,
                      nticks=4 if compact else None)
-    fig.update_xaxes(nticks=4 if compact else None)
+    fig.update_xaxes(title="Mission day", tickformat="d", nticks=5 if compact else None)
     fig.update_layout(
+        font=dict(size=COMPACT_FONT_SIZE if compact else FULL_FONT_SIZE),
         title=None if compact else name,
         height=COMPACT_HEIGHT if compact else FULL_HEIGHT,
         showlegend=not compact,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         hovermode="closest",
-        margin=dict(l=10, r=10, t=10 if compact else 60, b=10),
+        margin=dict(l=10, r=10, t=30 if compact else 60, b=10),
     )
     return fig
