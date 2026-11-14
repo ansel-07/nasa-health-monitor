@@ -1,6 +1,6 @@
 {
   "_ai_assisted": "Generated with Codex from Javi's draft and the team treatment guide; human review pending.",
-  "_integration_status": "Reviewed content draft, not activated in problems.json. Activation requires #31, #38 and #41/#48; clinical-priority entry before confirmation requires owner integration.",
+  "_integration_status": "Activated for confirmed numerical findings. Immediate clinical-priority entry before measurement confirmation remains a separate owner integration; no numerical finding automatically establishes urgency.",
   "problem": "muscle_atrophy",
   "start": "route",
   "nodes": {
@@ -30,7 +30,7 @@
       "save_as": "red_flags",
       "options": {
         "yes": "w_escalate",
-        "no": "w_report"
+        "no": "w_concern"
       }
     },
     "w_escalate": {
@@ -204,6 +204,51 @@
       "next": "u_reviewed",
       "next_if_cannot": "u_help",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; clinical review before closure [P]. No timed wait is prescribed."
+    },
+    "w_concern": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "any": [
+              {
+                "symptom": "muscle_strength",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_area",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_power",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_endurance",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_tone",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "muscle_stiffness",
+                "level_is": "concern"
+              }
+            ]
+          },
+          "next": "w_priority_review"
+        }
+      ],
+      "default": "w_report",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; numerical concern requires priority review without automatic medical urgency [P]."
+    },
+    "w_priority_review": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Ask the crew medical officer for priority medical review of the concerning finding. A concerning number alone does not establish a medical urgency.",
+      "next": "w_report",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; prototype review routing [P]."
     }
   }
 }
