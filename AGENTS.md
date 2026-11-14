@@ -33,6 +33,7 @@ The app **guides, it does not diagnose**.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
 - Multipage Streamlit app: `app.py` is the entry point and only sets the navigation (`st.navigation`); every screen is a file in `pages/`. **A new page must be added to the list in `app.py`**, or it will not appear.
+- **No sidebar menu** (provisional, until Gonzalo's UI document): people move with buttons. The Home has Start check-in, Continue protocol (only with an active episode), View history and Reset demo; `app.py` adds "← Back to Home" to every other screen. Use `st.switch_page("pages/<file>.py")` for any new button that changes screen.
 - Mascot: SVG/CSS/JS inside `streamlit.components.v1.html`. No image files, no external services.
 
 ## 4. Repository layout and owners
@@ -181,6 +182,7 @@ validate_all(strict: bool = False) -> list[str]   # error messages; empty if OK
 
 # core/mascot.py  (Ansel)
 say(text: str, mood: str = "neutral", size: str = "large") -> None
+beside(text: str, mood: str = "neutral") -> DeltaGenerator   # mascot small on the left; returns the right column for the visual
 # Draws the mascot with a speech bubble and reads `text` aloud. mood: one of MOODS. size: "large" | "small".
 voice_toggle() -> None   # "Voice on/off" control; draw it once per astronaut screen
 
@@ -237,21 +239,24 @@ Streamlit session state (created by the Home, `pages/0_Home.py`): `st.session_st
 
 ## 8. The mascot
 
-- **Where it appears:** only on astronaut-facing screens: Home, Check-in, Protocol. **Not** on Trends (history charts).
-- **Size:** `size="large"` at the top of the screen. When the screen also shows a chart, use `size="small"` in a narrow column next to the chart, so the mascot never disappears:
+Provisional layout, until Gonzalo's UI document:
+
+- **Where it appears:** Home, Check-in and Protocol. **Not** on Trends.
+- **Look:** the face with **subtitles below it** (no speech bubble).
+- **Alone on the screen:** `mascot.say(text, mood, size="large")`, big and centered (the Home, and Check-in / Protocol while there is no visual).
+- **With a visual** (a measurement chart in Check-in, the protocol flowchart in Protocol): the mascot moves small to the left and the visual takes the right. **Buttons always go below**, full width; if there are none at that moment, the space stays empty.
 
   ```python
-  chart_col, mascot_col = st.columns([4, 1])
-  with chart_col:
+  with mascot.beside(text, mood):
       st.plotly_chart(charts.indicator_chart(astronaut, indicator, compact=True, environment=environment))
-  with mascot_col:
-      mascot.say(text, mood, size="small")
+  if st.button("Record measurement"):
+      ...
   ```
-- **What it says:** the text the screen would otherwise show (alerts, confirmation requests, protocol steps). Pages pass the text; the mascot never invents health content.
+- **What it says:** the text the screen would otherwise show (alerts, confirmation requests, protocol steps). Pages pass the text; the mascot never invents health content. Keep it short: it is read aloud (section 15).
 - **Mood:** one of `MOODS` in `core/models.py`. Provisional list; which mood goes with which situation is still to be decided by the team.
 - **Voice:** the browser's own speech synthesis, in English, no AI service. Muted until the astronaut turns it on (browsers block audio before a user action).
 - **Look and name:** still to be decided by the team. Design it ourselves; do not copy existing characters, code or artwork.
-- Pages call only `mascot.say()` and `mascot.voice_toggle()`; never write mascot HTML in a page.
+- Pages call only `mascot.say()`, `mascot.beside()` and `mascot.voice_toggle()`; never write mascot HTML in a page.
 
 ## 9. Protocol flowcharts (`config/protocols/<problem_id>.json`)
 

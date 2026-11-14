@@ -26,3 +26,30 @@ def test_unknown_mood_or_size_fails():
 def test_voice_only_when_on():
     assert "if (!false) return;" in build_html("x", voice_on=False)
     assert "if (!true) return;" in build_html("x", voice_on=True)
+
+
+def test_subtitles_instead_of_a_bubble():
+    out = build_html("Hello", "neutral", "large")
+    assert 'class="subtitles"' in out and 'class="bubble"' not in out
+
+
+@pytest.mark.parametrize("size", MASCOT_SIZES)
+def test_frame_grows_with_long_texts(size):
+    from core.mascot import frame_height
+    assert frame_height("x" * 400, size) > frame_height("Hi", size)
+
+
+def test_beside_returns_the_visual_column():
+    from streamlit.testing.v1 import AppTest
+
+    def script():
+        import streamlit as st
+        from core import mascot
+        with mascot.beside("Look at this chart.", "thinking"):
+            st.write("visual here")
+        st.button("Below")
+
+    app = AppTest.from_function(script).run()
+    assert not app.exception
+    assert app.markdown[0].value == "visual here"
+    assert app.button[0].label == "Below"
