@@ -56,7 +56,7 @@ def test_add_then_load_roundtrip(tmp_data):
 def test_load_measurements_filters_and_sorts(tmp_data):
     data.add_measurement(make("2027-04-10T10:00:00", 70))
     data.add_measurement(make("2027-04-10T08:00:00", 60))
-    data.add_measurement(make("2027-04-01T08:00:00", 58, phase="preflight", source="simulated"))
+    data.add_measurement(make("2027-03-31T08:00:00", 58, phase="preflight", source="simulated"))
     data.add_measurement(make("2027-04-10T08:00:00", 6.5, indicator="sleep_hours", unit="h"))
     data.add_measurement(make("2027-04-10T08:00:00", 80, astronaut="a2"))
 

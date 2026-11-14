@@ -13,7 +13,7 @@ import tempfile
 
 import pandas as pd
 
-from core import models
+from core import mission, models
 from core.config import load_indicators
 from core.models import MEASUREMENT_COLUMNS, OPEN_STATUSES, PHASES, SOURCES
 
@@ -39,6 +39,8 @@ def load_measurements(astronaut=None, indicator=None, phase=None) -> pd.DataFram
     """Measurements from data/measurements.csv, filtered and sorted by timestamp.
 
     Each filter is ignored when it is None. `timestamp` is a datetime and `value` a float.
+    Simulated measurements after the mission clock (core.mission.now()) are hidden until
+    mission.advance() reveals them; manual and protocol measurements are always shown.
     """
     path = models.MEASUREMENTS_FILE
     if not path.exists() or path.stat().st_size == 0:
@@ -49,6 +51,9 @@ def load_measurements(astronaut=None, indicator=None, phase=None) -> pd.DataFram
         return _empty_measurements()
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df["value"] = df["value"].astype(float)
+    simulated = df["source"] == "simulated"
+    if simulated.any():
+        df = df[~(simulated & (df["timestamp"] > mission.now()))]
     if astronaut is not None:
         df = df[df["astronaut"] == astronaut]
     if indicator is not None:
