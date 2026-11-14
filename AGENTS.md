@@ -179,9 +179,11 @@ now() -> datetime
 advance(hours: int = 24) -> list[dict]             # new simulated measurements now visible
 
 # core/charts.py  (Fran)
-indicator_chart(astronaut: str, indicator: str, compact: bool = False) -> plotly.graph_objects.Figure
+indicator_chart(astronaut: str, indicator: str, compact: bool = False,
+                environment: str | None = None) -> plotly.graph_objects.Figure
 # One indicator over time: personal baseline, colour bands, episode marks.
 # compact=True is the small version shown inside Check-in. Pages draw it with st.plotly_chart(fig).
+# environment: the current environment; adds the bands of rules that only apply there (None: only general bands).
 
 # core/conditions.py  (Juan Carlos)
 check(cond: dict, ctx: dict) -> bool
@@ -216,7 +218,7 @@ Streamlit session state (created by `app.py`): `st.session_state["astronaut"]`, 
   ```python
   chart_col, mascot_col = st.columns([4, 1])
   with chart_col:
-      st.plotly_chart(charts.indicator_chart(astronaut, indicator, compact=True))
+      st.plotly_chart(charts.indicator_chart(astronaut, indicator, compact=True, environment=environment))
   with mascot_col:
       mascot.say(text, mood, size="small")
   ```
