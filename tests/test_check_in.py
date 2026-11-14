@@ -296,7 +296,7 @@ def test_review_pending_starts_confirmation_and_does_not_repeat_on_rerun(screen)
     assert not app.exception
     assert state["calls"] == [("accept", "a1", "mars")]
     assert not app.selectbox
-    assert state["chart_calls"][-1] == ("a1", "y", True)
+    assert state["chart_calls"][-1] == ("a1", "y", True, "mars")
     assert button(app, "Confirm repeat measurement").disabled
     assert state["open"]["status"] == "pending_confirmation"
     app.run()
