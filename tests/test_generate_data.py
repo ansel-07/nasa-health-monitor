@@ -98,7 +98,8 @@ def test_write_and_baseline(tmp_path, monkeypatch):
     df = run()
     gen.write(df)
     assert (tmp_path / "measurements.csv").read_bytes() == (tmp_path / "seed" / "measurements.csv").read_bytes()
-    assert len(data.load_measurements()) == len(df)
+    # Count rows in the file itself: load_measurements() may hide future mission rows (mission clock).
+    assert len(pd.read_csv(tmp_path / "measurements.csv")) == len(df)
     baseline = data.get_baseline("a1", "x")
     assert baseline["n"] == 14 and baseline["std"] > 0
 
@@ -119,4 +120,5 @@ def test_main_writes_with_complete_parameters(tmp_path, monkeypatch):
     monkeypatch.setattr(gen, "ANOMALIES", [{"astronaut": "a1", "indicator": "heart_rate",
                                             "day": 2, "value": 80}])
     assert gen.main() == 0
-    assert len(data.load_measurements()) == 3 * (gen.PREFLIGHT_DAYS + gen.MISSION_DAYS)
+    written = pd.read_csv(tmp_path / "measurements.csv")
+    assert len(written) == 3 * (gen.PREFLIGHT_DAYS + gen.MISSION_DAYS)
