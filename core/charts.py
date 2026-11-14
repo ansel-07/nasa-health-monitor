@@ -127,7 +127,11 @@ def threshold_bands(astronaut: str, indicator: str, environment: str | None = No
     Only simple conditions on this indicator count. Rules with `environments` only count when
     `environment` is in that list (never when environment is None). Sorted least serious first.
     """
-    baseline = data.get_baseline(astronaut, indicator)
+    return _bands(indicator, environment, data.get_baseline(astronaut, indicator))
+
+
+def _bands(indicator: str, environment: str | None, baseline: dict | None) -> list[dict]:
+    """threshold_bands() with the baseline already known (the chart computes it once)."""
     bands = []
 
     def add(severity, cond, problem_id, symptom_id=None, symptom_name=None):
@@ -188,9 +192,16 @@ def _empty_figure(message: str, compact: bool) -> go.Figure:
     return fig
 
 
-def _mission_day(moment) -> float:
-    """Mission day of a time: 1.0 at the mission start, 2.0 a day later; pre-flight is <= 0."""
-    start = datetime.fromisoformat(config.load_mission()["start"])
+def _mission_start() -> datetime:
+    return datetime.fromisoformat(config.load_mission()["start"])
+
+
+def _mission_day(moment, start: datetime | None = None) -> float:
+    """Mission day of a time: 1.0 at the mission start, 2.0 a day later; pre-flight is <= 0.
+
+    Pass `start` when converting many times (one chart), so the mission file is read once.
+    """
+    start = _mission_start() if start is None else start
     return (pd.Timestamp(moment).to_pydatetime() - start) / timedelta(days=1) + 1
 
 
@@ -214,7 +225,8 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
         return _empty_figure("No measurements yet", compact)
 
     baseline = data.get_baseline(astronaut, indicator)
-    bands = threshold_bands(astronaut, indicator, environment)
+    bands = _bands(indicator, environment, baseline)
+    start = _mission_start()
     marks = _episode_marks(astronaut, indicator)
 
     fig = go.Figure()
@@ -227,7 +239,7 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
         if part.empty:
             continue
         fig.add_trace(go.Scatter(
-            x=[_mission_day(t) for t in part["timestamp"]], y=part["value"], name=label,
+            x=[_mission_day(t, start) for t in part["timestamp"]], y=part["value"], name=label,
             mode="lines+markers", line=dict(color=color, width=2),
             marker=dict(color=color, size=marker_size),
             customdata=[t.strftime("%Y-%m-%d %H:%M") for t in part["timestamp"]],
@@ -263,7 +275,7 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
 
     if marks:
         fig.add_trace(go.Scatter(
-            x=[_mission_day(m["x"]) for m in marks], y=[m["y"] for m in marks], name="Alert",
+            x=[_mission_day(m["x"], start) for m in marks], y=[m["y"] for m in marks], name="Alert",
             mode="markers",
             marker=dict(symbol="x", size=12, line=dict(width=2),
                         color=[SEVERITY_COLORS.get(m["severity"], BASELINE_COLOR) for m in marks]),
@@ -277,7 +289,7 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
     if (df["phase"] == "preflight").any() and (df["phase"] == "mission").any():
         launch_label = {} if compact else dict(annotation_text="Launch", annotation_position="top")
         fig.add_vline(x=1, line=dict(color=BASELINE_COLOR, width=1, dash="dot"), **launch_label)
-    fig.add_vline(x=_mission_day(mission.now()), line=dict(color=NOW_COLOR, width=2),
+    fig.add_vline(x=_mission_day(mission.now(), start), line=dict(color=NOW_COLOR, width=2),
                   annotation_text="Now", annotation_position="top")
 
     fig.update_yaxes(range=[y_low, y_high], title=None if compact else unit,

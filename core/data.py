@@ -6,10 +6,13 @@ File paths always come from core.models through models.data_file() (read at call
 tests can redirect them and each browser session has its own copy, AGENTS.md 5.5).
 """
 import csv
+import hashlib
+import io
 import json
 import os
 import shutil
 import tempfile
+import threading
 
 import pandas as pd
 
@@ -35,22 +38,64 @@ def load_astronauts() -> pd.DataFrame:
     return pd.read_csv(path, dtype=str)[ASTRONAUT_COLUMNS]
 
 
+# Parsed measurements files, keyed by path: (content digest, DataFrame). Parsing the CSV is the
+# slow part of detection (one "Advance mission 24 h" used to parse it hundreds of times), so it
+# is parsed once per content. The key is a digest of the bytes, not the modification time: two
+# writes inside the same clock tick (Windows) can share an mtime and the same size.
+_PARSED: dict[str, tuple[bytes, pd.DataFrame]] = {}
+_PARSED_MAX = 64   # one entry per browser session's file; oldest dropped first
+# Streamlit runs browser sessions in threads: the cache dictionaries are changed under this lock.
+_CACHE_LOCK = threading.Lock()
+
+
+def _parse_measurements(raw: bytes) -> pd.DataFrame:
+    df = pd.read_csv(io.BytesIO(raw), dtype={"astronaut": str, "indicator": str, "unit": str,
+                                             "phase": str, "source": str})
+    if df.empty:
+        return _empty_measurements()
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    df["value"] = df["value"].astype(float)
+    return df
+
+
+def _measurements_entry() -> tuple[str, bytes | None, pd.DataFrame]:
+    """(path, content digest, every stored row parsed); digest None when there is no data.
+
+    Cached by content. Callers must not modify the DataFrame.
+    """
+    path = models.data_file(models.MEASUREMENTS_FILE)
+    if not path.exists() or path.stat().st_size == 0:
+        return str(path), None, _empty_measurements()
+    raw = path.read_bytes()
+    digest = hashlib.blake2b(raw, digest_size=16).digest()
+    cached = _PARSED.get(str(path))
+    if cached is not None and cached[0] == digest:
+        return str(path), digest, cached[1]
+    df = _parse_measurements(raw)
+    with _CACHE_LOCK:
+        _PARSED.pop(str(path), None)
+        _PARSED[str(path)] = (digest, df)
+        while len(_PARSED) > _PARSED_MAX:
+            _PARSED.pop(next(iter(_PARSED)))
+    return str(path), digest, df
+
+
+def _all_measurements() -> pd.DataFrame:
+    """Every stored row, parsed (cached by content). Callers must not modify the result."""
+    return _measurements_entry()[2]
+
+
 def load_measurements(astronaut=None, indicator=None, phase=None) -> pd.DataFrame:
     """Measurements from data/measurements.csv, filtered and sorted by timestamp.
 
     Each filter is ignored when it is None. `timestamp` is a datetime and `value` a float.
     Simulated measurements after the mission clock (core.mission.now()) are hidden until
     mission.advance() reveals them; manual and protocol measurements are always shown.
+    Always returns a new DataFrame (the parsed file is cached by content).
     """
-    path = models.data_file(models.MEASUREMENTS_FILE)
-    if not path.exists() or path.stat().st_size == 0:
-        return _empty_measurements()
-    df = pd.read_csv(path, dtype={"astronaut": str, "indicator": str, "unit": str,
-                                  "phase": str, "source": str})
+    df = _all_measurements()
     if df.empty:
         return _empty_measurements()
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    df["value"] = df["value"].astype(float)
     simulated = df["source"] == "simulated"
     if simulated.any():
         df = df[~(simulated & (df["timestamp"] > mission.now()))]
@@ -97,12 +142,38 @@ def add_measurement(m: dict) -> None:
         writer.writerow(row)
 
 
+# Baselines already computed, per measurements file: (content digest, mission time, {key: result}).
+# Detection asks for the same few baselines hundreds of times per advance; they only change when
+# the file changes or the clock reveals rows, so both are part of the key.
+_BASELINES: dict[str, tuple[bytes | None, object, dict]] = {}
+_MISSING = object()
+
+
 def get_baseline(astronaut: str, indicator: str) -> dict | None:
     """Personal baseline: mean and sample std of the preflight measurements.
 
     Returns {"mean": float, "std": float, "n": int}, or None if there are no preflight values.
     With a single value the std is 0.0 (z_score then returns None).
     """
+    path, digest, _ = _measurements_entry()
+    clock = mission.now()   # simulated rows after the clock are hidden, so it is part of the key
+    with _CACHE_LOCK:
+        cached = _BASELINES.get(path)
+        if cached is None or cached[0] != digest or cached[1] != clock:
+            cached = (digest, clock, {})
+            _BASELINES.pop(path, None)
+            _BASELINES[path] = cached
+            while len(_BASELINES) > _PARSED_MAX:
+                _BASELINES.pop(next(iter(_BASELINES)))
+    results = cached[2]
+    result = results.get((astronaut, indicator), _MISSING)
+    if result is _MISSING:
+        result = _compute_baseline(astronaut, indicator)
+        results[(astronaut, indicator)] = result
+    return None if result is None else dict(result)
+
+
+def _compute_baseline(astronaut: str, indicator: str) -> dict | None:
     values = load_measurements(astronaut=astronaut, indicator=indicator, phase="preflight")["value"]
     values = values.dropna()
     n = len(values)
