@@ -40,28 +40,31 @@ MISSION_DAYS = "TODO_EDU"     # simulated mission days (Edu: 10 days is not supp
 DEMO_DAY = "TODO_GONZALO"     # mission day of the demo anomaly, revealed by one Advance click
 MEASURE_HOUR = 8          # every simulated measurement is taken at 08:00
 
-# Health values: one entry per indicator to simulate (keys of config/indicators.json).
-#   mean:            typical value for a healthy adult (unit of config/indicators.json)
+# Health values: one entry per indicator used by SANS and muscle atrophy (config/problems.json).
+# Edu (#36): the sources give no daily sd, person_sd or trend for these; never use 0 for unknown.
+#   mean:            typical pre-flight value, same method/site as the indicator (its unit)
 #   sd:              day-to-day variation of one person (standard deviation)
 #   person_sd:       optional, how much the personal level differs between astronauts (default 0)
 #   trend_per_day:   optional, average change per mission day (default 0)
 #   min / max:       optional, values are clipped to this range
 #   decimals:        digits kept when rounding (data format, not a health value)
 INDICATOR_PARAMS = {
-    "heart_rate":   {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU",
-                     "trend_per_day": "TODO_EDU", "decimals": 0},
-    "bp_systolic":  {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU",
-                     "trend_per_day": "TODO_EDU", "decimals": 0},
-    "bp_diastolic": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU",
-                     "trend_per_day": "TODO_EDU", "decimals": 0},
-    "glucose":      {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU",
-                     "trend_per_day": "TODO_EDU", "decimals": 0},
-    "temperature":  {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU",
-                     "trend_per_day": "TODO_EDU", "decimals": 1},
-    "sleep_hours":  {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU",
-                     "trend_per_day": "TODO_EDU", "decimals": 1},
-    "mood":         {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU",
-                     "trend_per_day": "TODO_EDU", "min": 1, "max": 5, "decimals": 0},
+    # SANS (one indicator per eye, AGENTS.md 5.2: never pool sites)
+    "peripapillary_trt_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "peripapillary_trt_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "optic_disc_edema_grade_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "optic_disc_edema_grade_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "refraction_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
+    "refraction_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
+    "visual_acuity_left": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
+    "visual_acuity_right": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 2},
+    # Muscle atrophy
+    "muscle_strength": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "muscle_area": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 1},
+    "muscle_power": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "muscle_endurance": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
+    "muscle_tone": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 1},
+    "muscle_stiffness": {"mean": "TODO_EDU", "sd": "TODO_EDU", "person_sd": "TODO_EDU", "trend_per_day": "TODO_EDU", "decimals": 0},
 }
 
 # Demo scenario (Gonzalo, values reviewed by Edu): on that mission day (1 = first day),
