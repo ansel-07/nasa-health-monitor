@@ -350,6 +350,7 @@ python -m core.config --strict    # also lists values still marked TODO
 
 - `main` always starts. Run the app and `python -m pytest` before every push.
 - One branch per task: `<name>/short-description` (e.g. `juancarlos/confirmation-step`). Open a pull request; Ansel reviews and merges.
+- **Exception, Saturday night after v1 (until Ansel says otherwise):** one coding agent works alone and merges its own pull requests under the rules and self-review checklist of `docs/TONIGHT_HANDOFF.md`.
 - Small commits with messages that say what changes. Commit every time something works.
 - If the pull request completes a request (section 14), write `Closes #<issue>` in its description.
 - Integrations: Saturday 14:00 and 19:00 (first deploy), Sunday 13:00. Feature freeze Sunday 16:00.
