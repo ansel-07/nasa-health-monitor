@@ -229,6 +229,21 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     return updated
 
 
+def practice_episode(astronaut: str, problem_id: str, environment: str) -> dict:
+    """In-memory episode for a tutorial (AGENTS.md 16.4): run it with submit(); nothing is saved.
+
+    Starts at the lowest severity that opens an episode: "mild" while the problem still
+    has legacy triggers (AGENTS.md 5.3, TRANSITION), "watch" for symptom-based ones.
+    """
+    problem = load_problems(include_examples=True)[problem_id]
+    severity = SEVERITIES[1] if "triggers" in problem else PROBLEM_STATES[1]
+    return {"id": f"practice-{problem_id}", "practice": True, "astronaut": astronaut,
+            "problem": problem_id, "environment": environment, "status": "active",
+            "severity_initial": severity, "severity": severity, "current_node": None,
+            "vars": {}, "answers": {}, "log": [], "opened_at": mission.now().isoformat(),
+            "closed_at": None, "outcome": None}
+
+
 # ---------------------------------------------------------------- flowchart (AGENTS.md 8, #69)
 
 _CONTACT_LABELS = {"crew_medical_officer": "crew medical officer", "flight_surgeon": "flight surgeon"}
