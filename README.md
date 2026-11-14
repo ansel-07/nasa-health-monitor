@@ -15,7 +15,9 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 ## The problem
 
-TODO: why astronauts need to assess their own health on long missions (hazards, distance from Earth, communication delay).
+On long missions astronauts are far from a hospital and, beyond low Earth orbit, from real-time help: a one-way signal between Mars and Earth takes from about 3 to 22 minutes ([NASA](https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/)). The crew has to notice early changes in their own health and respond in a safe, structured way, often before anyone on Earth can answer.
+
+SpaceDoc focuses on two risks studied by NASA's Human Research Program: [Spaceflight Associated Neuro-ocular Syndrome (SANS)](https://www.nasa.gov/directorates/esdmd/hhp/risk-of-spaceflight-associated-neuro-ocular-syndrome/), changes in the eyes and vision, and [reduced muscle size, strength and endurance](https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/). Both change gradually, so the useful question is not only "is this value normal?" but "has it changed from this astronaut's own pre-flight baseline, and what should they do next?"
 
 ## What it does
 
@@ -56,6 +58,7 @@ AI-generated code is marked with an `AI-assisted` header comment in each file. W
 - **Fran (data and trends):** Claude Code for code and tests of the data layer, mission clock, charts, Trends page, activity bars and data generator, and for drafting GitHub issues; every change was reviewed and run by Fran before merging.
 - **Javi (protocol execution):** Claude Code and Codex for code and tests of the protocol engine, the Protocols and Tutorials screens, the flowchart and the protocol test sandbox, and for drafting GitHub issues and pull requests; every change was reviewed and run by Javi before merging.
 - **Juan Carlos (detection):** Codex assisted with the condition evaluator, trigger evaluation, episode lifecycle, Check-in UI, automated tests, and GitHub issue and pull-request drafts; Juan Carlos personally reviewed the generated code and tests, with integration review through the repository's pull-request workflow.
+- **Gonzalo (product, coordination and testing):** Codex to record his product decisions, demo story and timing confirmations as GitHub issue comments (#34, #39, #99); he decided their content.
 
 ## Run locally
 
