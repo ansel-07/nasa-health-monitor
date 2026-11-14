@@ -336,3 +336,41 @@ def test_review_pending_requires_its_own_measurement_guidance(screen):
     app.run()
     assert button(app, "Review next alert").disabled
     assert not button(app, "Record measurement").disabled
+
+
+def symptom_problem(state):
+    problem = state["problems"]["problem_a"]
+    del problem["triggers"]
+    problem.update(symptoms={"a": {"name": "Synthetic symptom", "levels": [
+        {"level": "watch", "when": {"indicator": "x", "above": 10}}]}},
+        states=[{"state": "watch", "when": {"symptom": "a", "level_is": "watch"}}])
+
+
+def test_symptom_only_configuration_enables_submission(screen):
+    app, state = screen
+    symptom_problem(state)
+    app.run()
+    assert not app.exception
+    assert not button(app, "Record measurement").disabled
+    app.number_input[0].set_value(20)
+    button(app, "Record measurement").click().run()
+    assert state["calls"][0][0] == "record"
+
+
+def test_unfinished_symptom_configuration_blocks_submission(screen):
+    app, state = screen
+    symptom_problem(state)
+    state["problems"]["problem_a"]["symptoms"]["a"]["levels"][0]["when"]["above"] = "TODO_EDU"
+    app.run()
+    assert button(app, "Record measurement").disabled
+
+
+def test_symptom_state_and_detection_snapshot_are_displayed(screen):
+    app, state = screen
+    symptom_problem(state)
+    opened(state)
+    state["open"].update(severity="watch", symptoms={"a": "watch"})
+    app.run()
+    assert not app.exception
+    assert any("Problem state: watch" in text.value for text in app.markdown)
+    assert app.dataframe[0].value.iloc[0]["Symptom"] == "Synthetic symptom"

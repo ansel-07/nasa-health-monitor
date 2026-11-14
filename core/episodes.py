@@ -6,11 +6,23 @@ Rules: AGENTS.md, sections 5.4, 7 and 10. Storage goes through core/data.py only
 """
 from copy import deepcopy
 from datetime import datetime, timedelta
+from itertools import product
 from math import isfinite
 from numbers import Real
 
 from core import conditions, config, data, mission, triggers
-from core.models import MEASUREMENT_COLUMNS, OPEN_STATUSES, SOURCES, severity_rank
+from core.models import MEASUREMENT_COLUMNS, OPEN_STATUSES, PROBLEM_STATES, SOURCES, SYMPTOM_LEVELS, severity_rank
+
+
+def _priority(severity: str) -> int:
+    """Transition queue: watch ties mild, medical_urgency ties severe.
+
+    Legacy moderate remains between watch and urgency. This only orders work;
+    it does not translate or change the stored state or any medical criterion.
+    """
+    if severity in PROBLEM_STATES:
+        return {"no_concern": 0, "watch": 1, "medical_urgency": 3}[severity]
+    return severity_rank(severity)
 
 
 def _at(value) -> datetime:
@@ -82,6 +94,7 @@ def _new_episode(stored: list[dict], astronaut: str, environment: str, match: di
                     "measured_at": measured_at},
         "current_node": None, "vars": {}, "answers": {}, "log": [],
         "opened_at": now.isoformat(), "closed_at": None, "outcome": None,
+        **({"symptoms": deepcopy(match["symptoms"])} if "symptoms" in match else {}),
     }
 
 
@@ -104,11 +117,17 @@ def _pending_items(items: list[dict], matches: list[dict], m: dict, exclude: str
 def _references(cond: dict, indicator: str) -> bool:
     if cond.get("indicator") == indicator:
         return True
-    return any(_references(child, indicator) for op in ("all", "any") for child in cond.get(op, []))
+    return any(_references(child, indicator) for op in ("all", "any", "of") for child in cond.get(op, []))
 
 
 def _known_result(cond: dict, ctx: dict) -> bool | None:
     """Use three-valued logic so unavailable data cannot silently dismiss an episode."""
+    if "count_at_least" in cond:
+        values = [_known_result(child, ctx) for child in cond["of"]]
+        known = sum(value is True for value in values)
+        if known >= cond["count_at_least"]:
+            return True
+        return None if known + values.count(None) >= cond["count_at_least"] else False
     for op in ("all", "any"):
         if op in cond:
             values = [_known_result(child, ctx) for child in cond[op]]
@@ -132,17 +151,45 @@ def _known_result(cond: dict, ctx: dict) -> bool | None:
     return conditions.check(cond, ctx)
 
 
+def _require_symptom_confirmation_data(problem: dict, ctx: dict, match: dict | None) -> None:
+    """Block confirmation only when missing data could change the ordered state result."""
+    possibilities = {}
+    for sid, symptom in problem["symptoms"].items():
+        levels = []
+        for rule in symptom["levels"]:
+            if "environments" in rule and ctx["environment"] not in rule["environments"]:
+                continue
+            result = _known_result(rule["when"], ctx)
+            if result is not False:
+                levels.append(rule["level"])
+            if result is True:
+                break
+        else:
+            levels.append(SYMPTOM_LEVELS[0])
+        possibilities[sid] = list(dict.fromkeys(levels))
+    expected = match["severity"] if match else PROBLEM_STATES[0]
+    for combination in product(*possibilities.values()):
+        hypothetical = {**ctx, "symptoms": dict(zip(possibilities, combination))}
+        state = next((rule["state"] for rule in problem["states"]
+                      if conditions.check(rule["when"], hypothetical)), PROBLEM_STATES[0])
+        if state != expected:
+            raise ValueError("Confirmation needs unavailable measurements or baseline data; episode remains pending.")
+
+
 def _require_confirmation_data(problem: dict, m: dict, environment: str, match: dict | None) -> None:
     latest = dict(data.latest_values(m["astronaut"]))
     latest[m["indicator"]] = m["value"]
     ctx = {"astronaut": m["astronaut"], "environment": environment, "latest": latest}
+    if "symptoms" in problem or "states" in problem:
+        _require_symptom_confirmation_data(problem, ctx, match)
+        return
     for trigger in problem["triggers"]:
         if "environments" in trigger and environment not in trigger["environments"]:
             continue
         if not _references(trigger["when"], m["indicator"]):
             continue
         if _known_result(trigger["when"], ctx) is None and (
-            match is None or severity_rank(trigger["severity"]) > severity_rank(match["severity"])
+            match is None or _priority(trigger["severity"]) > _priority(match["severity"])
         ):
             raise ValueError("Confirmation needs unavailable measurements or baseline data; episode remains pending.")
 
@@ -170,7 +217,7 @@ def on_new_measurement(measurement: dict, environment: str) -> dict | None:
     )]
     created = False
     if opened is None and matches:
-        chosen = max(matches, key=lambda item: severity_rank(item["severity"]))
+        chosen = max(matches, key=lambda item: _priority(item["severity"]))
         opened = _new_episode(stored, m["astronaut"], environment, chosen, m["timestamp"], now)
         created = True
     pending = data.load_pending()
@@ -212,6 +259,8 @@ def confirm(episode_id: str, measurement: dict) -> dict:
     if match is not None:
         updated.update(status="active", severity=match["severity"],
                        current_node=config.load_protocol(episode["problem"])["start"])
+        if "symptoms" in match:
+            updated["symptoms"] = deepcopy(match["symptoms"])
     else:
         updated.update(status="dismissed", closed_at=now.isoformat())
     pending = data.load_pending()
@@ -229,7 +278,7 @@ def get_pending(astronaut: str) -> list[dict]:
     This function never opens episodes. Use accept_pending to begin a new
     confirmation wait for the highest-priority pending alert.
     """
-    return sorted(data.load_pending(astronaut), key=lambda item: severity_rank(item["severity"]), reverse=True)
+    return sorted(data.load_pending(astronaut), key=lambda item: _priority(item["severity"]), reverse=True)
 
 
 def accept_pending(astronaut: str, environment: str) -> dict | None:
@@ -253,7 +302,7 @@ def accept_pending(astronaut: str, environment: str) -> dict | None:
                   if item["astronaut"] == astronaut and not item["problem"].startswith("_")]
     if not candidates:
         return None
-    index, chosen = max(candidates, key=lambda pair: severity_rank(pair[1]["severity"]))
+    index, chosen = max(candidates, key=lambda pair: _priority(pair[1]["severity"]))
     if not isinstance(environment, str) or environment not in config.load_environments():
         raise ValueError("Accepting an alert requires a configured mission environment.")
     if chosen["problem"] not in config.load_problems():
