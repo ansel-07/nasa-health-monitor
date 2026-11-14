@@ -270,3 +270,55 @@ def test_chart_draws_a_between_band_with_both_edges(tmp_data, monkeypatch):
     band = next(s for s in fig.layout.shapes if s.fillcolor == charts.SERIOUS)
     assert (band.y0, band.y1) == (pytest.approx(82.0), pytest.approx(117.0))
     assert fig.layout.yaxis.range[1] > 117
+
+
+# --- projector readability: mission-day axis, Launch and Now lines -------------------------
+
+@pytest.fixture
+def fixed_now(monkeypatch):
+    from datetime import datetime
+    now = datetime(2027, 4, 3, 0, 0)          # start of mission day 3
+    monkeypatch.setattr(charts.mission, "now", lambda: now)
+    return now
+
+
+def test_x_axis_is_the_mission_day_with_real_time_in_hover(tmp_data, fixed_now):
+    add("2027-03-31T00:00:00", 60, phase="preflight")   # the day before launch -> day 0
+    add("2027-04-01T12:00:00", 66)                       # mission day 1, noon -> 1.5
+    fig = charts.indicator_chart("a1", "_example_indicator")
+    pre, mission_trace = fig.data[0], fig.data[1]
+    assert list(pre.x) == [pytest.approx(0.0)] and list(mission_trace.x) == [pytest.approx(1.5)]
+    assert list(mission_trace.customdata) == ["2027-04-01 12:00"]
+    assert fig.layout.xaxis.title.text == "Mission day"
+
+
+def test_launch_and_now_lines(tmp_data, fixed_now):
+    add("2027-03-31T08:00:00", 60, phase="preflight")
+    add("2027-04-01T08:00:00", 66)
+    fig = charts.indicator_chart("a1", "_example_indicator")
+    vlines = sorted(s.x0 for s in fig.layout.shapes if s.type == "line" and s.x0 == s.x1)
+    assert vlines == [1, pytest.approx(3.0)]                     # Launch at day 1, Now at day 3
+    labels = {a.text for a in fig.layout.annotations}
+    assert {"Launch", "Now"} <= labels
+
+    compact = charts.indicator_chart("a1", "_example_indicator", compact=True)
+    compact_labels = {a.text for a in compact.layout.annotations}
+    assert "Now" in compact_labels and "Launch" not in compact_labels   # mission only: no Launch
+
+
+def test_projector_font_sizes(tmp_data, fixed_now):
+    add("2027-04-01T08:00:00", 66)
+    assert charts.indicator_chart("a1", "_example_indicator").layout.font.size == charts.FULL_FONT_SIZE
+    assert (charts.indicator_chart("a1", "_example_indicator", compact=True).layout.font.size
+            == charts.COMPACT_FONT_SIZE)
+
+
+def test_alert_marks_use_the_mission_day(tmp_data, fixed_now):
+    add("2027-04-02T08:00:00", 90)
+    data.save_episode({"id": "ep-1", "astronaut": "a1", "problem": "p", "status": "active",
+                       "severity_initial": "watch",
+                       "trigger": {"indicator": "_example_indicator", "value": 90,
+                                   "measured_at": "2027-04-02T06:00:00"}})
+    alert = next(t for t in charts.indicator_chart("a1", "_example_indicator").data if t.name == "Alert")
+    assert list(alert.x) == [pytest.approx(2.25)]
+    assert alert.customdata[0][3] == "2027-04-02 06:00"
