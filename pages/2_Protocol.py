@@ -170,14 +170,10 @@ def main() -> None:
             else:
                 advance(episode, {"value": value})
     elif kind == "question":
-        with st.form(f"{key}_question"):
-            answer = st.radio("Choose an answer", list(step["options"]), index=None,
-                              format_func=readable, key=f"{key}_answer")
-            submitted = st.form_submit_button("Submit answer")
-        if submitted:
-            if answer is None:
-                st.error("Choose an answer before continuing.")
-            else:
+        # One click per answer: each option is its own button.
+        options = list(step["options"])
+        for column, answer in zip(st.columns(len(options)), options):
+            if column.button(readable(answer), key=f"{key}_answer_{answer}", use_container_width=True):
                 advance(episode, {"answer": answer})
     else:
         st.error("This protocol step is unavailable. Please ask the mission team for help.")

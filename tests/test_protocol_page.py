@@ -74,15 +74,13 @@ def test_pending_confirmation_has_no_protocol_controls(context):
     assert context["episode"]["log"] == []
 
 
-def test_info_advances_and_question_requires_selection(context):
+def test_info_advances_and_question_answers_in_one_click(context):
     app = page()
     button(app, "Continue").click().run()
     assert not app.exception
     assert context["episode"]["current_node"] == "symptoms"
-    button(app, "Submit answer").click().run()
-    assert app.error[0].value == "Choose an answer before continuing."
-    app.radio[0].set_value("no")
-    button(app, "Submit answer").click().run()
+    assert not app.radio and not app.get("form_submit_button")
+    button(app, "No").click().run()
     assert not app.exception
     assert context["episode"]["answers"] == {"has_symptom": "no"}
     assert button(app, "Done").disabled
@@ -97,9 +95,8 @@ def test_astronaut_sees_readable_names_not_internal_ids(context, monkeypatch):
     context["episode"].update(current_node="symptoms", severity="medical_urgency")
     app = page()
     assert any(item.value == "Severity: Medical urgency · Environment: Synthetic Mars base" for item in app.caption)
-    assert app.radio[0].options == ["Yes", "Not yet"]
-    app.radio[0].set_value("not_yet")
-    button(app, "Submit answer").click().run()
+    assert {"Yes", "Not yet"} <= {item.label for item in app.button}
+    button(app, "Not yet").click().run()
     assert context["episode"]["answers"] == {"has_symptom": "not_yet"}
 
 
@@ -218,7 +215,7 @@ def test_flowchart_beside_mascot_follows_the_current_step(context):
     assert button(app, "Continue")
     button(app, "Continue").click().run()
     assert current_in_chart(app) == "symptoms"
-    assert app.radio and button(app, "Submit answer")
+    assert button(app, "Yes") and button(app, "No")
 
 
 def test_screens_without_an_active_protocol_show_no_flowchart(context):

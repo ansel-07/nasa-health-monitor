@@ -41,8 +41,7 @@ def test_manual_measurement_routes_and_isolation(value, outcome):
 def test_manual_full_journey_wait_and_reset():
     app = preview()
     button(app, "Continue").click().run()
-    app.radio[0].set_value("no")
-    button(app, "Submit answer").click().run()
+    button(app, "No").click().run()
     assert button(app, "Done").disabled
     button(app, "Advance 1 minute(s)").click().run()
     assert not app.exception
