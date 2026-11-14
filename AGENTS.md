@@ -101,6 +101,7 @@ For each astronaut and indicator: mean and standard deviation of the `preflight`
   - `symptoms`: `{symptom_id: {name, levels}}`. `levels` is a list of `{level, when, environments?}` with `level` in `SYMPTOM_LEVELS` (`watch`, `concern`). `when` is a condition on **indicators only** (section 6), evaluated with the **latest value** of each indicator. If `environments` is present, the rule only applies there. **The first matching rule wins**, so write them from most to least serious; no match = `not_present`.
   - `states`: list of `{state, when}` with `state` in `PROBLEM_STATES` (`watch`, `medical_urgency`). `when` is a condition on **symptoms** (`symptom` + `level_at_least` / `level_is`, `count_at_least` + `of`), optionally with `environment_in`. **The first matching rule wins**; no match = `no_concern`. Only the symptom level matters (no weights or scores).
   - The problem state is the episode **severity**: an episode opens when the state is `watch` or worse.
+  - **Attribution (#91):** a new measurement raises a symptom-based alert only if the symptom it feeds (its own `levels`) is `watch` or `concern`; the episode `trigger` is that measurement, so confirmation repeats it. A normal measurement never raises an alert caused by another indicator, even if the problem state is still `watch`.
   - **TRANSITION** (until every owner has migrated): the old `triggers` list (`{severity, when, environments?}`, highest severity wins) and the old `SEVERITIES` names still work. New content uses `symptoms` + `states` only. `_example` has both formats.
 - `protocols/<problem_id>.json`: `{problem, start, nodes}` (section 9).
 
@@ -137,6 +138,7 @@ The app is deployed on Streamlit, so all judges use **one server**. To keep them
 
 - Inside the app, every **browser session** works on its own folder in the system temp directory, created as a copy of `data/seed/` the first time it is used. Reset demo copies `data/seed/` again **into that session only**. A browser refresh or a new tab starts a fresh session. Folders older than 24 hours are deleted.
 - Outside the app (scripts, tests) there is no session: files are read and written in `data/` as before.
+- `mission_state.json` is `{"now": ISO time}` plus, after a failed detection, `"unprocessed": [measurement dicts]`: rows revealed by an advance that detection did not finish; the next `advance_and_detect()` processes them first (#77). Reset demo clears it.
 - **Only `core/data.py` and `core/mission.py` touch data files**, and always through `models.data_file(models.<X>_FILE)` / `models.data_dir()`; never use `models.<X>_FILE` directly to read or write.
 - So `data/seed/` **is the demo**: what a new session sees first. To change the demo starting point, regenerate `data/seed/` (`scripts/generate_data.py`); the app never writes to it.
 - Tests: `tests/conftest.py` turns session data off (`models.SESSION_DATA = False`), so tests keep patching `models.<X>_FILE`. `tests/test_session_data.py` covers the per-session behaviour.
@@ -220,6 +222,7 @@ reset_demo() -> None                               # copy data/seed/* over this 
 now() -> datetime
 advance(hours: int = 24) -> list[dict]             # new simulated measurements now visible
 advance_and_detect(hours: int, environment: str) -> dict   # advance + detection for every astronaut (#58)
+# returns {"revealed", "new_alerts", "recovered"}: recovered = leftover rows of a failed run processed now (#77, P1)
 
 # core/activity.py  (Fran)  -- 5.6
 bar_level(astronaut: str, kind: str, activity_id: str) -> int   # kind: "check_in" | "tutorial"; a BAR_LEVELS value
