@@ -99,3 +99,82 @@ col_z.metric("Distance from baseline (z)", "—" if z is None else f"{z:+.1f}",
 
 if baseline is None:
     st.caption("No pre-flight measurements for this indicator, so there is no personal baseline yet.")
+
+
+# --- Alert history: every alert of this astronaut, newest first (not only this indicator) -----
+
+STATUS_LABELS = {
+    "pending_confirmation": "Waiting for the repeat measurement",
+    "active": "Active: protocol in progress",
+    "resolved": "Resolved",
+    "monitoring": "Monitoring",
+    "handed_over": "Handed over to the medical team",
+    "dismissed": "False alarm: the repeat was normal",
+}
+problems = config.load_problems()
+all_indicators = config.load_indicators()
+start = datetime.fromisoformat(config.load_mission()["start"])
+
+
+def _readable(value) -> str:
+    return str(value or "—").replace("_", " ").capitalize()
+
+
+def _problem_name(problem_id: str) -> str:
+    name = problems.get(problem_id, {}).get("name", "")
+    return name if name and not name.startswith("TODO") else _readable(problem_id)
+
+
+def _when(iso) -> str:
+    """'2027-04-03 08:00 (day 3)', or '—' when there is no time."""
+    if not iso:
+        return "—"
+    moment = datetime.fromisoformat(iso)
+    return f"{moment:%Y-%m-%d %H:%M} (day {(moment - start).days + 1})"
+
+
+def _reading(indicator_id, value) -> str:
+    """'Muscle strength: 390.0 N' for the measurement that raised the alert."""
+    if not indicator_id:
+        return "—"
+    info = all_indicators.get(indicator_id, {})
+    name = info.get("name", "")
+    name = name if name and not name.startswith("TODO") else _readable(indicator_id)
+    if value is None:
+        return name
+    return f"{name}: {float(value):.1f} {info.get('unit', '')}".rstrip()
+
+
+st.subheader("Alert history")
+st.caption("Every alert of this astronaut and what happened to it. The app guides; it does not diagnose.")
+history = sorted(data.load_episodes(astronaut), key=lambda e: e.get("opened_at") or "", reverse=True)
+if history:
+    st.dataframe(
+        [{
+            "Alert": _problem_name(e.get("problem")),
+            "Severity": _readable(e.get("severity")),
+            "Status": STATUS_LABELS.get(e.get("status"), _readable(e.get("status"))),
+            "Raised by": _reading((e.get("trigger") or {}).get("indicator"),
+                                  (e.get("trigger") or {}).get("value")),
+            "Opened": _when(e.get("opened_at")),
+            "Closed": _when(e.get("closed_at")),
+        } for e in history],
+        hide_index=True,
+    )
+else:
+    st.caption("No alerts yet for this astronaut.")
+
+waiting = data.load_pending(astronaut)
+if waiting:
+    st.markdown("**Waiting alerts**")
+    st.caption("Raised while another alert was open (one at a time). The most serious one is "
+               "offered when the current alert closes, and it is confirmed again first.")
+    st.dataframe(
+        [{
+            "Alert": _problem_name(p.get("problem")),
+            "Severity": _readable(p.get("severity")),
+            "Raised by": _reading(p.get("indicator"), p.get("value")),
+            "Measured": _when(p.get("measured_at")),
+        } for p in waiting],
+        hide_index=True,
+    )
