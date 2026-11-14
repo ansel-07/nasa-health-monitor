@@ -170,3 +170,58 @@ def test_detection_error_is_reported(screen, monkeypatch):
     advance_button(app).click().run()
     assert not app.exception
     assert "detection failed: problem config incomplete" in app.error[0].value
+
+
+# --- Alert history -------------------------------------------------------------------------
+
+def test_history_without_alerts(screen):
+    app, _, _ = screen
+    app.run()
+    assert not app.exception
+    assert [s.value for s in app.subheader] == ["Alert history"]
+    assert any(c.value == "No alerts yet for this astronaut." for c in app.caption)
+    assert len(app.dataframe) == 0
+
+
+def test_history_lists_alerts_newest_first_with_readable_text(screen, monkeypatch):
+    from core import data
+    app, _, _ = screen
+    monkeypatch.setattr(config, "load_problems", lambda: {"p1": {"name": "Problem One"}})
+    data.save_episode({"id": "ep-1", "astronaut": "a1", "problem": "p1", "status": "dismissed",
+                       "severity": "watch", "opened_at": "2027-04-01T08:05:00",
+                       "closed_at": "2027-04-01T09:00:00",
+                       "trigger": {"indicator": "x", "value": 70, "measured_at": "2027-04-01T08:00:00"}})
+    data.save_episode({"id": "ep-2", "astronaut": "a1", "problem": "p_unnamed", "status": "active",
+                       "severity": "medical_urgency", "opened_at": "2027-04-03T08:05:00",
+                       "closed_at": None,
+                       "trigger": {"indicator": "x", "value": 95.5, "measured_at": "2027-04-03T08:00:00"}})
+    data.save_episode({"id": "ep-3", "astronaut": "a2", "problem": "p1", "status": "active",
+                       "severity": "watch", "opened_at": "2027-04-02T08:00:00"})  # other astronaut
+    app.run()
+    assert not app.exception
+    rows = app.dataframe[0].value.to_dict("records")
+    assert rows == [
+        {"Alert": "P unnamed", "Severity": "Medical urgency", "Status": "Active: protocol in progress",
+         "Raised by": "Indicator X: 95.5 u", "Opened": "2027-04-03 08:05 (day 3)", "Closed": "—"},
+        {"Alert": "Problem One", "Severity": "Watch", "Status": "False alarm: the repeat was normal",
+         "Raised by": "Indicator X: 70.0 u", "Opened": "2027-04-01 08:05 (day 1)",
+         "Closed": "2027-04-01 09:00 (day 1)"},
+    ]
+
+
+def test_history_shows_waiting_alerts(screen, monkeypatch):
+    from core import data
+    app, _, _ = screen
+    monkeypatch.setattr(config, "load_problems", lambda: {"p2": {"name": "Problem Two"}})
+    data.save_pending([
+        {"astronaut": "a1", "problem": "p2", "severity": "watch", "indicator": "x", "value": 3.0,
+         "z": None, "measured_at": "2027-04-02T08:00:00"},
+        {"astronaut": "a2", "problem": "p2", "severity": "watch", "indicator": "x", "value": 9.0,
+         "z": None, "measured_at": "2027-04-02T08:00:00"},
+    ])
+    app.run()
+    assert not app.exception
+    assert any(m.value == "**Waiting alerts**" for m in app.markdown)
+    assert app.dataframe[0].value.to_dict("records") == [
+        {"Alert": "Problem Two", "Severity": "Watch", "Raised by": "Indicator X: 3.0 u",
+         "Measured": "2027-04-02 08:00 (day 2)"}]

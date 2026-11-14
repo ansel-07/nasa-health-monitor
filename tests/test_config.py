@@ -131,3 +131,40 @@ def test_symptom_levels_stub_returns_every_symptom():
     levels = symptom_levels("_example", "a1", "iss")
     assert set(levels) == {"symptom_a", "symptom_b"}
     assert all(level in SYMPTOM_LEVELS for level in levels.values())
+
+
+# ------------------------------------------- check-ins, subjective issues (5.6)
+
+def test_checkins_and_subjective_issues_load_without_fixtures():
+    assert "_example" not in config.load_checkins()
+    assert "_example" in config.load_checkins(include_examples=True)
+    assert "_example_issue" not in config.load_subjective_issues()["issues"]
+
+
+def test_every_real_problem_indicator_is_in_exactly_one_checkin():
+    owner = {}
+    for cid, checkin in config.load_checkins().items():
+        for ind in checkin["indicators"]:
+            assert ind not in owner, f"{ind} in {owner.get(ind)} and {cid}"
+            owner[ind] = cid
+    used = set()
+    for problem in config.load_problems().values():
+        for symptom in problem.get("symptoms", {}).values():
+            for rule in symptom["levels"]:
+                used.update(leaf["indicator"] for leaf in config._leaf_conditions(rule["when"]) if "indicator" in leaf)
+    assert used <= set(owner)
+
+
+def test_activity_validation_catches_bad_entries(monkeypatch):
+    checkins = {"a": {"name": "A", "indicators": ["nope"], "bar_full_hours": 0},
+                "b": {"indicators": [], "bar_full_hours": 1}}
+    subjective = {"settings": {"persistence_days": -1, "speed_multiplier": 2},
+                  "issues": {"x": {"label": "X", "check_ins": ["missing"]}}}
+    monkeypatch.setattr(config, "load_checkins", lambda include_examples=False: checkins)
+    monkeypatch.setattr(config, "load_subjective_issues", lambda include_examples=False: subjective)
+    errors = " | ".join(config.validate_activities(config.load_indicators(),
+                                                   {"p": {"tutorial_bar_full_days": "soon"}}))
+    for expected in ("unknown indicator 'nope'", "'bar_full_hours' must be", "missing 'name'",
+                     "'indicators' must be", "'persistence_days' must be", "unknown check-in 'missing'",
+                     "'tutorial_bar_full_days' must be"):
+        assert expected in errors

@@ -4,17 +4,18 @@
 
 Status: Edu accepts design A (declared synthetic data) on 2026-11-14, conditional
 on human plausibility. Edu subsequently specifies all fourteen indicators for the demo. This provides
-the full parameter table and plausibility checks; Gonzalo still owns the final
-story in #34. It is reviewed against primary sources for issue #36.
+the full parameter table and plausibility checks; Gonzalo approved the a1/ISS
+left-TRT story in #34 (recorded on #35). It is reviewed against primary sources for issue #36.
 It supplements the research table in #35/#36; it does not supply validated
 healthy-astronaut population or daily-variability parameters. It is not a physiological model,
 an astronaut reference population, or a validated disease trajectory. The
 benchmark does not by itself complete clinical configuration or deployment.
 
-Integration is blocked by [#91](https://github.com/ansel-07/nasa-health-monitor/issues/91):
-the batch advance opens SANS against a zero edema grade instead of the abnormal
-left TRT. Do not activate this dataset for the demo until the owner fix passes.
-The regression is explicitly strict-xfail; it is not claimed as a passing path.
+The attribution fix for [#91](https://github.com/ansel-07/nasa-health-monitor/issues/91)
+is integrated. The batch-advance regression is now required to pass, together
+with detection, same-indicator confirmation and watch protocols in all three
+environments. The parameter handoff completes Edu's contribution to #36;
+Fran owns generator/seed integration and Gonzalo owns the final presentation.
 
 ## 1. Scope and provenance
 
@@ -34,6 +35,61 @@ inspection of its pages. These examples are synthetic anchors, not measured
 healthy-astronaut averages. Applying the TRT
 example independently to each eye is a benchmark choice, not evidence that the
 eyes have identical anatomy or independent physiological noise.
+
+## Currently integrated fixture (three indicators)
+
+This is the earlier #83 block currently used by Fran's generator and seed.
+It is retained here so the existing generator contract test can verify the
+integrated state. It is superseded for the #36 handoff by the complete fourteen-
+indicator proposal in section 2, including persistent anomalies. Do not describe
+the old isolated anomalies as recovery or as the final approved dataset.
+
+```python
+SEED = 2027
+PREFLIGHT_DAYS = 14
+MISSION_DAYS = 10
+DEMO_DAY = 1
+MEASURE_HOUR = 8
+
+INDICATOR_PARAMS = {
+    "peripapillary_trt_left": {
+        "mean": 300.0,
+        "sd": 5.0,
+        "person_sd": 0.0,
+        "trend_per_day": 0.0,
+        "decimals": 1,
+    },
+    "peripapillary_trt_right": {
+        "mean": 300.0,
+        "sd": 5.0,
+        "person_sd": 0.0,
+        "trend_per_day": 0.0,
+        "decimals": 1,
+    },
+    "muscle_strength": {
+        "mean": 500.0,
+        "sd": 25.0,
+        "person_sd": 0.0,
+        "trend_per_day": 0.0,
+        "decimals": 1,
+    },
+}
+
+ANOMALIES = [
+    {
+        "astronaut": "a1",
+        "indicator": "peripapillary_trt_left",
+        "day": 1,
+        "value": 360.0,
+    },
+    {
+        "astronaut": "a2",
+        "indicator": "muscle_strength",
+        "day": 2,
+        "value": 390.0,
+    },
+]
+```
 
 ## 2. Complete generator input
 
@@ -153,13 +209,12 @@ This is a proposed technical acceptance scenario, not an attempt to replace
 Gonzalo's final pitch story. No clinical-priority symptoms are assigned to these
 numerical anomalies. A concerning number alone must not be labelled a medical
 urgency. The real production evaluator, clock and episode lifecycle are exercised
-by the control tests with the new anomaly submitted explicitly. They do not prove
-the batch advance works: its incorrect trigger attribution is tracked in #91.
-Neither path establishes diagnostic performance.
+by the batch-advance integration tests. They verify attribution to abnormal left
+TRT rather than a normal edema grade. These checks do not establish diagnostic performance.
 
-The right-eye observation can also return the already-positive SANS state because
-the problem uses the latest values of both eyes. This does not mean the right eye
-crossed a threshold. The one-open-episode rule prevents a duplicate SANS episode.
+The normal right-eye observation does not raise an alert caused by the left eye.
+Attribution requires the new measurement to feed a positive symptom (#91).
+The one-open-episode rule also prevents duplicate open episodes.
 
 With the current generator and the exact block above, compute the references from
 the generated preflight rows. Expected anchors (rounded here for reporting):
@@ -225,11 +280,11 @@ The values should be described as **synthetic benchmark observations** in any
 public demonstration. They cannot support claims of diagnostic accuracy or
 physiological prediction.
 
-Generation and lifecycle control checks run in isolated temporary storage through
+Generation and lifecycle checks run in isolated temporary storage through
 the real generator and core APIs. They cover baseline calculation, newly revealed
-anomalies submitted explicitly, confirmation, watch protocols and eye independence.
-The separate batch-advance regression is strict-xfail for #91. These checks do
-not establish a working automatic demo or authorize clinical use.
+automatic batch detection, confirmation, watch protocols and eye independence.
+The separate batch-advance regression also checks the exact trigger indicator
+and value. These checks do not establish clinical validity or deployed UI timing.
 
 Before treating the final deployed demo as complete: integrate the agreed story
 with Gonzalo, have Fran generate the seed, confirm the reference-dependent rules
@@ -294,7 +349,7 @@ must be reported and do not establish disease.
 Run `.venv/Scripts/python.exe -m pytest tests/test_demo_data_handoff.py -q`.
 The tests read the exact documented parameter block, so changing its seed, order,
 mission days or scenario requires revalidation. Passing controls establish data
-reproducibility and individual-measurement flows, not the blocked automatic flow.
+reproducibility and automatic detection-confirmation-protocol flows.
 Population validity and the final demo story remain separate acceptance items.
 
 
@@ -344,5 +399,6 @@ Do not hide them or claim an empirical false-alert rate from this fixture.
 
 The final demo story remains Gonzalo's responsibility. The selected anomaly
 values and persistence are unchanged; all fourteen parameter entries are now
-present, matching Fran's current generator catalogue. The initial dataset has
+present. Fran's integrated generator still supplies the earlier three-indicator
+block; expanding it and regenerating the seed remains owner integration work. The initial dataset has
 1008 rows (3 astronauts times 14 indicators times 24 observation dates).

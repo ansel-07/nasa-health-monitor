@@ -28,9 +28,27 @@ def test_find_todos():
     assert gen.find_todos(PARAMS, [ANOMALY]) == []
 
 
-def test_real_parameters_are_still_todo():
-    """Until Edu and Gonzalo fill them in, the real parameters must not be used."""
-    assert gen.find_todos(gen.INDICATOR_PARAMS, gen.ANOMALIES)
+def _documented_block() -> dict:
+    """The parameter block of docs/DEMO_DATA_HANDOFF.md (parsed as literals, never executed)."""
+    import ast
+    from pathlib import Path
+    doc = Path(__file__).resolve().parents[1] / "docs" / "DEMO_DATA_HANDOFF.md"
+    block = doc.read_text(encoding="utf-8").split("```python\n", 1)[1].split("```", 1)[0]
+    return {node.targets[0].id: ast.literal_eval(node.value) for node in ast.parse(block).body}
+
+
+def test_generator_uses_the_documented_benchmark():
+    """The script's parameters are exactly Edu's documented block (#83), same order."""
+    spec = _documented_block()
+    for name in ("SEED", "PREFLIGHT_DAYS", "MISSION_DAYS", "DEMO_DAY", "MEASURE_HOUR", "ANOMALIES"):
+        assert getattr(gen, name) == spec[name], name
+    assert list(gen.INDICATOR_PARAMS.items()) == list(spec["INDICATOR_PARAMS"].items())
+
+
+def test_real_parameters_are_complete():
+    scenario = {"MISSION_DAYS": gen.MISSION_DAYS, "DEMO_DAY": gen.DEMO_DAY}
+    assert gen.find_todos(gen.INDICATOR_PARAMS, gen.ANOMALIES, scenario) == []
+    assert gen.check_scenario(gen.MISSION_DAYS, gen.DEMO_DAY, gen.ANOMALIES) == []
 
 
 def test_check_params():
@@ -107,7 +125,9 @@ def test_write_and_baseline(tmp_path, monkeypatch):
 
 def test_main_refuses_while_todo(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(models, "MEASUREMENTS_FILE", tmp_path / "measurements.csv")
+    monkeypatch.setattr(models, "MISSION_STATE_FILE", tmp_path / "mission_state.json")
     monkeypatch.setattr(models, "SEED_DIR", tmp_path / "seed")
+    monkeypatch.setattr(gen, "DEMO_DAY", "TODO_GONZALO")
     assert gen.main() == 1
     assert "TODO" in capsys.readouterr().out
     assert not (tmp_path / "measurements.csv").exists()
@@ -120,8 +140,10 @@ def complete(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "MISSION_STATE_FILE", tmp_path / "mission_state.json")
     monkeypatch.setattr(models, "EPISODES_FILE", tmp_path / "episodes.json")
     monkeypatch.setattr(models, "SEED_DIR", tmp_path / "seed")
-    monkeypatch.setattr(gen, "INDICATOR_PARAMS", {"heart_rate": {"mean": 50, "sd": 1, "decimals": 0}})
-    monkeypatch.setattr(gen, "ANOMALIES", [{"astronaut": "a1", "indicator": "heart_rate",
+    # A fake indicator (the generator skips "_" fixtures), so no real indicator id is needed (#80).
+    monkeypatch.setattr(gen.config, "load_indicators", lambda: {"fake_indicator": {"unit": "u"}})
+    monkeypatch.setattr(gen, "INDICATOR_PARAMS", {"fake_indicator": {"mean": 50, "sd": 1, "decimals": 0}})
+    monkeypatch.setattr(gen, "ANOMALIES", [{"astronaut": "a1", "indicator": "fake_indicator",
                                             "day": 4, "value": 80}])
     monkeypatch.setattr(gen, "MISSION_DAYS", 6)
     monkeypatch.setattr(gen, "DEMO_DAY", 4)
@@ -153,9 +175,6 @@ def test_one_advance_after_reset_reveals_the_demo_anomaly(complete, monkeypatch)
 def test_scenario_todos_are_listed():
     todos = gen.find_todos({}, [], {"MISSION_DAYS": "TODO_EDU", "DEMO_DAY": 3})
     assert todos == ["MISSION_DAYS"]
-    assert {"MISSION_DAYS", "DEMO_DAY"} <= set(
-        gen.find_todos(gen.INDICATOR_PARAMS, gen.ANOMALIES,
-                       {"MISSION_DAYS": gen.MISSION_DAYS, "DEMO_DAY": gen.DEMO_DAY}))
 
 
 @pytest.mark.parametrize("mission_days, demo_day, anomaly_day, ok", [
@@ -189,11 +208,14 @@ def _indicators_in(cond, found):
 
 
 def test_generator_simulates_the_indicators_of_the_real_problems():
-    """INDICATOR_PARAMS = every indicator used by the real problems' rules (#35), all configured."""
+    """INDICATOR_PARAMS only simulates indicators used by the real problems (#35), all configured.
+
+    A subset is fine: the benchmark only covers the indicators with fully specified values (#83).
+    """
     from core import config
     used = set()
     for problem in config.load_problems().values():  # real problems only (no "_" fixtures)
         _indicators_in(problem.get("symptoms", {}), used)
         _indicators_in(problem.get("triggers", []), used)
-    assert set(gen.INDICATOR_PARAMS) == used
+    assert gen.INDICATOR_PARAMS and set(gen.INDICATOR_PARAMS) <= used
     assert used <= set(config.load_indicators())

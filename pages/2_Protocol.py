@@ -115,7 +115,9 @@ def main() -> None:
 
     # Mascot small on the left, the whole protocol on the right, controls below (AGENTS.md 8).
     with mascot.beside(step["text"], "neutral"):
-        st.graphviz_chart(protocol_engine.flowchart_dot(episode), width="stretch",
+        # Readable by default (around the current step); the whole protocol on request.
+        whole = st.toggle("Show whole protocol", key=f"protocol_whole_{astronaut}")
+        st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=whole), width="stretch",
                           alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
     st.caption(f"Severity: {readable(episode['severity'])} · Environment: {environment_name(episode['environment'])}")
     # Log length distinguishes repeated visits to the same node, clearing old

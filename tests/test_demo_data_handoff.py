@@ -16,7 +16,7 @@ from scripts import generate_data as generator
 @pytest.fixture
 def spec():
     doc = Path(__file__).resolve().parents[1] / "docs" / "DEMO_DATA_HANDOFF.md"
-    block = doc.read_text(encoding="utf-8").split("```python\n", 1)[1].split("```", 1)[0]
+    block = doc.read_text(encoding="utf-8").split("## 2. Complete generator input", 1)[1].split("```python\n", 1)[1].split("```", 1)[0]
     # Parse literal assignments only; never execute documentation as Python code.
     return {node.targets[0].id: ast.literal_eval(node.value) for node in ast.parse(block).body}
 
@@ -40,7 +40,13 @@ def test_documented_parameters_are_complete_and_reproducible(spec, generated):
     pd.testing.assert_frame_equal(frame, generator.generate(*args))
     assert len(frame) == len(args[2]) * len(args[0]) * (spec["PREFLIGHT_DAYS"] + spec["MISSION_DAYS"])
     assert not frame.duplicated(["timestamp", "astronaut", "indicator"]).any()
-    assert set(spec["INDICATOR_PARAMS"]) == set(generator.INDICATOR_PARAMS)
+    # The handoff covers all channels even before Fran integrates the expanded block.
+    expected = {"muscle_strength", "muscle_area", "muscle_power", "muscle_endurance",
+                "muscle_tone", "muscle_stiffness"}
+    expected.update(f"{name}_{eye}" for name in
+                    ("peripapillary_trt", "refraction", "optic_disc_edema_grade", "visual_acuity")
+                    for eye in ("left", "right"))
+    assert set(spec["INDICATOR_PARAMS"]) == expected
     assert len(spec["INDICATOR_PARAMS"]) == 14
     assert np.isfinite(frame["value"]).all()
     positive = frame[frame.indicator.str.startswith("muscle_")
@@ -118,13 +124,9 @@ def test_documented_data_reaches_real_confirmation_and_protocol(tmp_path, monkey
     assert force["mean"] == pytest.approx(489.6071428571)
     assert left != right
 
-    # Control path: feed the newly revealed anomaly explicitly. The bulk path
-    # has a separate regression below; this does not claim it is fixed.
-    first = mission.advance(24)
-    assert len(first) == 42
-    new_eye = next(row for row in first if row["astronaut"] == "a1"
-                   and row["indicator"] == "peripapillary_trt_left")
-    eye_episode = episodes.on_new_measurement(new_eye, environment)
+    first = mission.advance_and_detect(24, environment)
+    assert {k: first[k] for k in ("revealed", "new_alerts")} == {"revealed": 42, "new_alerts": ["a1"]}
+    eye_episode = data.get_open_episode("a1")
     assert eye_episode["problem"] == "sans" and eye_episode["status"] == "pending_confirmation"
     assert eye_episode["trigger"]["indicator"] == "peripapillary_trt_left"
     assert eye_episode["symptoms"]["peripapillary_trt_left"] == "concern"
@@ -134,12 +136,9 @@ def test_documented_data_reaches_real_confirmation_and_protocol(tmp_path, monkey
         "a1", "peripapillary_trt_left", environment)] == [
         (left["mean"] + 20, left["mean"] + 55), (left["mean"] + 55, None)]
 
-    second = mission.advance(24)
-    assert len(second) == 42
-    new_force = next(row for row in second if row["astronaut"] == "a2"
-                     and row["indicator"] == "muscle_strength")
-    muscle_episode = episodes.on_new_measurement(new_force, environment)
-    assert data.get_open_episode("a1")["id"] == eye_episode["id"]
+    second = mission.advance_and_detect(24, environment)
+    assert {k: second[k] for k in ("revealed", "new_alerts")} == {"revealed": 42, "new_alerts": ["a2", "a3"]}
+    muscle_episode = data.get_open_episode("a2")
     assert muscle_episode["problem"] == "muscle_atrophy"
     assert muscle_episode["symptoms"]["muscle_strength"] == "concern"
     assert 390 / force["mean"] < .80
@@ -175,7 +174,6 @@ def test_documented_data_reaches_real_confirmation_and_protocol(tmp_path, monkey
     assert data.get_baseline("a2", "muscle_strength") == force
 
 
-@pytest.mark.xfail(strict=True, reason="#91: bulk detection stores zero edema grade as the TRT episode trigger.")
 def test_bulk_advance_attributes_sans_to_the_abnormal_indicator(tmp_path, monkeypatch, generated):
     frame, args = generated
     for name in ("MEASUREMENTS_FILE", "EPISODES_FILE", "MISSION_STATE_FILE"):
@@ -184,7 +182,7 @@ def test_bulk_advance_attributes_sans_to_the_abnormal_indicator(tmp_path, monkey
     for row in frame.to_dict("records"):
         data.add_measurement(row)
     result = mission.advance_and_detect(24, "mars")
-    assert result == {"revealed": 42, "new_alerts": ["a1"]}
+    assert {k: result[k] for k in ("revealed", "new_alerts")} == {"revealed": 42, "new_alerts": ["a1"]}
     episode = data.get_open_episode("a1")
     assert episode["trigger"]["indicator"] == "peripapillary_trt_left"
     assert episode["trigger"]["value"] == 360

@@ -24,14 +24,14 @@ def test_reset_restores_seed_files(folders):
     (seed_dir / "episodes.json").write_text('{"episodes": [], "pending": []}\n')
     (seed_dir / "measurements.csv").write_text(
         "timestamp,astronaut,indicator,value,unit,phase,source\n"
-        "2027-03-01T08:00:00,a1,heart_rate,60,bpm,preflight,simulated\n"
+        "2027-03-01T08:00:00,a1,_example_indicator,60,units,preflight,simulated\n"
     )
 
     # The demo changes the runtime data...
     data.reset_demo()
     data.save_episode({"id": "ep-0001", "astronaut": "a1", "status": "active"})
     data.add_measurement({"timestamp": "2027-04-10T08:00:00", "astronaut": "a1",
-                          "indicator": "heart_rate", "value": 120, "unit": "bpm",
+                          "indicator": "_example_indicator", "value": 120, "unit": "bpm",
                           "phase": "mission", "source": "manual"})
     assert len(data.load_episodes()) == 1
     assert len(data.load_measurements()) == 2
