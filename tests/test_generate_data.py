@@ -174,3 +174,26 @@ def test_check_scenario(mission_days, demo_day, anomaly_day, ok):
 def test_seed_clock():
     assert gen.seed_clock(datetime(2027, 4, 1), 1) == datetime(2027, 4, 1)
     assert gen.seed_clock(datetime(2027, 4, 1, 6, 30), 5) == datetime(2027, 4, 5)
+
+
+def _indicators_in(cond, found):
+    if isinstance(cond, dict):
+        if "indicator" in cond:
+            found.add(cond["indicator"])
+        for value in cond.values():
+            _indicators_in(value, found)
+    elif isinstance(cond, list):
+        for value in cond:
+            _indicators_in(value, found)
+    return found
+
+
+def test_generator_simulates_the_indicators_of_the_real_problems():
+    """INDICATOR_PARAMS = every indicator used by the real problems' rules (#35), all configured."""
+    from core import config
+    used = set()
+    for problem in config.load_problems().values():  # real problems only (no "_" fixtures)
+        _indicators_in(problem.get("symptoms", {}), used)
+        _indicators_in(problem.get("triggers", []), used)
+    assert set(gen.INDICATOR_PARAMS) == used
+    assert used <= set(config.load_indicators())
