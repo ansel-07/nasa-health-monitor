@@ -70,3 +70,23 @@ def advance(hours: int = 24) -> list[dict]:
         row["value"] = float(row["value"])
         items.append(row)
     return items
+
+
+def advance_and_detect(hours: int, environment: str) -> dict:
+    """Advance the clock and send every revealed measurement to episode detection.
+
+    All astronauts, not only the current one (AGENTS.md section 10, rule 1). Returns
+    {"revealed": number of new simulated measurements, "new_alerts": ids of the astronauts
+    with an episode opened by this advance}. Raises ValueError for bad hours; errors from
+    episode detection are not caught (the clock has already moved when they happen).
+    """
+    from core import data, episodes  # here, not at the top: both import this module
+
+    astronauts = list(data.load_astronauts()["id"])
+    before = {a: (data.get_open_episode(a) or {}).get("id") for a in astronauts}
+    revealed = advance(hours)
+    for measurement in revealed:
+        episodes.on_new_measurement(measurement, environment)
+    new_alerts = [a for a in astronauts
+                  if (data.get_open_episode(a) or {}).get("id") not in (None, before[a])]
+    return {"revealed": len(revealed), "new_alerts": new_alerts}

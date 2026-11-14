@@ -1,7 +1,11 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
-"""The mascot: animated face, speech bubble and voice. Owner: Ansel.
+"""The mascot: animated face, subtitles and voice. Owner: Ansel.
 
-Rules: AGENTS.md, section 8. Pages call only say() and voice_toggle().
+Rules: AGENTS.md, section 8. Pages call only say(), beside() and voice_toggle().
+
+Layout (provisional, until the team's UI document): the face with its subtitles below, no
+speech bubble. size="large": big and centered. beside(): small on the left, and the right
+column is returned for the screen's visual (chart, protocol diagram). Buttons go below.
 
 PLACEHOLDER LOOK: the face below (OLED-style eyes and a mouth) only exists so the
 other screens can be built. Name, look and the mood-to-situation mapping are still
@@ -33,7 +37,15 @@ _MOUTHS = {
 # Eye height per mood (squinted, normal...). Placeholder.
 _EYE_HEIGHT = {"happy": 14, "neutral": 20, "thinking": 12, "worried": 22, "serious": 10}
 
-_HEIGHTS = {"large": 190, "small": 150}
+_FACE_PX = {"large": 170, "small": 80}
+_FONT_PX = {"large": 19, "small": 14}
+_CHARS_PER_LINE = {"large": 60, "small": 22}
+
+
+def frame_height(text: str, size: str) -> int:
+    """Iframe height for the face plus its subtitles, so long texts are never cut."""
+    lines = max(1, -(-len(text) // _CHARS_PER_LINE[size]))  # ceil
+    return _FACE_PX[size] + 34 + lines * round(_FONT_PX[size] * 1.45)
 
 
 def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: bool = False) -> str:
@@ -43,22 +55,21 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
     if size not in MASCOT_SIZES:
         raise ValueError(f"unknown size '{size}', expected one of {MASCOT_SIZES}")
 
-    face_px = 150 if size == "large" else 70
+    face_px = _FACE_PX[size]
     eye_h = _EYE_HEIGHT[mood]
     eye_y = 42 - eye_h / 2
-    layout = "row" if size == "large" else "column"
-    font = "1.05rem" if size == "large" else "0.8rem"
+    font = _FONT_PX[size]
     speak = "true" if voice_on else "false"
 
     return f"""
-<div class="mascot" style="display:flex;flex-direction:{layout};align-items:center;gap:12px;font-family:sans-serif;">
+<div class="mascot" style="display:flex;flex-direction:column;align-items:center;gap:10px;font-family:sans-serif;">
   <svg class="face" width="{face_px}" height="{face_px}" viewBox="0 0 100 100" role="img" aria-label="{html.escape(MASCOT_NAME)} ({mood})">
     <rect x="2" y="2" width="96" height="96" rx="20" fill="#111"/>
     <rect class="eye" x="24" y="{eye_y}" width="16" height="{eye_h}" rx="5" fill="#5ef2ff"/>
     <rect class="eye" x="60" y="{eye_y}" width="16" height="{eye_h}" rx="5" fill="#5ef2ff"/>
     <path d="{_MOUTHS[mood]}" stroke="#5ef2ff" stroke-width="5" fill="none" stroke-linecap="round"/>
   </svg>
-  <div class="bubble" style="background:#f2f4f8;color:#111;border-radius:14px;padding:10px 14px;font-size:{font};max-width:520px;">
+  <div class="subtitles" style="background:rgba(0,0,0,0.72);color:#fff;border-radius:6px;padding:4px 10px;font-size:{font}px;line-height:1.45;text-align:center;max-width:92%;">
     {html.escape(text)}
   </div>
 </div>
@@ -86,7 +97,20 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
 def say(text: str, mood: str = "neutral", size: str = "large") -> None:
     """Draw the mascot saying `text` and read it aloud if the voice is on."""
     voice_on = bool(st.session_state.get("voice_on", False))
-    components.html(build_html(text, mood, size, voice_on), height=_HEIGHTS[size])
+    components.html(build_html(text, mood, size, voice_on), height=frame_height(text, size))
+
+
+def beside(text: str, mood: str = "neutral"):
+    """Mascot small on the left; returns the right column for the screen's visual.
+
+        with mascot.beside(text, mood):
+            st.plotly_chart(fig)
+        # buttons go here, below both
+    """
+    mascot_col, visual_col = st.columns([1, 3], vertical_alignment="center")
+    with mascot_col:
+        say(text, mood, size="small")
+    return visual_col
 
 
 def voice_toggle() -> None:
