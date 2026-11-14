@@ -120,8 +120,10 @@ def complete(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "MISSION_STATE_FILE", tmp_path / "mission_state.json")
     monkeypatch.setattr(models, "EPISODES_FILE", tmp_path / "episodes.json")
     monkeypatch.setattr(models, "SEED_DIR", tmp_path / "seed")
-    monkeypatch.setattr(gen, "INDICATOR_PARAMS", {"heart_rate": {"mean": 50, "sd": 1, "decimals": 0}})
-    monkeypatch.setattr(gen, "ANOMALIES", [{"astronaut": "a1", "indicator": "heart_rate",
+    # A fake indicator (the generator skips "_" fixtures), so no real indicator id is needed (#80).
+    monkeypatch.setattr(gen.config, "load_indicators", lambda: {"fake_indicator": {"unit": "u"}})
+    monkeypatch.setattr(gen, "INDICATOR_PARAMS", {"fake_indicator": {"mean": 50, "sd": 1, "decimals": 0}})
+    monkeypatch.setattr(gen, "ANOMALIES", [{"astronaut": "a1", "indicator": "fake_indicator",
                                             "day": 4, "value": 80}])
     monkeypatch.setattr(gen, "MISSION_DAYS", 6)
     monkeypatch.setattr(gen, "DEMO_DAY", 4)
