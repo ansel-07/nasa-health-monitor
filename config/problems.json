@@ -35,6 +35,36 @@
       { "severity": "severe", "when": { "indicator": "_example_indicator", "above": 30 } },
       { "severity": "moderate", "when": { "indicator": "_example_indicator", "above": 5 }, "environments": ["mars"] }
     ],
+    "symptoms": {
+      "symptom_a": {
+        "name": "Example symptom A (test fixture)",
+        "levels": [
+          { "level": "concern", "when": { "indicator": "_example_indicator", "above": 30 } },
+          { "level": "watch", "when": { "indicator": "_example_indicator", "above": 5 }, "environments": ["mars"] },
+          { "level": "watch", "when": { "indicator": "_example_indicator", "above": 10 } }
+        ]
+      },
+      "symptom_b": {
+        "name": "Example symptom B (test fixture)",
+        "levels": [
+          { "level": "concern", "when": { "indicator": "_example_indicator_2", "above": 20 } },
+          { "level": "watch", "when": { "indicator": "_example_indicator_2", "above": 10 } }
+        ]
+      }
+    },
+    "states": [
+      { "state": "medical_urgency", "when": { "any": [
+        { "count_at_least": 2, "of": [
+          { "symptom": "symptom_a", "level_at_least": "concern" },
+          { "symptom": "symptom_b", "level_at_least": "concern" }
+        ] },
+        { "all": [ { "symptom": "symptom_a", "level_is": "concern" }, { "environment_in": ["mars"] } ] }
+      ] } },
+      { "state": "watch", "when": { "count_at_least": 1, "of": [
+        { "symptom": "symptom_a", "level_at_least": "watch" },
+        { "symptom": "symptom_b", "level_at_least": "watch" }
+      ] } }
+    ],
     "source": "none"
   }
 }

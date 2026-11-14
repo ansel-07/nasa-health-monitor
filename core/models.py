@@ -14,9 +14,16 @@ SEED_DIR = DATA_DIR / "seed"
 MEASUREMENTS_FILE = DATA_DIR / "measurements.csv"
 ASTRONAUTS_FILE = DATA_DIR / "astronauts.csv"
 EPISODES_FILE = DATA_DIR / "episodes.json"
+MISSION_STATE_FILE = DATA_DIR / "mission_state.json"
 
 # Ordered from least to most severe. Provisional: the final list comes from Edu.
+# TRANSITION: will be replaced by PROBLEM_STATES once every owner has migrated (AGENTS.md, 5.3).
 SEVERITIES = ["inactive", "mild", "moderate", "severe"]
+
+# Symptom-based problems (AGENTS.md, section 5.3). Both lists go from least to most serious.
+# The first value of each list is the default when no rule matches.
+SYMPTOM_LEVELS = ["not_present", "watch", "concern"]
+PROBLEM_STATES = ["no_concern", "watch", "medical_urgency"]
 
 EPISODE_STATUSES = [
     "pending_confirmation",
