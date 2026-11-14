@@ -2,8 +2,8 @@
 # AI-assisted: Check-in implementation generated with Codex; human review pending.
 """Check-in: measurement form, trigger alert and confirmation step. Owner: Juan Carlos.
 
-Mascot: large at the top; small in a column next to the chart when a chart is shown
-(AGENTS.md, section 8). Chart: core.charts.indicator_chart(..., compact=True).
+Mascot: large and centered without a visual; small to the left of the chart.
+Forms and buttons stay below both (AGENTS.md, section 8).
 """
 from datetime import datetime, timedelta
 from math import ceil, isfinite
@@ -125,13 +125,10 @@ def main() -> None:
             mood = "worried"
     if any(_unfinished(indicator.get(key)) for key in ("name", "unit", "how_to_measure", "why_it_matters")):
         message, mood = "Measurement guidance is not available yet. This indicator cannot be submitted.", "serious"
-    chart_col, mascot_col = st.columns([4, 1])
-    with chart_col:
+    with mascot.beside(message, mood):
         st.plotly_chart(charts.indicator_chart(
             astronaut, indicator_id, compact=True, environment=environment,
         ))
-    with mascot_col:
-        mascot.say(message, mood, size="small")
 
     if opened:
         label = "Problem state" if "symptoms" in problems[opened["problem"]] else "Alert severity"
@@ -144,7 +141,7 @@ def main() -> None:
         if opened["environment"] != environment:
             st.info("This episode keeps the mission environment in which it was opened.")
     if opened and opened["status"] == "active":
-        if st.button("Open Protocol"):
+        if st.button("Open Protocol", width="stretch"):
             st.switch_page("pages/2_Protocol.py")
 
     guidance_ready = _guidance(indicator)
@@ -169,7 +166,7 @@ def main() -> None:
             if not ready:
                 hours = max(1, ceil(max(remaining, (original - now).total_seconds() + 1) / 3600))
                 st.caption(f"For the demo, Simulate wait advances mission time by {hours} hour(s).")
-                if st.button("Simulate wait", disabled=blocked):
+                if st.button("Simulate wait", disabled=blocked, width="stretch"):
                     try:
                         mission.advance_and_detect(hours=hours, environment=environment)
                         if mission.now() <= now:
@@ -192,7 +189,7 @@ def main() -> None:
         )
         submitted = st.form_submit_button(
             "Confirm repeat measurement" if confirmation else "Record measurement",
-            disabled=blocked or not guidance_ready or not ready,
+            disabled=blocked or not guidance_ready or not ready, width="stretch",
         )
     if submitted:
         if value is None or not isfinite(value):
@@ -231,7 +228,7 @@ def main() -> None:
             st.caption("Reviewing the next alert starts a new confirmation wait in the selected mission environment.")
             if not next_ready:
                 st.warning("Measurement guidance for the next alert is not available yet.")
-            if st.button("Review next alert", disabled=blocked or not next_ready):
+            if st.button("Review next alert", disabled=blocked or not next_ready, width="stretch"):
                 try:
                     result = episodes.accept_pending(astronaut, environment)
                 except (ValueError, KeyError, OSError) as error:

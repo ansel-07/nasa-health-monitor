@@ -105,6 +105,28 @@ def test_form_is_empty_unbounded_and_hides_fixtures(screen):
     assert state["calls"] == []
 
 
+@pytest.mark.parametrize("status", [None, "pending_confirmation", "active"])
+def test_chart_is_right_of_mascot_and_controls_are_below_both(screen, status):
+    app, state = screen
+    if status:
+        opened(state, status)
+    else:
+        waiting(state)
+    app.run()
+
+    assert not app.exception
+    columns = app.get("column")
+    assert len(columns) == 2
+    assert not columns[0].get("plotly_chart")
+    assert len(columns[1].get("plotly_chart")) == 1
+    assert all(not column.get("button") and not column.get("form") for column in columns)
+    visual_row = next(index for index, node in app.main.children.items()
+                      if hasattr(node, "children") and node.get("plotly_chart"))
+    controls = [index for index, node in app.main.children.items() if node.type in ("button", "form")]
+    assert controls and all(index > visual_row for index in controls)
+    assert state["speech"][-1][2] == "small"
+
+
 def test_records_only_on_submit_and_does_not_repeat_on_rerun(screen):
     app, state = screen
     app.run()
