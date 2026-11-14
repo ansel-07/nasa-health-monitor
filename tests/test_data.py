@@ -94,3 +94,40 @@ def test_latest_values(tmp_data):
     data.add_measurement(make("2027-04-10T08:00:00", 6.5, indicator="sleep_hours", unit="h"))
     data.add_measurement(make("2027-04-11T08:00:00", 99, astronaut="a2"))
     assert data.latest_values("a1") == {"heart_rate": 70.0, "sleep_hours": 6.5}
+
+
+def add_preflight(values, astronaut="a1", indicator="heart_rate"):
+    for day, value in enumerate(values, start=1):
+        data.add_measurement(make(f"2027-03-{day:02d}T08:00:00", value, astronaut=astronaut,
+                                  indicator=indicator, phase="preflight", source="simulated"))
+
+
+def test_get_baseline_uses_only_preflight_of_that_astronaut(tmp_data):
+    add_preflight([60, 62, 64])
+    add_preflight([90, 95], astronaut="a2")
+    data.add_measurement(make("2027-04-10T08:00:00", 120))  # mission value: ignored
+    baseline = data.get_baseline("a1", "heart_rate")
+    assert baseline == {"mean": 62.0, "std": 2.0, "n": 3}  # sample std (ddof=1)
+    assert isinstance(baseline["n"], int)
+
+
+def test_get_baseline_without_data(tmp_data):
+    assert data.get_baseline("a1", "heart_rate") is None
+    data.add_measurement(make("2027-04-10T08:00:00", 62))  # only mission data
+    assert data.get_baseline("a1", "heart_rate") is None
+
+
+def test_z_score(tmp_data):
+    add_preflight([60, 62, 64])
+    assert data.z_score("a1", "heart_rate", 66) == pytest.approx(2.0)
+    assert data.z_score("a1", "heart_rate", 59) == pytest.approx(-1.5)
+    assert data.z_score("a1", "heart_rate", 62) == pytest.approx(0.0)
+
+
+def test_z_score_none_without_baseline_or_zero_std(tmp_data):
+    assert data.z_score("a1", "heart_rate", 70) is None
+    add_preflight([62])  # one value: std 0.0
+    assert data.get_baseline("a1", "heart_rate")["std"] == 0.0
+    assert data.z_score("a1", "heart_rate", 70) is None
+    add_preflight([5, 5, 5], indicator="mood")  # identical values: std 0
+    assert data.z_score("a1", "mood", 3) is None
