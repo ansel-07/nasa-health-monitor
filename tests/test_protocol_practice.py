@@ -57,3 +57,12 @@ def test_practice_input_is_not_mutated(storage, practice):
 def test_tutorial_gate(monkeypatch, level, allowed):
     monkeypatch.setattr(activity, "bar_level", lambda astronaut, kind, activity_id: level)
     assert activity.can_repeat_tutorial("a1", "_example") is allowed
+
+
+def test_practice_episode_runs_real_protocols_without_files(storage):
+    episode = engine.practice_episode("a1", "sans", "mars")
+    assert episode["practice"] and episode["status"] == "active" and episode["severity"] == "watch"
+    assert engine.practice_episode("a1", "_example", "mars")["severity"] == "mild"   # legacy triggers win
+    episode = engine.submit(episode, None)
+    assert engine.current_step(episode)["type"] in ("info", "action", "measure", "question", "contact")
+    assert list(storage.iterdir()) == []
