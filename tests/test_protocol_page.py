@@ -272,3 +272,18 @@ def test_local_medical_officer_shows_no_earth_delay(context, monkeypatch, enviro
     captions = [item.value for item in app.caption]
     assert "On board: no Earth signal delay." in captions
     assert not any("Signal round trip" in text or "minutes" in text for text in captions)
+
+
+def test_out_of_domain_measurement_shows_why_and_stays_on_the_step(context, monkeypatch):
+    # #247: the page shows the domain message; nothing is saved and the step stays.
+    indicators = deepcopy(protocol_engine.load_indicators())
+    indicators["_example_indicator"]["valid"] = {"min": 0}
+    monkeypatch.setattr(protocol_engine, "load_indicators", lambda: indicators)
+    context["episode"]["current_node"] = "remeasure"
+    app = page()
+    app.number_input[0].set_value(-1)
+    button(app, "Save measurement").click().run()
+    assert not app.exception
+    assert any("cannot be below 0" in item.value for item in app.error)
+    context["measurements"].assert_not_called()
+    assert context["episode"]["current_node"] == "remeasure"
