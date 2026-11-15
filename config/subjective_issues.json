@@ -2,7 +2,7 @@
   "settings": {
     "persistence_days": 3,
     "speed_multiplier": 2,
-    "source": "Demo placeholders from docs/ASTRONAUT_HEALTH_APP_SPEC.md section 4; not medical decisions."
+    "source": "Demo placeholders from the team product specification; not medical decisions."
   },
   "issues": {
     "MUS_01": {
@@ -11,7 +11,7 @@
       "check_ins": [
         "muscle_strength_test"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "MUS_02": {
       "label": "Muscles tire earlier",
@@ -19,7 +19,7 @@
       "check_ins": [
         "muscle_endurance_test"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "MUS_03": {
       "label": "More effort for the same task",
@@ -27,7 +27,7 @@
       "check_ins": [
         "muscle_performance"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "MUS_04": {
       "label": "Heavy legs, arms or back",
@@ -35,7 +35,7 @@
       "check_ins": [
         "muscle_strength_test"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "MUS_05": {
       "label": "Poor recovery after rest",
@@ -43,7 +43,7 @@
       "check_ins": [
         "muscle_endurance_test"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "MUS_06": {
       "label": "Unusual muscle tightness or pain",
@@ -51,7 +51,7 @@
       "check_ins": [
         "muscle_tone"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 1; [1] https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/ . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "VIS_01": {
       "label": "Blurred near vision",
@@ -59,7 +59,7 @@
       "check_ins": [
         "visual_acuity"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "VIS_02": {
       "label": "Blurred middle or far vision",
@@ -67,7 +67,7 @@
       "check_ins": [
         "visual_acuity"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "VIS_03": {
       "label": "Vision sharpness changes",
@@ -75,7 +75,7 @@
       "check_ins": [
         "visual_acuity"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "VIS_04": {
       "label": "Glasses less comfortable",
@@ -83,7 +83,7 @@
       "check_ins": [
         "refraction"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "VIS_05": {
       "label": "Harder to see in dim light",
@@ -91,7 +91,7 @@
       "check_ins": [
         "visual_acuity"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "VIS_06": {
       "label": "Harder to judge distances",
@@ -99,7 +99,7 @@
       "check_ins": [
         "visual_acuity"
       ],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 2; [2] https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf ; [3] https://ntrs.nasa.gov/citations/20100039152 . Question wording is a prototype proposal, not a validated questionnaire. Check-in links: project decision by Ansel (which test measures the function the symptom describes), approved for v1; not a clinical mapping."
     },
     "ALM_01": {
       "label": "Sudden vision loss or a new dark or missing area",
@@ -107,7 +107,7 @@
       "alarm": true,
       "action": "Stop the risky task and tell the crew medical officer immediately.",
       "check_ins": [],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3; [4] https://ntrs.nasa.gov/citations/20220014606 . Not a diagnosis of SANS; prototype triage proposal."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 3; [4] https://ntrs.nasa.gov/citations/20220014606 . Not a diagnosis of SANS; prototype triage proposal."
     },
     "ALM_02": {
       "label": "New distortion in the centre of vision",
@@ -115,7 +115,7 @@
       "alarm": true,
       "action": "Get medical attention immediately.",
       "check_ins": [],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3; [4] https://ntrs.nasa.gov/citations/20220014606 . Not a diagnosis of SANS; prototype triage proposal."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 3; [4] https://ntrs.nasa.gov/citations/20220014606 . Not a diagnosis of SANS; prototype triage proposal."
     },
     "ALM_03": {
       "label": "Sudden weakness or cannot move safely",
@@ -123,7 +123,7 @@
       "alarm": true,
       "action": "Get medical attention and assistance immediately.",
       "check_ins": [],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3. Not a diagnosis of SANS or muscle atrophy; prototype triage proposal."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 3. Not a diagnosis of SANS or muscle atrophy; prototype triage proposal."
     },
     "ALM_04": {
       "label": "New severe pain with other warning signs",
@@ -131,7 +131,7 @@
       "alarm": true,
       "action": "Get medical attention immediately to find the cause.",
       "check_ins": [],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3. Not a diagnosis of SANS or muscle atrophy; prototype triage proposal."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 3. Not a diagnosis of SANS or muscle atrophy; prototype triage proposal."
     },
     "ALM_05": {
       "label": "New double vision or severe headache with neurological signs",
@@ -139,7 +139,7 @@
       "alarm": true,
       "action": "Stop the risky task and tell the crew medical officer immediately. Get urgent medical assessment; do not assume this is SANS.",
       "check_ins": [],
-      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3, note after ALM_04; immediate-action wording follows section 3 alarm response. Question and triage wording are prototype proposals, not a validated questionnaire or a diagnosis of SANS."
+      "source": "Edu's team symptom guide (Edu, 2026-11-14), section 3, note after ALM_04; immediate-action wording follows section 3 alarm response. Question and triage wording are prototype proposals, not a validated questionnaire or a diagnosis of SANS."
     },
     "_example_issue": {
       "label": "Example issue (test fixture)",
