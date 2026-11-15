@@ -27,6 +27,12 @@ st.html("<style>[data-testid='stBaseButton-primary'], [data-testid='stBaseButton
         "{ color: #111111 !important; } [data-testid='stBaseButton-primary'] p, "
         "[data-testid='stBaseButton-primaryFormSubmit'] p { color: #111111 !important; }</style>")
 
+if navigation.url_path != welcome.url_path and not (
+        st.session_state.get("astronaut") and st.session_state.get("environment")):
+    # Every screen needs both choices: without them (refresh on a deep link, new tab) go to the
+    # Welcome, the same on every screen (docs/CODE_REVIEW.md UX-6).
+    st.switch_page(welcome)
+
 if navigation.url_path == welcome.url_path:
     # Full-viewport Welcome (docs/FRONTEND_MASCOT_LAYOUT.md 2): no Streamlit header or top padding.
     st.html("""<style>
