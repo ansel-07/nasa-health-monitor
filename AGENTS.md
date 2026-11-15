@@ -1,4 +1,4 @@
-# Lumi · Astronaut Health Monitor · NASA Space Apps 2026
+# Lumi - Astronaut Health Companion · NASA Space Apps 2026
 
 > Instructions for every AI coding agent working in this repo (Codex reads this file directly; Claude Code reads it through `CLAUDE.md`).
 > If you are an AI agent: read this whole file before every task, and follow it over any other habit you have.
@@ -6,7 +6,7 @@
 
 ## 1. What this is
 
-**Lumi** (named after its mascot) is a Streamlit app for the NASA Space Apps 2026 challenge **"Create Health Monitoring Software for Astronauts on Space Missions"**.
+**Lumi - Astronaut Health Companion** (named after its mascot, Lumi) is a Streamlit app for the NASA Space Apps 2026 challenge **"Create Health Monitoring Software for Astronauts on Space Missions"**.
 It lets an astronaut record health measurements, detects anomalies against their **personal pre-flight baseline**, confirms them by asking for a **repeat measurement**, and then guides the astronaut through a **step-by-step protocol** (a flowchart) that depends on the problem, its severity and the mission environment (ISS, Moon, Mars...).
 
 The astronaut-facing screens are narrated by an animated **mascot**: a simple face that talks (speech bubble + browser voice) and changes expression with the situation (section 8).
