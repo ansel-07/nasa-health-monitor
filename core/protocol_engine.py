@@ -285,9 +285,9 @@ def _wrap(text: str, width: int = 18, max_lines: int | None = None) -> str:
     return "\n".join(lines)
 
 
-# Focused view (#188): step labels on up to four short lines that end at a whole word, instead of
+# Focused view (#188, #233): step labels on up to three lines that end at a whole word, instead of
 # being cut at 34 characters, so the current step can be read on a projector.
-_FOCUS_LABEL, _FOCUS_WRAP, _FOCUS_LINES = 200, 14, 4
+_FOCUS_LABEL, _FOCUS_WRAP, _FOCUS_LINES = 200, 18, 3
 
 
 def _node_label(node: dict, indicators: dict, limit: int = 34) -> str:
@@ -344,64 +344,90 @@ def _edges(node: dict) -> list[tuple[str, str]]:
     return edges
 
 
-_RECENT_STEPS = 3      # visited steps kept before the current one in the focused view
+_RECENT_STEPS = 1      # visited steps kept before the current one in the focused view (#233)
 _AUTOMATIC = ("decision", "set_severity")
 
 
-def _focus(protocol: dict, trace: list[str]) -> tuple[list[str], int]:
-    """Nodes around the current step and how many earlier visited steps are hidden.
+def _destinations(protocol: dict, node_id: str) -> list[tuple[str, str]]:
+    """(target, label) for every way out of a node, passing through automatic nodes.
 
-    Keeps the last visited steps, the current node and every way out of it,
-    following automatic nodes (decision, set_severity) so the real destination
-    of each option is shown.
+    The astronaut never sees decision or set_severity nodes, so the focused chart
+    skips them (#233): each option points at the step it really leads to, and its
+    label joins the answer with the branch taken ("No · Any finding: Concern") or
+    the severity set on the way ("Yes · Medical urgency"). Exits that reach the
+    same step share one arrow.
     """
-    current, earlier = trace[-1], list(dict.fromkeys(reversed(trace[:-1])))[::-1]
-    earlier = [node for node in earlier if node != current]
-    recent = earlier[-_RECENT_STEPS:]
-    shown, frontier = recent + [current], [current]
-    while frontier:
-        node_id = frontier.pop(0)
-        for target, _ in _edges(protocol["nodes"][node_id]):
-            if target not in shown:
-                shown.append(target)
-                if protocol["nodes"][target]["type"] in _AUTOMATIC:
-                    frontier.append(target)
-    return shown, len(earlier) - len(recent)
+    found: dict[str, list[str]] = {}
+
+    def follow(target: str, parts: list[str], seen: frozenset) -> None:
+        node = protocol["nodes"][target]
+        if node["type"] not in _AUTOMATIC or target in seen:   # seen: never loop on automatic cycles
+            label = " · ".join(part for part in parts if part)
+            found.setdefault(target, [])
+            if label not in found[target]:
+                found[target].append(label)
+            return
+        extra = [_readable(node["severity"])] if node["type"] == "set_severity" else []
+        for nxt, label in _edges(node):
+            follow(nxt, parts + extra + ([label] if node["type"] == "decision" else []), seen | {target})
+
+    for target, label in _edges(protocol["nodes"][node_id]):
+        follow(target, [label], frozenset({node_id}))
+    return [(target, " / ".join(label for label in labels if label)) for target, labels in found.items()]
 
 
 def flowchart_dot(episode: dict, whole: bool = False) -> str:
     """Graphviz DOT text of the episode's protocol for st.graphviz_chart.
 
-    By default only the area around the current step is drawn (readable on a
-    projector): the last visited steps, the current node and where each option
-    leads; earlier steps collapse into one "earlier steps" box. whole=True draws
-    every node. The current node is highlighted (amber), visited nodes are green
-    and the connections taken are thicker. Labels are short, readable words,
-    never the full step text. Reads only configuration.
+    By default only the area around the current step is drawn, sized for a
+    projector (#233): the previous step, the current one and the step each
+    option leads to. Automatic nodes (decision, set_severity) are skipped, so
+    every box is something the astronaut sees; earlier steps become a caption
+    above the chart. whole=True draws every node with short labels. The current
+    node is highlighted, visited nodes are green and the connections taken are
+    thicker. Reads only configuration.
     """
     protocol = load_protocol(episode["problem"])
+    nodes = protocol["nodes"]
     indicators = load_indicators()
     current = episode.get("current_node") or protocol["start"]
     trace = [entry["node"] for entry in episode.get("log", [])
              if entry.get("input") != "wait_started"] + [current]
+    if not whole:   # only what the astronaut saw (the current node is kept even if automatic)
+        trace = [node for node in trace if node == current or nodes[node]["type"] not in _AUTOMATIC]
     trace = [node for i, node in enumerate(trace) if i == 0 or node != trace[i - 1]]
     taken, visited = set(zip(trace, trace[1:])), set(trace)
-    shown, hidden = (list(protocol["nodes"]), 0) if whole else _focus(protocol, trace)
-    # Focused view: only the route taken and the ways out of the current step (through automatic nodes).
-    ahead = {current} | {n for n in shown if n not in visited and protocol["nodes"][n]["type"] in _AUTOMATIC}
-    font, edge_font = (11, 9) if whole else (20, 11)
     quote = lambda value: json.dumps(value, ensure_ascii=False)  # Graphviz reads UTF-8, not \u escapes
+
+    if whole:
+        shown, hidden = list(nodes), 0
+        arrows = [(node_id, target, label) for node_id in shown for target, label in _edges(nodes[node_id])]
+    else:
+        earlier = [node for node in dict.fromkeys(trace[:-1]) if node != current]
+        recent = earlier[-_RECENT_STEPS:]
+        hidden = len(earlier) - len(recent)
+        shown = recent + [current]
+        arrows = []
+        for source, target in zip(trace, trace[1:]):   # the route taken, with the answer given
+            if source in shown and target in shown:
+                arrows.append((source, target, dict(_destinations(protocol, source)).get(target, "")))
+        for target, label in _destinations(protocol, current):
+            if target not in shown:
+                shown.append(target)
+            arrows.append((current, target, label))
+
+    font, edge_font = (11, 9) if whole else (20, 11)
     lines = ["digraph protocol {",
              'graph [rankdir=LR, bgcolor="transparent", nodesep=0.3, ranksep=0.45];',
              f'node [shape=box, style="rounded,filled", fontname="IBM Plex Sans", fontcolor="{_NODE_TEXT}", '
              f'fontsize={font}, margin="0.14,0.08"];',
              f'edge [fontname="IBM Plex Sans", fontsize={edge_font}, arrowsize=0.7];']
-    if hidden:
-        lines.append(f'"_earlier" [label="… {hidden} earlier step{"s" if hidden != 1 else ""}", '
-                     f'style="rounded,dashed", fillcolor="none", color="{_VISITED[1]}", fontcolor="{_VISITED[1]}"];')
-        lines.append(f'"_earlier" -> {quote(shown[0])} [style=dashed, color="{_VISITED[1]}"];')
+    if hidden:   # a caption above the chart, so earlier steps do not take a column of their own
+        caption = f"… {hidden} earlier step{'s' if hidden != 1 else ''}"
+        lines.append(f'graph [label={quote(caption)}, labelloc=t, labeljust=l, fontname="IBM Plex Sans", '
+                     f'fontsize={edge_font}, fontcolor="{_VISITED[1]}"];')
     for node_id in shown:
-        node = protocol["nodes"][node_id]
+        node = nodes[node_id]
         fill, border = _CURRENT if node_id == current else _VISITED if node_id in visited else _AHEAD
         width = 2.5 if node_id == current else 1
         shape = "diamond" if node["type"] == "decision" else "box"
@@ -409,12 +435,9 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
                  else _wrap(_node_label(node, indicators, _FOCUS_LABEL), _FOCUS_WRAP, _FOCUS_LINES))
         lines.append(f"{quote(node_id)} [label={quote(label)}, shape={shape}, "
                      f'fillcolor="{fill}", color="{border}", penwidth={width}];')
-    for node_id in shown:
-        for target, label in _edges(protocol["nodes"][node_id]):
-            if target not in shown or not (whole or (node_id, target) in taken or node_id in ahead):
-                continue
-            color, width = (_VISITED[1], 2.5) if (node_id, target) in taken else (_EDGE_AHEAD, 1)
-            lines.append(f"{quote(node_id)} -> {quote(target)} [label={quote(label)}, "
-                         f'color="{color}", fontcolor="{color}", penwidth={width}];')
+    for source, target, label in arrows:
+        color, width = (_VISITED[1], 2.5) if (source, target) in taken else (_EDGE_AHEAD, 1)
+        lines.append(f"{quote(source)} -> {quote(target)} [label={quote(label)}, "
+                     f'color="{color}", fontcolor="{color}", penwidth={width}];')
     lines.append("}")
     return "\n".join(lines)

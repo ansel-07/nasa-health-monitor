@@ -443,40 +443,66 @@ def test_flowchart_ignores_wait_entries_and_marks_a_finished_protocol(episode):
         {"at": "t", "node": "do_action", "input": "cannot"},
         {"at": "t", "node": "contact_crew", "input": "continue"},
         {"at": "t", "node": "handed_over", "input": None}])
-    dot = engine.flowchart_dot(episode)
-    assert '"do_action" -> "do_action"' not in dot
-    assert "penwidth=2.5" in edge_line(dot, "do_action", "contact_crew")
-    assert f'fillcolor="{engine._CURRENT[0]}"' in node_line(dot, "handed_over")
+    for whole in (False, True):
+        dot = engine.flowchart_dot(episode, whole=whole)
+        assert '"do_action" -> "do_action"' not in dot
+        assert f'fillcolor="{engine._CURRENT[0]}"' in node_line(dot, "handed_over")
+    assert "penwidth=2.5" in edge_line(engine.flowchart_dot(episode, whole=True), "do_action", "contact_crew")
 
 
 def drawn_nodes(dot: str) -> set[str]:
     return {line.split('"')[1] for line in dot.splitlines() if line.startswith('"') and " -> " not in line}
 
 
-def test_focused_flowchart_shows_recent_steps_current_and_where_options_lead(episode):
-    # Visited: route > intro_mars > symptoms > do_action > remeasure; current: contact_crew.
-    path = ["route", "intro_mars", "symptoms", "do_action", "remeasure"]
-    episode.update(current_node="contact_crew", log=[{"at": "t", "node": n, "input": "x"} for n in path])
+def test_focused_flowchart_shows_previous_step_current_and_where_options_lead(episode):
+    # Seen: intro > symptoms > do_action; current: remeasure (route is automatic, never seen).
+    path = ["route", "intro", "symptoms", "do_action"]
+    episode.update(current_node="remeasure", log=[{"at": "t", "node": n, "input": "x"} for n in path])
     dot = engine.flowchart_dot(episode)
-    # Last three visited steps, the current one and its exit; earlier steps collapse into one box.
-    assert drawn_nodes(dot) == {"_earlier", "symptoms", "do_action", "remeasure", "contact_crew", "monitor"}
-    assert 'label="… 2 earlier steps"' in dot
-    assert '"_earlier" -> "symptoms"' in dot
-    assert "fontsize=20" in dot   # #188: larger text in the focused view
+    # #233: one previous step, the current one and the real destination of each exit,
+    # skipping the automatic check / set_severity nodes; earlier steps become a caption.
+    assert drawn_nodes(dot) == {"do_action", "remeasure", "contact_now", "monitor", "done"}
+    assert 'label="… 2 earlier steps"' in dot and "_earlier" not in dot
+    assert '[label="Done"' in edge_line(dot, "do_action", "remeasure")
+    assert "penwidth=2.5" in edge_line(dot, "do_action", "remeasure")
+    assert '[label="Value > 20 · Severe"' in edge_line(dot, "remeasure", "contact_now")
+    assert '[label="Value > 10"' in edge_line(dot, "remeasure", "monitor")
+    assert '[label="Otherwise · Inactive"' in edge_line(dot, "remeasure", "done")
+    assert "fontsize=20" in dot
 
 
-def test_focused_flowchart_follows_automatic_nodes_and_hides_unrelated_edges(episode):
+def test_focused_flowchart_skips_automatic_nodes_and_hides_unrelated_edges(episode):
     episode.update(current_node="symptoms", log=[{"at": "t", "node": "route", "input": None},
                                                 {"at": "t", "node": "intro_mars", "input": "continue"}])
     dot = engine.flowchart_dot(episode)
-    # "yes" leads through set_severity (automatic) to contact_now, so both are shown.
-    assert drawn_nodes(dot) == {"route", "intro_mars", "symptoms", "escalate", "contact_now", "do_action"}
-    assert "_earlier" not in dot
-    assert '[label="Yes"' in edge_line(dot, "symptoms", "escalate")
-    assert edge_line(dot, "escalate", "contact_now")
-    # A visited node's other branches are not drawn, even if their target is on screen.
-    assert '"route" -> "contact_now"' not in dot
-    assert "penwidth=2.5" in edge_line(dot, "route", "intro_mars")
+    assert drawn_nodes(dot) == {"intro_mars", "symptoms", "contact_now", "do_action"}
+    assert "earlier" not in dot   # nothing hidden yet
+    assert '[label="Yes · Severe"' in edge_line(dot, "symptoms", "contact_now")
+    assert '[label="No"' in edge_line(dot, "symptoms", "do_action")
+    assert "penwidth=2.5" in edge_line(dot, "intro_mars", "symptoms")
+    assert '"route"' not in dot and '"escalate"' not in dot
+
+
+def test_destinations_merge_exits_to_the_same_step_and_survive_automatic_cycles():
+    protocol = {"nodes": {
+        "q": {"type": "question", "options": {"yes": "d", "no": "s"}},
+        "d": {"type": "decision", "branches": [{"if": {"environment_in": ["mars"]}, "next": "s"}], "default": "d2"},
+        "d2": {"type": "decision", "branches": [{"if": {"environment_in": ["iss"]}, "next": "d"}], "default": "s"},
+        "s": {"type": "info", "text": "x", "next": "q"}}}
+    found = dict(engine._destinations(protocol, "q"))
+    assert "s" in found and "No" in found["s"] and "Yes · Mars" in found["s"]
+
+
+def test_focused_chart_is_readable_at_projector_width(episode):
+    """#233: a question with its exits fits a 1280x720 column (~780 px) with text >= 18 px."""
+    import re, shutil, subprocess
+    if not shutil.which("dot"):
+        pytest.skip("Graphviz 'dot' is not installed")
+    episode.update(current_node="symptoms", log=[{"at": "t", "node": "intro", "input": "continue"}])
+    dot = engine.flowchart_dot(episode)
+    svg = subprocess.run(["dot", "-Tsvg"], input=dot, capture_output=True, text=True, check=True).stdout
+    width_px = float(re.search(r'width="([\d.]+)pt"', svg).group(1)) * 4 / 3
+    assert 20 * 4 / 3 * min(1.0, 780 / width_px) >= 18
 
 
 def test_wrap_limits_lines_and_ends_at_a_whole_word():
