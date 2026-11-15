@@ -19,7 +19,8 @@ RUN = "tutorial_run"   # the in-memory practice episode while a tutorial is open
 @st.dialog("Whole protocol", width="large")
 def show_whole_protocol(episode: dict) -> None:
     """The whole diagram in a large dialog (#233): the focused chart stays as it is."""
-    st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="stretch",
+    # Natural size (top to bottom, readable text); the dialog scrolls instead of stretching it.
+    st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="content",
                       alt="Whole protocol flowchart. The current step is highlighted; completed steps are green.")
 
 
