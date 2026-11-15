@@ -30,6 +30,11 @@ def test_real_seed_check_in_confirms_without_incomplete_baselines(tmp_path, monk
     monkeypatch.setattr(models, "SESSIONS_DIR", tmp_path / "sessions")
     monkeypatch.setattr(models, "_session_id", lambda: "check-in-seed-regression")
     monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
+    # Exercise #246 with the thickness domain requested in #245, even before
+    # Edu's production-domain PR lands. Preserve his domain once configured.
+    indicators = config.load_indicators()
+    indicators["peripapillary_trt_left"].setdefault("valid", {"min": 0})
+    monkeypatch.setattr(config, "load_indicators", lambda: indicators)
     seed_before = {path.name: path.read_bytes() for path in models.SEED_DIR.iterdir() if path.is_file()}
     app = AppTest.from_file(str(APP), default_timeout=60)
     app.session_state["astronaut"] = "a1"
@@ -69,7 +74,7 @@ def test_real_seed_check_in_confirms_without_incomplete_baselines(tmp_path, monk
     before_episode = data.get_open_episode("a1")
     app.number_input[0].set_value(-1)
     click("Confirm repeat measurement")
-    assert any("non-negative" in item.value for item in app.error)
+    assert any("cannot be below 0" in item.value for item in app.error)
     assert data.get_open_episode("a1") == before_episode
     assert data.load_measurements().equals(before_rows)
     assert not app.number_input[0].disabled

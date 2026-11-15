@@ -617,13 +617,14 @@ def test_invalid_group_value_does_not_lock_draft_or_save_other_values(screen):
     app, state = screen
     group_xy(state)
     state['indicators']['peripapillary_trt_left'] = state['indicators'].pop('y')
+    state['indicators']['peripapillary_trt_left']['valid'] = {'min': 0}
     state['checkins']['x']['indicators'] = ['x', 'peripapillary_trt_left']
     app.run()
     app.number_input[0].set_value(20)
     app.number_input[1].set_value(-1)
     button(app, 'Record measurement').click().run()
     assert not app.exception
-    assert any('non-negative' in item.value for item in app.error)
+    assert any('cannot be below 0' in item.value for item in app.error)
     assert state['calls'] == state['completions'] == []
     assert not any('incomplete' in item.value.lower() for item in app.warning)
     assert not any(item.disabled for item in app.number_input)

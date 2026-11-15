@@ -458,9 +458,12 @@ def main() -> None:
             else:
                 if not draft:
                     # Validate the whole group before saving a row or locking a retry draft.
-                    draft = {"measurements": [episodes._measurement(
-                        _measurement(astronaut, key, indicators[key]["unit"], value), mission.now())
-                        for key, value in values.items()], "saved": 0}
+                    measurements = [_measurement(astronaut, key, indicators[key]["unit"], value)
+                                    for key, value in values.items()]
+                    errors = [error for m in measurements for error in config.measurement_errors(m, indicators)]
+                    if errors:
+                        raise ValueError(" ".join(errors))
+                    draft = {"measurements": measurements, "saved": 0}
                     st.session_state[draft_key] = draft
                 result = opened
                 while draft["saved"] < len(draft["measurements"]):

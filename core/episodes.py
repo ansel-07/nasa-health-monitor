@@ -48,23 +48,9 @@ def _measurement(measurement: dict, now: datetime) -> dict:
             raise ValueError(f"Measurement {key} is missing or still TODO.")
     if m["phase"] != "mission" or m["source"] not in SOURCES or not _finite(m["value"]):
         raise ValueError("Expected a finite new mission measurement with a supported source.")
-    metadata = config.load_indicators().get(m["indicator"])
-    if metadata is None:
-        raise ValueError(f"Unknown indicator: {m['indicator']!r}")
-    unit = metadata.get("unit")
-    if not isinstance(unit, str) or not unit.strip() or unit.startswith("TODO"):
-        raise ValueError("Measurement unit is unavailable in config/indicators.json.")
-    if m["unit"] != unit:
-        raise ValueError(f"Measurement unit for {m['indicator']} must be {unit}.")
-    # Representation rules supplied by Edu in #236, not clinical alert limits.
-    thickness = m["indicator"] in {"peripapillary_trt_left", "peripapillary_trt_right"}
-    discrete = m["indicator"] in {
-        "optic_disc_edema_grade_left", "optic_disc_edema_grade_right", "muscle_endurance",
-    }
-    if (thickness or discrete) and m["value"] < 0:
-        raise ValueError(f"Measurement for {m['indicator']} must be non-negative.")
-    if discrete and not float(m["value"]).is_integer():
-        raise ValueError(f"Measurement for {m['indicator']} must be a whole number.")
+    errors = config.measurement_errors(m)
+    if errors:
+        raise ValueError(" ".join(errors))
     at = _at(m["timestamp"])
     if at > now:
         raise ValueError("Measurement cannot be later than the mission clock.")
