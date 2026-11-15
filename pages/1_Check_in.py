@@ -322,8 +322,11 @@ def main() -> None:
         if not feedback or feedback["level"] != "error":
             message = "We're missing some assessments. See the warnings below."
             if opened:
-                message = ("Let's repeat the indicated measurement to confirm the alert. Check the warnings below for incomplete assessments." if confirmation
-                           else "Alert confirmed. Open Protocol to continue. Some assessments are incomplete; check the warnings below.")
+                if opened["status"] == "pending_confirmation":
+                    message = ("Let's repeat the indicated measurement to confirm the alert. Check the warnings below for incomplete assessments." if confirmation
+                               else "Your alert still needs a repeat measurement. Some assessments are incomplete; check the warnings below.")
+                else:
+                    message = "Alert confirmed. Open Protocol to continue. Some assessments are incomplete; check the warnings below."
             mood = "worried"
     if any(_unfinished(indicators[key].get(field)) for key in field_ids
            for field in ("name", "unit", "how_to_measure", "why_it_matters")):
