@@ -1,4 +1,4 @@
-<!-- AI-assisted: generated with Codex for Juan Carlos; human review pending. -->
+<!-- AI-assisted: generated with Codex and reviewed by Juan Carlos. -->
 # Juan Carlos: v2 bug hunt
 
 2026-11-15, #248. Local navigation audit: `1881046`; latest integration and visual recheck: `ec4ccf5`. Browser checks used Chrome 157 at 1280 x 720 and 390 x 844, against the deployed app and a local session.
