@@ -114,3 +114,4 @@ def test_advance_success_message_mentions_recovered_rows(monkeypatch):
     button(app, "Advance mission 24 h").click().run()
     assert not app.exception
     assert any("3 new simulated measurement(s), 2 left from an earlier advance" in i.value for i in app.info)
+

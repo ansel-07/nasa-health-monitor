@@ -47,7 +47,7 @@ is [`FRONTEND_MASCOT_LAYOUT.md`](FRONTEND_MASCOT_LAYOUT.md).
 | BUG-2 | Medium | `core/mascot.py:80-100` (Ansel) | With Voice on, every rerun speaks the same sentence again (any click repeats it). | Covered by the layout spec (`mascot_last_text`: speak only a new line). | In task 3. |
 | — | Low | `core/mascot.py:45-48` `frame_height` (Ansel) | The iframe height is estimated from the number of characters, so long texts can be cut or leave empty space. | The spec sets new face sizes; keep the subtitles from being cut. | In task 3. |
 | BUG-18 | Low | `core/mascot.py:83` (Ansel) | The text goes into a `<script>` through `json.dumps()`, which does not escape `</script>`. Texts come from `config/`, so the risk is low. | Escape `</` (`.replace("</", "<\\/")`) while rewriting the HTML. | Open. |
-| UX-6 | Low | `pages/` (all owners) | Opening a page without an astronaut behaves differently: Menu and Tutorials redirect to Welcome, Check-in and Protocol show a message, Trends shows a warning with no link. | Use one behaviour while the navigation of the new Welcome is built. | Open. |
+| UX-6 | Low | `pages/` (all owners) | Opening a page without an astronaut behaves differently: Menu and Tutorials redirect to Welcome, Check-in and Protocol show a message, Trends shows a warning with no link. | Use one behaviour while the navigation of the new Welcome is built. | Done in the night run (`app.py` guard). |
 
 ## P1 · Task 4 — Subjective-symptom details [Edu content for wording]
 
