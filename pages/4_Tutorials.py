@@ -16,6 +16,13 @@ from core.models import OUTCOMES
 RUN = "tutorial_run"   # the in-memory practice episode while a tutorial is open
 
 
+@st.dialog("Whole protocol", width="large")
+def show_whole_protocol(episode: dict) -> None:
+    """The whole diagram in a large dialog (#233): the focused chart stays as it is."""
+    st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="stretch",
+                      alt="Whole protocol flowchart. The current step is highlighted; completed steps are green.")
+
+
 def readable(name: str) -> str:
     return str(name).replace("_", " ").capitalize()
 
@@ -93,8 +100,9 @@ def show_practice(astronaut: str, episode: dict) -> None:
     with st.container(key="tutorial_step"):
         st.html("<style>.st-key-tutorial_step p { font-size: 1.3rem; line-height: 1.45; }</style>")
         st.markdown(step["text"])
-    whole = st.toggle("Show whole protocol", key="tutorial_whole")
-    st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=whole), width="stretch",
+    if st.button("Show whole protocol", icon=":material/open_in_full:", type="tertiary", key="tutorial_whole"):
+        show_whole_protocol(episode)
+    st.graphviz_chart(protocol_engine.flowchart_dot(episode), width="stretch",
                       alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
     key = f"tutorial_{episode['problem']}_{step['id']}_{len(episode.get('log', []))}"
     kind = step["type"]
