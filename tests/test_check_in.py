@@ -785,3 +785,47 @@ def test_detail_shows_one_chart_per_indicator_of_the_check_in(screen):
     assert not app.exception
     assert [call[1] for call in state["chart_calls"][-2:]] == ["x", "y"]
     assert len(app.number_input) == 2
+
+
+@pytest.mark.parametrize("failure", ["report", "resolve"])
+def test_urgent_action_survives_issue_storage_failure(screen, monkeypatch, failure):
+    app, state = screen
+    subjective_fixture(state)
+    state["subjective_config"]["issues"]["alarm"] = {
+        "label": "Synthetic urgent symptom", "alarm": True, "check_ins": [],
+        "action": "Synthetic configured action.",
+    }
+    state["issue_records"]["a1"] = [{"issue": "issue_a", "since": "2027-04-10T08:00:00", "persistent": False}]
+
+    def fail(*args, **kwargs):
+        raise OSError("Synthetic storage failure")
+
+    monkeypatch.setattr(activity, "report_issues" if failure == "report" else "resolve_issue", fail)
+    app.run()
+    app.multiselect[0].set_value([])
+    app.multiselect[1].set_value(["alarm"])
+    button(app, "Save issues").click().run()
+    assert not app.exception
+    assert any("Synthetic configured action." in item.value and "could not be fully saved" in item.value
+               for item in app.error)
+    assert not app.success
+    assert state["calls"] == []
+
+
+def test_task_safety_message_survives_details_storage_failure(screen, monkeypatch):
+    app, state = screen
+    subjective_fixture(state)
+    state["issue_records"]["a1"] = [{"issue": "issue_a", "since": "2027-04-10T08:00:00", "persistent": False}]
+
+    def fail(*args, **kwargs):
+        raise OSError("Synthetic storage failure")
+
+    monkeypatch.setattr(activity, "add_issue_details", fail)
+    app.run()
+    next(item for item in app.radio if item.label == "Effect on your tasks").set_value("task_not_completed")
+    button(app, "Save details").click().run()
+    assert not app.exception
+    assert any("immediate safety assessment" in item.value and "Details could not be saved" in item.value
+               for item in app.error)
+    assert not app.success
+    assert state["calls"] == []
