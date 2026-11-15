@@ -128,6 +128,13 @@ def _check_condition_refs(cond, where: str, indicators: dict, symptoms) -> list:
             for key in ("level_at_least", "level_is"):
                 if key in leaf and leaf[key] not in SYMPTOM_LEVELS:
                     errors.append(f"{where}: unknown symptom level '{leaf[key]}'")
+    if not _contains_todo(cond):
+        # Reference checks must not approve expressions the evaluator rejects.
+        from core.conditions import _validate
+        try:
+            _validate(cond)
+        except ValueError as error:
+            errors.append(f"{where}: invalid condition: {error}")
     return errors
 
 
@@ -375,6 +382,9 @@ def validate_all(strict: bool = False) -> list:
         for field in ("name", "protocol", "confirm_wait_min"):
             if field not in problem:
                 errors.append(f"{where}: missing '{field}'")
+        wait = problem.get("confirm_wait_min")
+        if not _contains_todo(wait) and (not _finite_number(wait) or wait < 0):
+            errors.append(f"{where}: confirm_wait_min must be a finite non-negative number")
         # TRANSITION: a problem uses the legacy 'triggers' or the new 'symptoms' + 'states'.
         if "symptoms" in problem or "states" in problem:
             errors.extend(validate_symptoms(problem, where, indicators, environments))
@@ -389,6 +399,7 @@ def validate_all(strict: bool = False) -> list:
             ind = (trig.get("when") or {}).get("indicator")
             if ind is not None and ind not in indicators:
                 errors.append(f"{where}.triggers[{i}]: unknown indicator '{ind}'")
+            errors.extend(_check_condition_refs(trig.get("when"), where, indicators, None))
         path = PROTOCOLS_DIR.parent / problem.get("protocol", "")
         if not path.is_file():
             errors.append(f"{where}: protocol file '{problem.get('protocol')}' not found")

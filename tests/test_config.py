@@ -13,6 +13,22 @@ def test_activity_intervals_must_be_finite(value):
     assert not config._positive_or_todo(value)
 
 
+@pytest.mark.parametrize("condition", [
+    {"indicator": "_example_indicator", "above": "not a number"}, {"all": []},
+    {"count_at_least": True, "of": [{"indicator": "_example_indicator", "above": 1}]},
+])
+def test_condition_syntax_is_checked_before_runtime(condition):
+    assert config._check_condition_refs(condition, "synthetic", config.load_indicators(), None)
+
+
+@pytest.mark.parametrize("wait", [-1, True, float("inf"), float("nan")])
+def test_config_validation_rejects_unusable_confirmation_wait(monkeypatch, wait):
+    problems = config.load_problems(include_examples=True)
+    problems["sans"]["confirm_wait_min"] = wait
+    monkeypatch.setattr(config, "load_problems", lambda **kwargs: problems)
+    assert any("confirm_wait_min" in error for error in config.validate_all())
+
+
 def test_all_config_is_valid():
     assert config.validate_all() == []
 
