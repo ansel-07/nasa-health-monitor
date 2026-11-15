@@ -1,5 +1,5 @@
 {
-  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137; reviewed by Edu. Adapted with Codex for Edu decisions on #191; reviewed by Edu.",
+  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137 and #191; reviewed by Edu. Sources rewritten with Claude to cite the primary sources of the team treatment guide, checked against NASA OCHMO-MTB-001 and Gew et al. 2026; reviewed by Javi and Edu.",
   "_integration_status": "Activated for confirmed numerical findings. Immediate clinical-priority entry before measurement confirmation remains a separate owner integration; no numerical finding automatically establishes urgency.",
   "problem": "muscle_atrophy",
   "start": "route",
@@ -15,12 +15,12 @@
         }
       ],
       "default": "w_red_flags",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Prototype flow composition [P]."
+      "source": "App routing, no medical claim: an episode that is already a medical urgency starts at the urgent steps. Team triage proposal [P], no published primary source."
     },
     "w_red_flags": {
       "type": "question",
       "text": "Sudden/rapidly worsening weakness, unsafe movement or new inability to exit, new intense muscle pain, breathing difficulty or loss of consciousness? The last two mean a general emergency, not proof of muscle loss.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency [P]",
+      "source": "Team triage proposal [P], no published primary source: urgency symptoms for muscle problems; breathing difficulty or loss of consciousness are general emergencies.",
       "save_as": "red_flags",
       "options": {
         "yes": "w_escalate",
@@ -31,19 +31,19 @@
       "type": "set_severity",
       "severity": "medical_urgency",
       "next": "u_stop",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Prototype flow composition [P]."
+      "source": "Team triage proposal [P], no published primary source: at least one severe symptom, or a clinician-declared urgency, makes the episode a medical urgency."
     },
     "w_report": {
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Tell the crew medical officer. Review together your symptoms, any pain, your real exercise load and your strength trend.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: initial action [P]",
+      "source": "NASA OCHMO-TB-031, Exercise Overview [1] (https://www.nasa.gov/ochmo-tb-031-exercise-overview-2/): exercise specialists monitor crew fitness and the exercise done in flight. NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): crews keep regular contact with their doctors. Team triage proposal [P], no published primary source: what to review together (symptoms, pain, real load, strength trend).",
       "next": "w_exercise"
     },
     "w_limits": {
       "type": "question",
       "text": "Is the worsening unexpected, or does it stop you from completing a task?",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: initial action [P]",
+      "source": "Team triage proposal [P], no published primary source: unexpected worsening or a limitation in a task gets priority assessment.",
       "save_as": "limits_task",
       "options": {
         "yes": "w_priority_review",
@@ -53,19 +53,19 @@
     "w_exercise": {
       "type": "action",
       "text": "Review strength and aerobic exercise load, technique and recovery with your exercise specialist; do not increase the load yourself. Review energy and protein intake with the approved nutrition plan.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, Exercise Overview [1]; Team triage guide [P] Management: NASA Exercise Overview [1] and NASA Human Adaptation to Spaceflight: The Role of Nutrition [2], as cited on PDF p. 2.",
+      "source": "NASA OCHMO-TB-031, Exercise Overview [1] (https://www.nasa.gov/ochmo-tb-031-exercise-overview-2/): individual exercise prescriptions supervised by exercise specialists. NASA, Human Adaptation to Spaceflight: The Role of Nutrition [2] (https://www.nasa.gov/wp-content/uploads/2024/10/human-adaptation-to-spaceflight-the-role-of-nutrition.pdf): adequate energy and protein come first; protein supplements are not required.",
       "next": "w_end"
     },
     "w_end": {
       "type": "end",
       "outcome": "monitoring",
       "text": "Log symptoms and training daily; repeat comparable strength tests as directed; follow prescribed recovery plan after return. No training through pain, catch-up loads, supplements or drugs without medical advice.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, The Real Story About Astronaut Health Care in Space [3]; Canadian Space Agency, Return and Reconditioning [4]"
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/) and Canadian Space Agency, Return and Reconditioning [4] (https://www.asc-csa.gc.ca/eng/youth-educators/activities/fitness-and-nutrition/return-and-reconditioning.asp): progressive reconditioning after return. Team triage proposal [P], no published primary source: daily symptom and training log, and things to avoid."
     },
     "u_stop": {
       "type": "action",
       "text": "Stop exercise and risky tasks, get to a safe position and alert the crew medical officer now. Do not repeat tests at maximum effort or wait for another sensor reading.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: initial action [P]",
+      "source": "Team triage proposal [P], no published primary source: stop exercise and risky tasks, get safe, alert the medical lead; no maximal tests and no waiting for another sensor reading.",
       "next": "u_local",
       "next_if_cannot": "u_help"
     },
@@ -82,33 +82,33 @@
         }
       ],
       "default": "u_orbit",
-      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule."
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): flight surgeons follow each crew during the mission. NASA, Hazard: Distance From Earth [7] (https://www.nasa.gov/hrp/hazard-distance-from-earth/): Earth support is delayed at Mars. Team triage proposal [P], no published primary source: Earth contact required in Earth orbit and on Mars; on the Moon, care on board and the clinician may request Earth support."
     },
     "u_orbit": {
       "type": "contact",
       "target": "flight_surgeon",
       "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3]; NASA, Hazard: Distance From Earth [7] (moved from the merged Mars contact). Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): flight surgeons follow each crew during the mission; return in the crew's spacecraft if an emergency requires it. NASA, Hazard: Distance From Earth [7] (https://www.nasa.gov/hrp/hazard-distance-from-earth/): up to 20 minutes one-way delay at Mars, so crews act with minimal Earth support. Team triage proposal [P], no published primary source: send the case to Earth in Earth orbit and on Mars; local care does not wait for the reply.",
       "next": "u_handover"
     },
     "u_moon": {
       "type": "info",
       "text": "Continue local care in the habitat. The clinician decides any transfer according to clinical need, vehicle and resources.",
-      "source": "Edu-approved lunar routing for #191: local care continues when Earth support is not requested; no automatic transfer.",
+      "source": "Team triage proposal [P], no published primary source: on the Moon, care continues on board or in the habitat; the clinician evaluates any transfer by vehicle and resources; no automatic evacuation.",
       "next": "u_handover"
     },
     "u_end": {
       "type": "end",
       "outcome": "handed_over",
       "text": "Clinician review and transfer of care are recorded; follow medical limits and recovery plan for the condition found. Return or transfer depends on clinical need, vehicle and resources, not just a sensor value.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: follow-up [P]"
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): return in the crew's spacecraft if an emergency requires it. Team triage proposal [P], no published primary source: medical limits, recovery plan and any transfer are clinical decisions, not set by a sensor value."
     },
     "u_help": {
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Request immediate assistance from the crew medical officer. Do not continue the risky task.",
       "next": "u_local",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; clinical-priority response [P]."
+      "source": "Team triage proposal [P], no published primary source: if the risky task cannot be stopped, get immediate help from the on-board medical lead."
     },
     "w_concern": {
       "type": "decision",
@@ -146,21 +146,21 @@
         }
       ],
       "default": "w_limits",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; numerical concern requires priority review without automatic medical urgency [P]."
+      "source": "NASA OCHMO-TB-031, Exercise Overview [1] (https://www.nasa.gov/ochmo-tb-031-exercise-overview-2/): in-mission muscle strength standard of at least 80 % of pre-flight baseline. Team triage proposal [P], no published primary source: a concern-level finding gets priority review, not automatic urgency."
     },
     "w_priority_review": {
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Ask the crew medical officer for priority review of the concerning finding or unexpected task limitation. A concerning number alone does not establish medical urgency.",
       "next": "w_review_outcome",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; prototype review routing [P]."
+      "source": "NASA OCHMO-TB-031, Exercise Overview [1] (https://www.nasa.gov/ochmo-tb-031-exercise-overview-2/): in-mission muscle strength standard of at least 80 % of pre-flight baseline. Team triage proposal [P], no published primary source: priority assessment of capacity and cause; a number alone is not an urgency."
     },
     "u_local": {
       "type": "contact",
       "target": "crew_medical_officer",
       "next": "u_env",
       "text": "Alert the on-board medical lead for immediate assessment and care to stabilize you; check for injury or another sudden cause. Follow the local emergency protocol without waiting for Earth.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]."
+      "source": "Team triage proposal [P], no published primary source: immediate on-board assessment and stabilization, looking for injury or another sudden cause instead of assuming muscle loss."
     },
     "u_support": {
       "type": "question",
@@ -170,19 +170,19 @@
         "yes": "u_orbit",
         "no": "u_moon"
       },
-      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule. Legacy node retained; now used for optional lunar Earth support."
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): flight surgeons follow each crew during the mission. Team triage proposal [P], no published primary source: on the Moon the local clinician may request Earth support (team decision on #191; keeps Earth support available where the delay allows it)."
     },
     "u_handover": {
       "type": "action",
       "text": "Confirm that a clinician has reviewed this episode and accepted responsibility for ongoing care. Select Done only then; otherwise keep this task active and stay assisted.",
       "next": "u_end",
       "next_if_cannot": "u_no_clinician",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]."
+      "source": "Team triage proposal [P], no published primary source: a medical urgency stays open until a clinician has reviewed it and accepted responsibility; this is a crew acknowledgement, not an authenticated clinician sign-off."
     },
     "w_review_outcome": {
       "type": "question",
       "text": "Wait here until the clinician completes the priority review. Has the clinician declared a medical urgency?",
-      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
+      "source": "Team triage proposal [P], no published primary source: after a priority review the clinician, not a number, may declare a medical urgency.",
       "save_as": "clinician_declared_urgency",
       "options": {
         "yes": "w_escalate",
@@ -193,7 +193,7 @@
       "type": "info",
       "text": "Keep risky tasks stopped and follow your pre-authorized local emergency protocol without waiting for Earth. This episode stays open until a clinician reviews it and accepts care.",
       "next": "u_handover",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; existing approved u_stop, u_local, u_mars_send and u_handover instructions: stop risky tasks, local pre-authorized emergency protocol without waiting for Earth, and clinician-accepted handover. #217 prototype flow composition [P]: show these existing instructions when handover cannot be accepted, then return to the open handover task. No new treatment, alternate clinician role, timer or autonomous closure."
+      "source": "NASA, Hazard: Distance From Earth [7] (https://www.nasa.gov/hrp/hazard-distance-from-earth/): crews must handle emergencies with minimal Earth support. Team triage proposal [P], no published primary source: while no clinician can accept care, keep risky tasks stopped, follow the pre-authorized local emergency protocol, and keep the urgency open."
     }
   }
 }
