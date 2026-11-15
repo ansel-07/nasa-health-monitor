@@ -255,6 +255,8 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
     y_low, y_high = min(y_values), max(y_values)
     pad = (y_high - y_low) * 0.1 or max(abs(y_high) * 0.1, 1.0)
     y_low, y_high = y_low - pad, y_high + pad
+    # Every text gets an explicit size (#189): the Streamlit template must not shrink it.
+    font_size = COMPACT_FONT_SIZE if compact else FULL_FONT_SIZE
 
     for band in bands:
         y0 = y_low if band["low"] is None else band["low"]
@@ -262,7 +264,7 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
         # A label only in the full chart. Never pass a position without a text: Plotly would
         # then draw its default label "new text" (#125).
         label = {} if compact else dict(
-            annotation_text=band["label"],
+            annotation_text=band["label"], annotation_font_size=font_size,
             annotation_position="bottom right" if band["direction"] == "below" else "top right")
         fig.add_hrect(y0=y0, y1=y1, fillcolor=SEVERITY_COLORS[band["severity"]],
                       opacity=BAND_OPACITY, line_width=0, layer="below", **label)
@@ -273,6 +275,7 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
         fig.add_hline(
             y=baseline["mean"], line=dict(color=BASELINE_COLOR, width=2, dash="dash"),
             annotation_text="Your baseline", annotation_position="top left",
+            annotation_font_size=font_size,
         )
 
     if marks:
@@ -289,23 +292,26 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
 
     # Launch (mission day 1) separates pre-flight from mission; "Now" is the mission clock.
     if (df["phase"] == "preflight").any() and (df["phase"] == "mission").any():
-        launch_label = {} if compact else dict(annotation_text="Launch", annotation_position="top")
+        launch_label = {} if compact else dict(annotation_text="Launch", annotation_position="top",
+                                               annotation_font_size=font_size)
         fig.add_vline(x=1, line=dict(color=BASELINE_COLOR, width=1, dash="dot"), **launch_label)
     fig.add_vline(x=_mission_day(mission.now(), start), line=dict(color=NOW_COLOR, width=1, dash="dash"),
-                  annotation_text="Now", annotation_position="top")
+                  annotation_text="Now", annotation_position="top", annotation_font_size=font_size)
 
+    axis_text = dict(tickfont=dict(size=font_size), title_font=dict(size=font_size))
     fig.update_yaxes(range=[y_low, y_high], title=None if compact else unit,
-                     nticks=4 if compact else None, gridcolor=GRID_COLOR, zeroline=False)
+                     nticks=4 if compact else None, gridcolor=GRID_COLOR, zeroline=False, **axis_text)
     fig.update_xaxes(title="Mission day", tickformat=",.1~f", nticks=5 if compact else None,
-                     gridcolor=GRID_COLOR, zeroline=False)
+                     gridcolor=GRID_COLOR, zeroline=False, **axis_text)
     fig.update_layout(
-        font=dict(size=COMPACT_FONT_SIZE if compact else FULL_FONT_SIZE, family=FONT_FAMILY),
+        font=dict(size=font_size, family=FONT_FAMILY),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         title_font=dict(size=FULL_FONT_SIZE + 1),
         title=None,   # the card around the chart names it (docs/UI_STYLE.md: no titles)
         height=COMPACT_HEIGHT if compact else FULL_HEIGHT,
         showlegend=not compact,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                    font=dict(size=font_size)),
         hovermode="closest",
         margin=dict(l=10, r=10, t=30 if compact else 40, b=10),
     )
