@@ -53,6 +53,10 @@ def test_symptom_episode_opens_and_requires_repeat(symptom_state, repeat_value, 
     assert data.load_episodes() == [result]
     if status == "active":
         assert result["symptoms"]["a"] == ("concern" if repeat_value == 20 else "watch")
+    else:
+        assert result["symptoms"] == {"a": "not_present", "b": "not_present"}
+        assert result["trigger"] == initial["trigger"]
+        assert initial["symptoms"]["a"] == "concern"
 
 
 def test_other_indicator_updates_state_only_during_explicit_confirmation(symptom_state):
@@ -133,7 +137,10 @@ def test_normal_repeat_is_dismissed_even_when_another_symptom_stays_positive(sym
     initial = episodes.on_new_measurement(measurement(clock), "mars")
     clock[0] += timedelta(minutes=5)
     data.add_measurement(measurement(clock, indicator="y", value=20))
-    assert episodes.confirm(initial["id"], measurement(clock, value=0))["status"] == "dismissed"
+    result = episodes.confirm(initial["id"], measurement(clock, value=0))
+    assert result["status"] == "dismissed"
+    assert result["symptoms"] == {"a": "not_present", "b": "concern"}
+    assert data.load_episodes() == [result]
 
 
 def test_unknown_repeat_baseline_cannot_be_dismissed_by_another_known_positive(symptom_state):
