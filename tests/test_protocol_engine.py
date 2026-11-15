@@ -520,7 +520,8 @@ def test_focused_labels_show_more_text_on_short_lines_but_whole_view_stays_short
     assert len(lines) <= engine._FOCUS_LINES and all(len(line) <= engine._FOCUS_WRAP + 1 for line in lines)
     shown = " ".join(lines).rstrip("…")
     assert text.startswith(shown) and (label.endswith("…") or shown == text.rstrip("."))
-    assert node_line(engine.flowchart_dot(episode, whole=True), "do_action").count("\\n") <= 1
+    whole = node_line(engine.flowchart_dot(episode, whole=True), "do_action").split('label="')[1].split('", shape')[0]
+    assert all(len(line) <= engine._WHOLE_WRAP + 1 for line in whole.split("\\n")[:engine._FOCUS_LINES])
 
 
 @pytest.mark.parametrize("cond,label", [
@@ -566,3 +567,16 @@ def test_in_domain_measurement_is_still_accepted(episode, monkeypatch, dependenc
 
 def test_invalid_measurement_is_a_value_error_for_existing_callers():
     assert issubclass(engine.InvalidMeasurement, ValueError)
+
+
+
+def test_whole_protocol_is_drawn_top_to_bottom_and_focused_view_left_to_right(episode):
+    """The whole diagram fits the dialog's width with readable text; the dialog scrolls (#240 follow-up)."""
+    import re, shutil, subprocess
+    episode.update(current_node="symptoms")
+    whole, focused = engine.flowchart_dot(episode, whole=True), engine.flowchart_dot(episode)
+    assert "rankdir=TB" in whole and "rankdir=LR" in focused
+    assert f"fontsize={engine._WHOLE_FONT}" in whole
+    if shutil.which("dot"):
+        svg = subprocess.run(["dot", "-Tsvg"], input=whole, capture_output=True, text=True, check=True).stdout
+        assert float(re.search(r'width="([\d.]+)pt"', svg).group(1)) * 4 / 3 <= 1200   # the large dialog

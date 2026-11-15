@@ -300,6 +300,9 @@ def _wrap(text: str, width: int = 18, max_lines: int | None = None) -> str:
 # Focused view (#188, #233): step labels on up to three lines that end at a whole word, instead of
 # being cut at 34 characters, so the current step can be read on a projector.
 _FOCUS_LABEL, _FOCUS_WRAP, _FOCUS_LINES = 200, 18, 3
+# Whole protocol (in the full-width dialog): drawn top to bottom so it fits the dialog's width and the
+# text keeps a readable size; the dialog scrolls instead of shrinking the diagram (#240 follow-up).
+_WHOLE_FONT, _WHOLE_WRAP = 12, 20
 
 
 def _node_label(node: dict, indicators: dict, limit: int = 34) -> str:
@@ -428,9 +431,9 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
                 shown.append(target)
             arrows.append((current, target, label))
 
-    font, edge_font = (11, 9) if whole else (20, 11)
+    font, edge_font = (_WHOLE_FONT, _WHOLE_FONT - 2) if whole else (20, 11)
     lines = ["digraph protocol {",
-             'graph [rankdir=LR, bgcolor="transparent", nodesep=0.3, ranksep=0.45];',
+             f'graph [rankdir={"TB" if whole else "LR"}, bgcolor="transparent", nodesep=0.3, ranksep=0.45];',
              f'node [shape=box, style="rounded,filled", fontname="IBM Plex Sans", fontcolor="{_NODE_TEXT}", '
              f'fontsize={font}, margin="0.14,0.08"];',
              f'edge [fontname="IBM Plex Sans", fontsize={edge_font}, arrowsize=0.7];']
@@ -443,7 +446,7 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
         fill, border = _CURRENT if node_id == current else _VISITED if node_id in visited else _AHEAD
         width = 2.5 if node_id == current else 1
         shape = "diamond" if node["type"] == "decision" else "box"
-        label = (_wrap(_node_label(node, indicators)) if whole
+        label = (_wrap(_node_label(node, indicators, _FOCUS_LABEL), _WHOLE_WRAP, _FOCUS_LINES) if whole
                  else _wrap(_node_label(node, indicators, _FOCUS_LABEL), _FOCUS_WRAP, _FOCUS_LINES))
         lines.append(f"{quote(node_id)} [label={quote(label)}, shape={shape}, "
                      f'fillcolor="{fill}", color="{border}", penwidth={width}];')
