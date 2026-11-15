@@ -83,19 +83,21 @@ def _subjective_issues(astronaut: str, source: str, report) -> None:
             saved = st.form_submit_button("Save issues", width="stretch")
         selected = picked + picked_alarms
         if saved:
+            urgent = [definitions[key] for key in picked_alarms]
+            urgent_text = ("Urgent symptom reported. " + " ".join(
+                f"{item['label']}: {item['action']}" for item in urgent)) if urgent else ""
             try:
                 if selected:
                     activity.report_issues(astronaut, selected, source=source)
                 for issue_id in previous - set(selected):
                     activity.resolve_issue(astronaut, issue_id)
             except (ValueError, KeyError, OSError) as error:
-                report("error", f"Issue changes could not be fully saved. Review your selection and retry. {error}")
+                report("error", (urgent_text + " " if urgent_text else "")
+                       + f"Issue changes could not be fully saved. Review your selection and retry. {error}")
             st.session_state[version_key] = version + 1
-            urgent = [definitions[key] for key in picked_alarms]
             if urgent:
                 # docs/sintomas_subjetivos_atrofia_SANS.md section 3: an alarm prevails; act now.
-                report("error", "Urgent symptom reported. " + " ".join(
-                    f"{item['label']}: {item['action']}" for item in urgent))
+                report("error", urgent_text)
             report("success", "Subjective issues updated." if previous or selected else "No subjective issues selected.")
         if active:
             _issue_details(astronaut, source, active, definitions, report)
@@ -146,14 +148,15 @@ def _issue_details(astronaut: str, source: str, active: list, definitions: dict,
     if submitted:
         details = {"onset": onset, "trend": trend, "location": location, "impact": impact,
                    "intensity": intensity, "context": context, "notes": notes}
+        # docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3.
+        safety_text = ("A task you could not complete needs an immediate safety assessment, "
+                       "even if the intensity is low.") if activity.needs_safety_assessment(details) else ""
         try:
             activity.add_issue_details(astronaut, issue_id, details)
         except (ValueError, KeyError, OSError) as error:
-            report("error", f"Details could not be saved. {error}")
-        if activity.needs_safety_assessment(details):
-            # docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3.
-            report("error", "A task you could not complete needs an immediate safety assessment, "
-                            "even if the intensity is low.")
+            report("error", (safety_text + " " if safety_text else "") + f"Details could not be saved. {error}")
+        if safety_text:
+            report("error", safety_text)
         report("success", "Details saved.")
 
 
