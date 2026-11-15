@@ -25,14 +25,22 @@ The astronaut chooses who they are and where the mission is (ISS, Moon or Mars).
 
 ### Try it in 1 minute
 
-1. Choose **Astronaut A** and **International Space Station**, then **NEXT**. In Main Menu → *Demo controls*, press **Reset demo**. You will explore fictional, synthetic measurements.
+1. Click **Astronaut A**, then **International Space Station**. In Main Menu → *Demo controls*, press **Reset demo**. You will explore fictional, synthetic measurements.
 2. Press **Advance mission 24 h** to reveal an ocular measurement alert. Open **Check-in** to compare it with your personal pre-flight baseline.
 3. Use **Simulate wait** and repeat the flagged measurement with the demo value (**360** µm) to confirm the anomaly.
 4. Open **Protocols** and follow the guidance through to medical follow-up. SpaceDoc guides you; it does not diagnose.
 
 ## Meet the mascot
 
-TODO: name, look and personality of the mascot that narrates the app.
+A simple face, drawn in code (SVG, no images): two cyan eyes and a smile on the dark background. It narrates every astronaut screen so the app can be followed at a glance, even mid-task:
+
+- **Alone on the screen** it is big and centred, with its subtitles under it and the buttons below.
+- **Next to a chart or a protocol flowchart** it slides to the left and shrinks, so the visual takes the right side.
+- **Subtitles** appear word by word while its mouth moves; with **Voice** on (top-right toggle) it reads them aloud with the browser's own speech synthesis, in sync. It only speaks a new line, never the same one twice.
+- **Moods** (happy, neutral, thinking, worried, serious) change its eyes and mouth to match the situation.
+- It never invents health content: it reads the alert, question or protocol step the screen would otherwise show.
+
+It is not shown on Trends or Tutorials, where the charts and the practice flowchart need the space. Its name is still to be chosen by the team.
 
 ## How it works
 
@@ -45,13 +53,13 @@ Two problems are covered: [SANS (NASA HRP)](https://www.nasa.gov/reference/risk-
 
 | Problem | Check-in | Indicators and units | Public method reference |
 | --- | --- | --- | --- |
-| SANS | Eye scan (OCT) | Left/right peripapillary total retinal thickness (?m), BMO-to-250-?m annulus | [Patel et al., 2018](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551) |
-| SANS | Optic disc check | Left/right clinician-assessed Fris?n grade | [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/) |
+| SANS | Eye scan (OCT) | Left/right peripapillary total retinal thickness (µm), BMO-to-250-µm annulus | [Patel et al., 2018](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551) |
+| SANS | Optic disc check | Left/right clinician-assessed Frisén grade | [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/) |
 | SANS | Refraction | Left/right cycloplegic spherical-equivalent refraction (D) | [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/); [scalar definition](https://pmc.ncbi.nlm.nih.gov/articles/PMC3930272/) |
 | SANS | Visual acuity | Left/right corrected monocular acuity (logMAR) | [Bach/FrACT](https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/); [MedlinePlus](https://medlineplus.gov/ency/article/003396.htm) |
 | Muscle | Muscle strength | Right-hand grip force (N), not knee strength | [PhenX/NHANES protocol](https://www.phenxtoolkit.org/protocols/view/150302) |
-| Muscle | Muscle size | Right L5 multifidus cross-sectional area (cm?) | [Hides et al., 2021](https://australian.physio/sites/default/files/RESEARCH%26PUBLICATIONS/PRF/PRF%3A%20Image%20library/2021_Hides%20Astronaut%20paper_The%20Spine%20Journal-main-min.pdf) |
-| Muscle | Muscle power | Right-knee isokinetic mechanical power (W); project derivation from torque ? angular speed | [Laughlin et al., NASA ISS reliability](https://ntrs.nasa.gov/api/citations/20090019649/downloads/20090019649.pdf) |
+| Muscle | Muscle size | Right L5 multifidus cross-sectional area (cm²) | [Hides et al., 2021](https://australian.physio/sites/default/files/RESEARCH%26PUBLICATIONS/PRF/PRF%3A%20Image%20library/2021_Hides%20Astronaut%20paper_The%20Spine%20Journal-main-min.pdf) |
+| Muscle | Muscle power | Right-knee isokinetic mechanical power (W); project derivation from torque × angular speed | [Laughlin et al., NASA ISS reliability](https://ntrs.nasa.gov/api/citations/20090019649/downloads/20090019649.pdf) |
 | Muscle | Muscle endurance | Right-knee repetitions at a fixed preflight load and tempo | [Hillen et al., 2026](https://www.mdpi.com/2813-0413/5/2/26) |
 | Muscle | Muscle tone and stiffness | Right rectus femoris: frequency (Hz) and stiffness (N/m) | [MyotonPRO guide](https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf); [ESA Myotones](https://www.esa.int/ESA_Multimedia/Images/2018/07/Tricorder) |
 
@@ -61,7 +69,7 @@ Method references do not validate every alert threshold. NASA's muscle-strength 
 
 The demo uses locally generated fictional observations, not downloaded astronaut patient records. NASA material informs requirements, monitoring context and prototype guidance:
 
-- [NASA-STD-3001 Vol. 1, Rev. C](https://standards.nasa.gov/standard/NASA/NASA-STD-3001_VOL_1), [Human Performance ?4.6.2](https://www.nasa.gov/reference/4-0-human-performance/): muscle-strength retention requirement; not a universal injury threshold.
+- [NASA-STD-3001 Vol. 1, Rev. C](https://standards.nasa.gov/standard/NASA/NASA-STD-3001_VOL_1), [Human Performance §4.6.2](https://www.nasa.gov/reference/4-0-human-performance/): muscle-strength retention requirement; not a universal injury threshold.
 - [SANS 2023 Clinical Update](https://ntrs.nasa.gov/citations/20220014606): early/concerning structural findings and functional-impact criteria; [OCHMO-MTB-001](https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf): examinations, monitoring and treatment-evidence limits.
 - [SANS evidence report, 2017/2018](https://ntrs.nasa.gov/api/citations/20180000936/downloads/20180000936.pdf), [HRP SANS evidence report](https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf), and [muscle evidence record](https://ntrs.nasa.gov/citations/20100039152): background for structural/functional monitoring and symptom guidance.
 - [Exercise Overview](https://www.nasa.gov/ochmo-tb-031-exercise-overview-2/), [Astronaut Exercise](https://www.nasa.gov/missions/station/iss-research/astronaut-exercise/), and [nutrition monographs](https://www.nasa.gov/wp-content/uploads/2024/10/human-adaptation-to-spaceflight-the-role-of-nutrition.pdf) ([2021 edition](https://www.nasa.gov/wp-content/uploads/2024/08/human-adaptation-2021-final-b.pdf)): supervised exercise, recovery and nutrition context; no autonomous prescriptions.
