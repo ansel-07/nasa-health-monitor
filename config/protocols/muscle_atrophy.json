@@ -19,7 +19,7 @@
     },
     "w_red_flags": {
       "type": "question",
-      "text": "Sudden/rapidly worsening weakness, unsafe movement/new egress inability, new intense muscle pain, breathing difficulty or loss of consciousness? The last two: general emergency, not proof of atrophy.",
+      "text": "Sudden/rapidly worsening weakness, unsafe movement or new inability to exit, new intense muscle pain, breathing difficulty or loss of consciousness? The last two mean a general emergency, not proof of muscle loss.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency [P]",
       "save_as": "red_flags",
       "options": {
@@ -52,19 +52,19 @@
     },
     "w_exercise": {
       "type": "action",
-      "text": "Review resistive and aerobic load, technique and recovery with your exercise specialist rather than increasing load yourself. Review energy and protein intake with the approved nutrition plan.",
+      "text": "Review strength and aerobic exercise load, technique and recovery with your exercise specialist; do not increase the load yourself. Review energy and protein intake with the approved nutrition plan.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, Exercise Overview [1]; Team triage guide [P] Management: NASA Exercise Overview [1] and NASA Human Adaptation to Spaceflight: The Role of Nutrition [2], as cited on PDF p. 2.",
       "next": "w_end"
     },
     "w_end": {
       "type": "end",
       "outcome": "monitoring",
-      "text": "Log symptoms and training daily; repeat comparable strength tests as directed; follow prescribed rehab on return. No training through pain, catch-up loads, supplements or drugs without medical advice.",
+      "text": "Log symptoms and training daily; repeat comparable strength tests as directed; follow prescribed recovery plan after return. No training through pain, catch-up loads, supplements or drugs without medical advice.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, The Real Story About Astronaut Health Care in Space [3]; Canadian Space Agency, Return and Reconditioning [4]"
     },
     "u_stop": {
       "type": "action",
-      "text": "Stop exercise and risky tasks, get to a safe position and alert the crew medical officer immediately. Do not repeat maximal tests or wait for another sensor reading.",
+      "text": "Stop exercise and risky tasks, get to a safe position and alert the crew medical officer now. Do not repeat tests at maximum effort or wait for another sensor reading.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: initial action [P]",
       "next": "u_local",
       "next_if_cannot": "u_help"
@@ -95,7 +95,7 @@
     "u_orbit": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3] Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
@@ -108,14 +108,14 @@
     "u_mars_send": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, Hazard: Distance From Earth [7] Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_end": {
       "type": "end",
       "outcome": "handed_over",
-      "text": "Clinical review and handover accepted; follow medical restrictions and diagnosis-specific rehab. Return or transfer depends on clinical need, vehicle and resources, not just a sensor value.",
+      "text": "Clinician review and transfer of care are recorded; follow medical limits and recovery plan for the condition found. Return or transfer depends on clinical need, vehicle and resources, not just a sensor value.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: follow-up [P]"
     },
     "u_help": {
@@ -174,7 +174,7 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "next": "u_env",
-      "text": "Activate the on-board medical lead for immediate assessment and stabilization; investigate injury or another acute cause. Follow the local emergency protocol without waiting for Earth.",
+      "text": "Alert the on-board medical lead for immediate assessment and care to stabilize you; check for injury or another sudden cause. Follow the local emergency protocol without waiting for Earth.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]."
     },
     "u_support": {

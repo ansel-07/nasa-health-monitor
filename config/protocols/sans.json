@@ -19,7 +19,7 @@
     },
     "w_red_flags": {
       "type": "question",
-      "text": "In either eye: new field gap, central distortion, correction needed but unavailable, sudden vision loss, severe eye pain, or severe headache with neurological signs?",
+      "text": "In either eye: a new gap in vision, distortion in the centre, needed lens strength unavailable, sudden vision loss, severe eye pain, or severe headache with signs of a nerve or brain problem?",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; SANS consensus, 2026 [6]; Team triage guide [P]",
       "save_as": "red_flags",
       "options": {
@@ -42,26 +42,26 @@
     },
     "w_acuity": {
       "type": "action",
-      "text": "With your clinician, review corrected acuity and baseline per eye in Check-in, plus OCT and visual fields when available. Missing or invalid tests are not normal results.",
+      "text": "With your clinician, compare vision with prescribed lenses to each eye's pre-flight reference; review eye scans and tests of your whole field of vision if available. Missing or invalid tests are not normal.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS, watch: initial action [P]",
       "next": "w_symptoms",
       "next_if_cannot": "w_missing_data"
     },
     "w_correction": {
       "type": "action",
-      "text": "Use only prescribed correction; follow sleep and habitat procedures. Clearer focus cannot prove swelling resolved; LBNP, thigh cuffs, supplements and acetazolamide are research/clinician-only options.",
+      "text": "Use only prescribed lenses; follow sleep and habitat rules. Clearer vision does not prove swelling is gone; lower-body suction, thigh bands, supplements and acetazolamide (medicine) are for clinicians or research.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; SANS consensus, 2026 [6]",
       "next": "w_end"
     },
     "w_end": {
       "type": "end",
       "outcome": "monitoring",
-      "text": "Keep the follow-up plan agreed with your clinician; no drug has established SANS rescue efficacy. Do not start medicines, pressure manipulation or invasive eye procedures from this app.",
+      "text": "Keep the follow-up plan agreed with your clinician; no medicine is proven to reverse these spaceflight eye changes. Do not start medicines, pressure-changing treatments or invasive eye procedures from this app.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; Team triage guide [P] Pharmaceutical limits: PDF p. 2, sources [5,6]; NASA OCHMO-MTB-001, printed pp. 12-13."
     },
     "u_stop": {
       "type": "action",
-      "text": "Stop risky tasks and EVA, and alert the crew medical officer immediately. Record when symptoms began and which eye is affected; do not wait for OCT.",
+      "text": "Stop risky tasks and spacewalks; alert the crew medical officer now. Record when symptoms began and which eye is affected; do not wait for an eye scan.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS, medical urgency: initial action [P]",
       "next": "u_local",
       "next_if_cannot": "u_help"
@@ -92,21 +92,21 @@
     "u_mars_send": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_ground": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_end": {
       "type": "end",
       "outcome": "handed_over",
-      "text": "Clinical review and accepted handover are recorded; continue medical restrictions and follow-up. This is not a cure or EVA clearance; any transfer is a clinical and mission decision.",
+      "text": "Clinician review and transfer of care are recorded; follow medical limits and follow-up. This does not mean you are cured or cleared for spacewalks; any transfer is a medical and mission decision.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS: implementation and closing rules [P]"
     },
     "u_help": {
@@ -172,7 +172,7 @@
     "w_missing_data": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Tell the crew medical officer which eye results are unavailable or invalid. Arrange appropriate assessment; missing OCT means structural surveillance is incomplete.",
+      "text": "Tell the crew medical officer which eye results are unavailable or invalid. Arrange an assessment; without an eye scan, checks for changes inside the eye are incomplete.",
       "next": "w_symptoms",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
     },
@@ -180,7 +180,7 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "next": "u_env",
-      "text": "Activate the on-board medical lead for immediate ocular and neurological assessment. Do not assume every acute visual problem is SANS; the clinician decides care and restrictions.",
+      "text": "Alert the on-board medical lead for an immediate eye, nerve and brain assessment. Do not assume every sudden vision problem is this spaceflight eye condition; the clinician decides care and limits.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
     },
     "u_support": {
@@ -222,7 +222,7 @@
     },
     "w_correction_check": {
       "type": "question",
-      "text": "Has the clinician confirmed that the optical correction you need exceeds what is available?",
+      "text": "Has the clinician confirmed that the prescribed lenses you need go beyond the lens strengths available?",
       "save_as": "correction_insufficient",
       "options": {
         "yes": "w_escalate",
