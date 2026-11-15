@@ -44,6 +44,9 @@ _EYE_HEIGHT = {"happy": 18, "neutral": 26, "thinking": 14, "worried": 30, "serio
 # Fallback face heights when the parent page cannot be measured (35 % of 1080 px; 45 % of it).
 _FACE_PX = {"large": 380, "small": 171}
 _FACE_SHARE = {"large": 0.35, "small": 0.35 * 0.45}
+# Narrow screens (phones): the big face is at most 55 % of the browser width, subtitles smaller.
+_MAX_WIDTH_SHARE = 0.55
+_NARROW_PX, _NARROW_FONT_PX = 640, {"large": 22, "small": 16}
 _FONT_PX = {"large": 28, "small": 18}
 _CHARS_PER_LINE = {"large": 48, "small": 18}
 _WORD_MS, _TALK_MS, _BOUNDARY_WAIT_MS = 330, 160, 700
@@ -123,6 +126,7 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
 <script>
   (function () {{
     var SPEAK = {speak}, ANIMATE = {"true" if animate else "false"}, SHARE = {_FACE_SHARE[size]};
+    var SCALE = {_FACE_SHARE[size] / _FACE_SHARE["large"]}, MAX_W = {_MAX_WIDTH_SHARE};
     var face = document.querySelector(".face");
     function fit() {{
       try {{
@@ -134,7 +138,9 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
       }} catch (e) {{}}
     }}
     try {{
-      var h = Math.round(window.parent.innerHeight * SHARE);
+      var p = window.parent;
+      var h = Math.round(Math.min(p.innerHeight * SHARE, p.innerWidth * MAX_W * SCALE));
+      if (p.innerWidth < {_NARROW_PX}) document.querySelector(".subtitles").style.fontSize = "{_NARROW_FONT_PX[size]}px";
       if (h > 40) {{ face.setAttribute("height", h); face.setAttribute("width", Math.round(h * {_VIEWBOX_W} / {_VIEWBOX_H})); }}
     }} catch (e) {{}}
     fit();
