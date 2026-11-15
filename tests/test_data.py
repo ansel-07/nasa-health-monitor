@@ -71,6 +71,15 @@ def test_bad_timestamp_is_rejected_without_poisoning_existing_csv(tmp_data, time
     assert (tmp_data / "measurements.csv").read_bytes() == before
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf"), "NaN", "Infinity", True])
+def test_nonfinite_values_cannot_poison_measurement_storage(tmp_data, value):
+    data.add_measurement(make("2027-04-10T08:00:00", 62))
+    before = (tmp_data / "measurements.csv").read_bytes()
+    with pytest.raises(ValueError, match="finite"):
+        data.add_measurement(make("2027-04-10T09:00:00", value))
+    assert (tmp_data / "measurements.csv").read_bytes() == before
+
+
 def test_load_measurements_filters_and_sorts(tmp_data):
     data.add_measurement(make("2027-04-10T10:00:00", 70))
     data.add_measurement(make("2027-04-10T08:00:00", 60))

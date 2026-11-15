@@ -14,6 +14,7 @@ import shutil
 import tempfile
 import threading
 from datetime import datetime
+from math import isfinite
 
 import pandas as pd
 
@@ -155,6 +156,8 @@ def add_measurement(m: dict) -> None:
         value = float(m["value"])
     except (TypeError, ValueError):
         raise ValueError(f"Value is not a number: {m['value']!r}") from None
+    if isinstance(m["value"], bool) or not isfinite(value):
+        raise ValueError("Measurement value must be a finite number.")
 
     row = dict(m, value=value)
     timestamp = row["timestamp"]
