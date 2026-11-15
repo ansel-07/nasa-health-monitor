@@ -150,7 +150,7 @@ def main() -> None:
                            "A clinical answer can take longer.")
             else:
                 st.caption("On board: no Earth signal delay.")
-        if st.button("Continue", key=f"{key}_continue"):
+        if st.button("Continue", key=f"{key}_continue", type="primary", use_container_width=True):
             advance(episode, {"action": "continue"})
     elif kind == "action":
         remaining = step["remaining_wait_min"]
@@ -161,14 +161,15 @@ def main() -> None:
         # "I can't" only when the protocol has a route for it; never a dead button.
         can_refuse = "next_if_cannot" in step
         done_col, cannot_col = st.columns(2) if can_refuse else (st.container(), None)
-        if done_col.button("Done", disabled=remaining > 0, key=f"{key}_done", use_container_width=True):
+        if done_col.button("Done", disabled=remaining > 0, key=f"{key}_done", type="primary",
+                           use_container_width=True):
             advance(episode, {"action": "done"})
         if can_refuse and cannot_col.button("I can't", key=f"{key}_cannot", use_container_width=True):
             advance(episode, {"action": "cannot"})
     elif kind == "measure":
         with st.form(f"{key}_measure"):
             value = st.number_input(f"Measurement ({step['unit']})", value=None, key=f"{key}_value")
-            submitted = st.form_submit_button("Save measurement")
+            submitted = st.form_submit_button("Save measurement", type="primary", use_container_width=True)
         if submitted:
             if value is None:
                 st.error("Enter a measurement before continuing.")

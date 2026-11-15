@@ -250,7 +250,10 @@ def practice_episode(astronaut: str, problem_id: str, environment: str) -> dict:
 
 _CONTACT_LABELS = {"crew_medical_officer": "crew medical officer", "flight_surgeon": "flight surgeon"}
 _OPERATORS = {"above": ">", "below": "<", "at_least": "≥", "at_most": "≤", "z_above": "z >", "z_below": "z <"}
-_CURRENT, _VISITED, _AHEAD = ("#fef3c7", "#b45309"), ("#dcfce7", "#15803d"), ("#f1f5f9", "#94a3b8")
+# (fill, border) on the dark app theme (docs/UI_STYLE.md): current step in the cyan accent,
+# done in the "normal" green, ahead muted.
+_CURRENT, _VISITED, _AHEAD = ("#0E3A44", "#5EF2FF"), ("#0F2E25", "#3DDC97"), ("#131C2E", "#3A4A66")
+_NODE_TEXT, _EDGE_AHEAD = "#E6EDF7", "#7C8BA5"
 
 
 def _readable(name) -> str:
@@ -377,8 +380,9 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
     quote = lambda value: json.dumps(value, ensure_ascii=False)  # Graphviz reads UTF-8, not \u escapes
     lines = ["digraph protocol {",
              'graph [rankdir=LR, bgcolor="transparent", nodesep=0.3, ranksep=0.45];',
-             f'node [shape=box, style="rounded,filled", fontname="Arial", fontsize={font}, margin="0.14,0.08"];',
-             f'edge [fontname="Arial", fontsize={edge_font}, arrowsize=0.7];']
+             f'node [shape=box, style="rounded,filled", fontname="IBM Plex Sans", fontcolor="{_NODE_TEXT}", '
+             f'fontsize={font}, margin="0.14,0.08"];',
+             f'edge [fontname="IBM Plex Sans", fontsize={edge_font}, arrowsize=0.7];']
     if hidden:
         lines.append(f'"_earlier" [label="… {hidden} earlier step{"s" if hidden != 1 else ""}", '
                      f'style="rounded,dashed", fillcolor="none", color="{_VISITED[1]}", fontcolor="{_VISITED[1]}"];')
@@ -395,7 +399,7 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
         for target, label in _edges(protocol["nodes"][node_id]):
             if target not in shown or not (whole or (node_id, target) in taken or node_id in ahead):
                 continue
-            color, width = (_VISITED[1], 2.5) if (node_id, target) in taken else (_AHEAD[1], 1)
+            color, width = (_VISITED[1], 2.5) if (node_id, target) in taken else (_EDGE_AHEAD, 1)
             lines.append(f"{quote(node_id)} -> {quote(target)} [label={quote(label)}, "
                          f'color="{color}", fontcolor="{color}", penwidth={width}];')
     lines.append("}")
