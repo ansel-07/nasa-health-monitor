@@ -93,7 +93,12 @@ Only decisions that are important for the team to make (see section 1); one line
 
 ## 9. Night log
 
-**Summary:** Advance mission 24 h is ~2x faster (0.7 → 0.3 s locally, under 2 s live; identical results). Check-in shows active urgent symptoms. Task 3 (mascot-first layout) is done in four PRs: mascot core, Welcome + Menu, Check-in, Tutorials. Live demo path verified on the deployed app after #168.
+**Summary (night run, 23:00 → 02:00, #163-#178):**
+1. P0 done: Advance ~2x faster (#163); Check-in shows active alarms (#164); mascot-first layout in four PRs (#165-#168) with readable primary buttons (#169).
+2. P1: README mascot section and broken characters (#170, slides/project links still TODO); narrow screens (#171); mascot on `st.iframe`, no deprecated API (#172); UX-6 redirect (#173); symptom details structure (#177, wording for Edu).
+3. Incident: #174 crashed the live Check-in (Streamlit Cloud kept old `core` modules); reverted in #175, fixed for good in #176 (`app.py` reloads changed core modules), re-landed as #177.
+4. Live demo path verified on the deployed app after #178: Welcome → Menu → Advance → Check-in repeat (360) → Protocols; Trends, Tutorials and the details form also checked.
+5. Open: the "Decisions for the morning" in section 8 (mascot name, Edu wording, ALM_05, shorter protocol texts, BUG-15, slides links, Streamlit pin).
 
 What the agent merged tonight (one line per PR: number, what, tests) and the minor decisions it took on its own (what and why).
 
@@ -122,4 +127,5 @@ What the agent merged tonight (one line per PR: number, what, tests) and the min
 - #174 (task 4, symptom details) broke the live Check-in once an issue was reported: Streamlit Cloud re-read the pages after the redeploy but kept the old `core.activity` module (AttributeError). Reverted at once in #175 (verified live). Root cause also means earlier `core/` changes tonight may not have been live until a restart.
 - #176 Fresh core modules: `app.py` now drops every cached `core.*` module when any `core/*.py` file changed (or on the first run of a process), so a redeploy never mixes new pages with old core code. Off under pytest (tests patch the imported modules). Reproduced locally (Check-in loaded, #174 files put on disk, issue saved): no crash with the guard; the same steps crashed without it.
 - #177 Task 4 re-landed (same content as #174) after #176; checked live: report an issue, details form, "Could not complete a task" → safety message. No crash.
-- Check-in list: the mascot now reads an error shown on the list (it looked worried but said "Choose a check-in…"). Found in the live check of #177. 1 new test.
+- #178 Check-in list: the mascot now reads an error shown on the list (it looked worried but said "Choose a check-in…"). Found in the live check of #177. 1 new test.
+- Final live check after #178 (mascot core now surely live thanks to #176): demo path, Protocols card contrast, Trends: all fine. Stopped at 01:50: every remaining item needs the team (section 8).
