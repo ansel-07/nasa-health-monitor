@@ -19,7 +19,7 @@
     },
     "w_red_flags": {
       "type": "question",
-      "text": "Are any of these present in either eye: a new visual-field gap, central distortion, needed correction beyond what is available, sudden vision loss, severe eye pain, or severe headache with neurological signs?",
+      "text": "In either eye: new field gap, central distortion, correction needed but unavailable, sudden vision loss, severe eye pain, or severe headache with neurological signs?",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; SANS consensus, 2026 [6]; Team triage guide [P]",
       "save_as": "red_flags",
       "options": {
@@ -42,14 +42,14 @@
     },
     "w_acuity": {
       "type": "action",
-      "text": "With the clinician, review corrected acuity and the personal baseline for each eye using Check-in results; review OCT and visual fields when available. Missing or invalid tests must not be treated as normal.",
+      "text": "With your clinician, review corrected acuity and baseline per eye in Check-in, plus OCT and visual fields when available. Missing or invalid tests are not normal results.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS, watch: initial action [P]",
       "next": "w_correction",
       "next_if_cannot": "w_missing_data"
     },
     "w_correction": {
       "type": "action",
-      "text": "Use only prescribed optical correction and follow sleep and habitat procedures; clearer focus does not prove swelling has resolved. LBNP, thigh cuffs, supplements and acetazolamide are research or clinician-only options, not automatic SANS treatments.",
+      "text": "Use only prescribed correction; follow sleep and habitat procedures. Clearer focus does not prove swelling resolved; LBNP, thigh cuffs, supplements and acetazolamide are research/clinician-only options.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; SANS consensus, 2026 [6]",
       "next": "w_end"
     },
