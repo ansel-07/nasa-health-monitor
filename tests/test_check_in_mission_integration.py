@@ -371,3 +371,27 @@ def test_active_alarm_takes_over_the_check_in_list(mission_workspace, monkeypatc
     assert not app.exception
     assert "urgent symptom" in speech[-1]
     assert any("Synthetic alarm. Synthetic action." in item.value for item in app.error)
+
+
+def test_issue_details_are_saved_and_a_task_not_completed_asks_for_safety(mission_workspace):
+    """Handoff task 4 (docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3)."""
+    (config.CONFIG_DIR / 'subjective_issues.json').write_text(json.dumps({
+        'settings': {'persistence_days': 3, 'speed_multiplier': 2},
+        'issues': {'VIS_01': {'label': 'Synthetic vision issue', 'check_ins': ['x']}},
+    }), encoding='utf-8')
+    activity.report_issues('a1', ['VIS_01'], source='check_in_list')
+    app = AppTest.from_file(str(PAGE))
+    app.session_state["astronaut"] = "a1"
+    app.session_state["environment"] = "mars"
+    app.run()
+    assert not app.exception
+    radios = {item.label: item for item in app.radio}
+    assert set(radios) == {"Onset", "Trend", "Location", "Effect on your tasks"}
+    radios["Onset"].set_value("sudden")
+    radios["Location"].set_value("left_eye")
+    radios["Effect on your tasks"].set_value("task_not_completed")
+    next(f for f in app.get("form_submit_button") if f.label == "Save details").click().run()
+    assert not app.exception
+    assert any("immediate safety assessment" in item.value for item in app.error)
+    assert activity.active_issues('a1')[0]['details'] == {
+        'onset': 'sudden', 'location': 'left_eye', 'impact': 'task_not_completed'}
