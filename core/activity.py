@@ -29,17 +29,6 @@ from core import config, mission, models
 from core.models import ACTIVITY_KINDS, BAR_LEVELS, TUTORIAL_REPEAT_BELOW
 
 ISSUE_SOURCES = ["check_in_list", "check_in_detail"]
-# Optional details of a report: docs/sintomas_subjetivos_atrofia_SANS.md section 4 (Edu).
-# Closed choices are stored as these ids; location, context and notes are free text, except
-# vision issues ("VIS_" ids), whose location is one of EYE_LOCATIONS. Intensity: optional 0-10,
-# the astronaut's own rating, never a physiological measurement or an urgency threshold.
-ISSUE_DETAIL_CHOICES = {
-    "onset": ["sudden", "gradual"],
-    "trend": ["improving", "stable", "worsening"],
-    "impact": ["none", "no_task_change", "task_adapted", "task_not_completed"],
-}
-EYE_LOCATIONS = ["right_eye", "left_eye", "both_eyes", "not_identified"]
-ISSUE_DETAIL_TEXT = ["location", "context", "notes"]
 STEPS = len(BAR_LEVELS) - 1   # 10 steps of 10 points from 100 to 0
 
 
@@ -213,55 +202,6 @@ def report_issues(astronaut: str, issue_ids: list[str], source: str) -> None:
     _write(content)
 
 
-def _clean_details(issue_id: str, details: dict) -> dict:
-    allowed = set(ISSUE_DETAIL_CHOICES) | set(ISSUE_DETAIL_TEXT) | {"intensity"}
-    unknown = set(details) - allowed
-    if unknown:
-        raise ValueError(f"Unknown issue details: {sorted(unknown)}")
-    clean = {}
-    for key, value in details.items():
-        if value is None or value == "":
-            continue
-        if key in ISSUE_DETAIL_CHOICES and value not in ISSUE_DETAIL_CHOICES[key]:
-            raise ValueError(f"{key} must be one of {ISSUE_DETAIL_CHOICES[key]}")
-        if key == "location" and issue_id.startswith("VIS_") and value not in EYE_LOCATIONS:
-            raise ValueError(f"location must be one of {EYE_LOCATIONS} for a vision issue")
-        if key in ("location", "context", "notes"):
-            if not isinstance(value, str):
-                raise ValueError(f"{key} must be text")
-            value = value.strip()[:500]
-            if not value:
-                continue
-        if key == "intensity" and not (_is_number(value) and 0 <= value <= 10):
-            raise ValueError("intensity must be a number from 0 to 10")
-        clean[key] = value
-    return clean
-
-
-def add_issue_details(astronaut: str, issue_id: str, details: dict) -> None:
-    """Attach optional details to today's report of an active issue (Edu's section 4 fields).
-
-    Keys: onset, trend, impact (ISSUE_DETAIL_CHOICES), location, context, notes (text) and
-    intensity (0-10). Empty values are ignored. A later save on the same day replaces the
-    details of that day's report (the latest description wins). Raises ValueError if the issue
-    is not active or was not reported today.
-    """
-    clean = _clean_details(issue_id, details)
-    content = _read()
-    item = _active_record(_astronaut(content, astronaut), issue_id)
-    day = _now_iso()[:10]
-    report = next((r for r in item["reports"] if r["day"] == day), None) if item else None
-    if report is None:
-        raise ValueError("Report the issue today before adding its details.")
-    report["details"] = clean
-    _write(content)
-
-
-def needs_safety_assessment(details: dict | None) -> bool:
-    """Triage rule 3 (Edu, section 4): a task not completed needs an immediate safety assessment."""
-    return bool(details) and details.get("impact") == "task_not_completed"
-
-
 def resolve_issue(astronaut: str, issue_id: str) -> None:
     """Mark an issue as no longer present: its acceleration stops from now on (no refill)."""
     content = _read()
@@ -273,11 +213,7 @@ def resolve_issue(astronaut: str, issue_id: str) -> None:
 
 
 def active_issues(astronaut: str) -> list[dict]:
-    """Active issues: [{"issue", "since", "persistent": bool, "details": dict | None}].
-
-    details: those of the most recent report that has any (add_issue_details), else None.
-    """
+    """Active issues: [{"issue", "since", "persistent": bool}]."""
     record = _astronaut(_read(), astronaut)
-    return [{"issue": item["issue"], "since": item["since"], "persistent": bool(item["persistent_since"]),
-             "details": next((r["details"] for r in reversed(item["reports"]) if r.get("details")), None)}
+    return [{"issue": item["issue"], "since": item["since"], "persistent": bool(item["persistent_since"])}
             for item in record["issues"] if not item.get("resolved_at")]

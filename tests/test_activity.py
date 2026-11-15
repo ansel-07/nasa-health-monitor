@@ -153,14 +153,14 @@ def test_issue_becomes_persistent_on_the_third_distinct_day(clock):
     clock.move(hours=2)
     activity.report_issues("a1", ["headache", "headache"], "check_in_detail")   # same day: no new day
     assert activity.active_issues("a1") == [{"issue": "headache", "since": "2027-04-01T08:00:00",
-                                             "persistent": False, "details": None}]
+                                             "persistent": False}]
     clock.move(days=1)
     activity.report_issues("a1", ["headache"], "check_in_list")
     assert activity.active_issues("a1")[0]["persistent"] is False
     clock.move(days=3)   # not necessarily consecutive days (AGENTS.md 5.6)
     activity.report_issues("a1", ["headache"], "check_in_detail")
     assert activity.active_issues("a1") == [{"issue": "headache", "since": "2027-04-01T08:00:00",
-                                             "persistent": True, "details": None}]
+                                             "persistent": True}]
     stored = json.loads(models.ACTIVITY_FILE.read_text(encoding="utf-8"))["astronauts"]["a1"]["issues"]
     assert len(stored) == 1 and [r["source"] for r in stored[0]["reports"]] == [
         "check_in_list", "check_in_list", "check_in_detail"]
@@ -218,38 +218,4 @@ def test_reporting_again_after_resolving_starts_a_new_record(clock):
     clock.move(days=1)
     activity.report_issues("a1", ["headache"], "check_in_list")
     assert activity.active_issues("a1") == [{"issue": "headache", "since": clock.now.isoformat(),
-                                             "persistent": False, "details": None}]
-
-
-def test_details_attach_to_todays_report_and_the_latest_wins(clock):
-    """Task 4: optional details of docs/sintomas_subjetivos_atrofia_SANS.md section 4."""
-    activity.report_issues("a1", ["headache"], "check_in_list")
-    activity.add_issue_details("a1", "headache", {"onset": "gradual", "trend": "stable", "impact": "none",
-                                                  "intensity": 3, "notes": "  after exercise ", "context": ""})
-    activity.add_issue_details("a1", "headache", {"onset": "sudden", "impact": "task_adapted"})
-    assert activity.active_issues("a1")[0]["details"] == {"onset": "sudden", "impact": "task_adapted"}
-    clock.move(days=1)
-    with pytest.raises(ValueError):      # not reported today
-        activity.add_issue_details("a1", "headache", {"trend": "worsening"})
-    activity.report_issues("a1", ["headache"], "check_in_detail")
-    activity.add_issue_details("a1", "headache", {"trend": "worsening", "notes": "worse today"})
-    assert activity.active_issues("a1")[0]["details"] == {"trend": "worsening", "notes": "worse today"}
-    stored = json.loads(models.ACTIVITY_FILE.read_text(encoding="utf-8"))["astronauts"]["a1"]["issues"][0]
-    assert [r["details"] for r in stored["reports"]] == [
-        {"onset": "sudden", "impact": "task_adapted"}, {"trend": "worsening", "notes": "worse today"}]
-
-
-@pytest.mark.parametrize("details", [{"onset": "slow"}, {"impact": "bad"}, {"intensity": 11},
-                                     {"intensity": True}, {"colour": "red"}, {"notes": 5}])
-def test_invalid_details_raise(clock, details):
-    activity.report_issues("a1", ["headache"], "check_in_list")
-    with pytest.raises(ValueError):
-        activity.add_issue_details("a1", "headache", details)
-
-
-def test_details_need_an_active_issue_and_safety_rule(clock):
-    with pytest.raises(ValueError):
-        activity.add_issue_details("a1", "headache", {"onset": "sudden"})
-    assert activity.needs_safety_assessment({"impact": "task_not_completed"})
-    assert not activity.needs_safety_assessment({"impact": "task_adapted"})
-    assert not activity.needs_safety_assessment(None)
+                                             "persistent": False}]

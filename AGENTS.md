@@ -151,7 +151,6 @@ From `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (sections 3-4), adapted to this repo:
 - **Activity bars** (`core/activity.py`): `BAR_LEVELS` 100..0 in 10-point steps, from the last completion and the **mission clock** (`mission.now()`), so advancing mission time drains them. Never completed = 0. A check-in bar refills to 100 when its check-in session ends; a tutorial bar when the tutorial is completed. **A bar is not a health status and never blocks a measurement or an active protocol.**
 - Durations: check-in bar 100 → 0 in `bar_full_hours` (spec demo default 24); tutorial bar 100 → 0 in `tutorial_bar_full_days` of each problem (`problems.json`, Edu: more important protocols are reviewed more often). A tutorial can be repeated only when its bar is **below 80** (`TUTORIAL_REPEAT_BELOW`).
 - `config/subjective_issues.json`: `{"settings": {persistence_days, speed_multiplier}, "issues": {issue_id: {label, check_ins: [...]}}}`. Issues and their check-in links come from Edu; settings are demo placeholders from the spec. An issue reported on `persistence_days` calendar days makes its linked check-in bars drain `speed_multiplier` times faster from then on (not retroactively); resolving it stops the acceleration (no refill). A subjective issue never opens an episode by itself. Issues come from Edu's `docs/sintomas_subjetivos_atrofia_SANS.md`: 12 routine symptoms (`MUS_*`, `VIS_*`, each with its `question` and check-in links decided by Ansel) and 4 **alarms** (`ALM_*`: `"alarm": true`, an `action`, no check-in links). Reporting an alarm shows its action at once, and the Main Menu keeps it visible until the astronaut marks it resolved; it never closes by itself and does not open a SANS or muscle-atrophy episode.
-- **Details of a report** (optional, Edu's section 4): onset, trend, location (eye for `VIS_*` issues, else free text), impact, intensity 0-10 (the astronaut's own rating, never a threshold), context, notes; ids in `activity.ISSUE_DETAIL_CHOICES` / `EYE_LOCATIONS`. Stored on that day's report; a later save the same day replaces them. `impact = task_not_completed` shows that an immediate safety assessment is needed (triage rule 3); details never open an episode.
 - Storage: `data/activity.json` (completions and issue history, per astronaut) through `models.data_file()`.
 
 ## 6. Condition language (`core/conditions.py`)
@@ -231,9 +230,7 @@ complete(astronaut: str, kind: str, activity_id: str) -> None   # bar back to 10
 can_repeat_tutorial(astronaut: str, protocol_id: str) -> bool   # bar < TUTORIAL_REPEAT_BELOW
 report_issues(astronaut: str, issue_ids: list[str], source: str) -> None   # source: "check_in_list" | "check_in_detail"
 resolve_issue(astronaut: str, issue_id: str) -> None
-active_issues(astronaut: str) -> list[dict]   # [{"issue", "since", "persistent", "details"}]
-add_issue_details(astronaut: str, issue_id: str, details: dict) -> None   # optional details of today's report (5.6)
-needs_safety_assessment(details: dict | None) -> bool   # impact == "task_not_completed" (Edu's triage rule 3)
+active_issues(astronaut: str) -> list[dict]   # [{"issue", "since", "persistent"}]
 
 # core/charts.py  (Fran)
 indicator_chart(astronaut: str, indicator: str, compact: bool = False,

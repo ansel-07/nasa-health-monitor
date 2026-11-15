@@ -44,9 +44,9 @@ is [`FRONTEND_MASCOT_LAYOUT.md`](FRONTEND_MASCOT_LAYOUT.md).
 
 | Id | Sev. | Where (owner) | Finding | Suggestion | Status |
 |---|---|---|---|---|---|
-| BUG-2 | Medium | `core/mascot.py:80-100` (Ansel) | With Voice on, every rerun speaks the same sentence again (any click repeats it). | Covered by the layout spec (`mascot_last_text`: speak only a new line). | Done in #165. |
+| BUG-2 | Medium | `core/mascot.py:80-100` (Ansel) | With Voice on, every rerun speaks the same sentence again (any click repeats it). | Covered by the layout spec (`mascot_last_text`: speak only a new line). | In task 3. |
 | — | Low | `core/mascot.py:45-48` `frame_height` (Ansel) | The iframe height is estimated from the number of characters, so long texts can be cut or leave empty space. | The spec sets new face sizes; keep the subtitles from being cut. | In task 3. |
-| BUG-18 | Low | `core/mascot.py:83` (Ansel) | The text goes into a `<script>` through `json.dumps()`, which does not escape `</script>`. Texts come from `config/`, so the risk is low. | Escape `</` (`.replace("</", "<\\/")`) while rewriting the HTML. | Done in #165. |
+| BUG-18 | Low | `core/mascot.py:83` (Ansel) | The text goes into a `<script>` through `json.dumps()`, which does not escape `</script>`. Texts come from `config/`, so the risk is low. | Escape `</` (`.replace("</", "<\\/")`) while rewriting the HTML. | Open. |
 | UX-6 | Low | `pages/` (all owners) | Opening a page without an astronaut behaves differently: Menu and Tutorials redirect to Welcome, Check-in and Protocol show a message, Trends shows a warning with no link. | Use one behaviour while the navigation of the new Welcome is built. | Done in the night run (`app.py` guard). |
 
 ## P1 · Task 4 — Subjective-symptom details [Edu content for wording]
@@ -75,8 +75,8 @@ report in `data/activity.json` (`core/activity.py`, Fran).
 
 | Id | Sev. | Where (owner) | Finding | Status |
 |---|---|---|---|---|
-| UX-7 | Low | `core/mascot.py:27, 66` (Ansel) | `MASCOT_NAME = "TODO: mascot name"` is read by screen readers (`aria-label`). | Name: decision for the morning (handoff section 8). |
-| DOC-10 | Info | `core/mascot.py`, `requirements.txt` (Ansel) | `components.html` is deprecated; Streamlit is pinned to 1.67.0 because of it. | `st.iframe` since #172; pin kept. |
+| UX-7 | Low | `core/mascot.py:27, 66` (Ansel) | `MASCOT_NAME = "TODO: mascot name"` is read by screen readers (`aria-label`). | Open. |
+| DOC-10 | Info | `core/mascot.py`, `requirements.txt` (Ansel) | `components.html` is deprecated; Streamlit is pinned to 1.67.0 because of it. | Long term, as the handoff says. |
 
 ## P1 · Task 8 — Narrow screens
 
