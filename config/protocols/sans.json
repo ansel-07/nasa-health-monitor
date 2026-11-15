@@ -197,7 +197,7 @@
       "type": "action",
       "text": "Confirm that a clinician has reviewed this episode and accepted responsibility for ongoing care. Select Done only then; otherwise keep this task active and stay assisted.",
       "next": "u_end",
-      "next_if_cannot": "u_handover",
+      "next_if_cannot": "u_no_clinician",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
     },
     "w_review_outcome": {
@@ -229,6 +229,12 @@
         "no": "w_correction"
       },
       "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule. Existing urgency criterion: w_red_flags; guia_tratamientos_vigilancia_urgencia.pdf p. 2."
+    },
+    "u_no_clinician": {
+      "type": "info",
+      "text": "Keep risky tasks stopped and follow your pre-authorized local emergency protocol without waiting for Earth. This episode stays open until a clinician reviews it and accepts care.",
+      "next": "u_handover",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; existing approved u_stop, u_local, u_mars_send and u_handover instructions: stop risky tasks, local pre-authorized emergency protocol without waiting for Earth, and clinician-accepted handover. #217 prototype flow composition [P]: show these existing instructions when handover cannot be accepted, then return to the open handover task. No new treatment, alternate clinician role, timer or autonomous closure."
     }
   }
 }

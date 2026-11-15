@@ -84,11 +84,16 @@ def test_urgency_contacts_local_first_and_cannot_close_before_review(
     assert contacts == expected
     for _ in range(2):
         episode = protocol_engine.submit(episode, {"action": "cannot"})
+        assert episode["current_node"] == "u_no_clinician"
+        assert episode["status"] == "active" and episode["severity"] == "medical_urgency"
+        # Refresh preserves guidance and cannot accept handover or downgrade urgency.
+        episode = protocol_engine.submit(deepcopy(data.load_episodes()[0]), None)
+        assert episode["status"] == "active" and episode["current_node"] == "u_no_clinician"
+        assert protocol_engine.current_step(episode)["type"] == "info"
+        episode = protocol_engine.submit(episode, {"action": "continue"})
         assert episode["current_node"] == "u_handover"
         assert episode["status"] == "active" and episode["severity"] == "medical_urgency"
-        # Reload/refresh cannot silently finish or downgrade the handover task.
-        episode = protocol_engine.submit(deepcopy(data.load_episodes()[0]), None)
-        assert episode["status"] == "active" and episode["current_node"] == "u_handover"
+        assert episode["closed_at"] is None and episode["outcome"] is None
     episode = protocol_engine.submit(episode, {"action": "done"})
     assert episode["status"] == episode["outcome"] == "handed_over"
     assert episode["severity"] == "medical_urgency"  # Not resolved or normalized by handover.
@@ -128,7 +133,10 @@ def test_regenerated_diagrams_match_executable_nodes_and_edges(pid, diagram_inde
     def visit(nid, ancestors):
         assert nid not in ancestors, f"Unexpected cycle through {nid}"
         for target in config._node_targets(nodes[nid]):
-            if target == nid == "u_handover":
+            if nid == "u_no_clinician" and target == "u_handover":
+                # Only the user-driven guidance acknowledgement returns to the hold.
+                assert nodes[nid]["type"] == "info"
+                assert nodes["u_handover"]["next_if_cannot"] == nid
                 continue
             visit(target, ancestors | {nid})
     visit(protocol["start"], set())
@@ -192,3 +200,40 @@ def test_iss_no_red_flags_page_displays_the_configured_narration(run_context, mo
     assert current == ("w_notify" if pid == "sans" else "w_limits")
     assert any(item.value == config.load_protocol(pid)["nodes"][current]["text"]
                for item in app.info)
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+@pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
+def test_unavailable_handover_page_shows_guidance_without_closing(
+        run_context, monkeypatch, pid, environment):
+    import streamlit as st
+    from streamlit.testing.v1 import AppTest
+    from core import episodes, mascot
+
+    episode = run_context(pid, environment, severity="medical_urgency")
+    episode["current_node"] = "u_handover"
+    data.save_episode(episode)
+    monkeypatch.setattr(data, "get_open_episode", lambda _: data.load_episodes()[0])
+    monkeypatch.setattr(episodes, "get_pending", lambda _: [])
+    monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: st.info(text))
+    app = AppTest.from_file("../pages/2_Protocol.py", default_timeout=30)
+    app.session_state["astronaut"] = "a1"
+    app.session_state["environment"] = environment
+    app.run()
+    assert not app.exception
+    next(b for b in app.button if b.label == "I can't").click().run()
+    assert not app.exception
+    expected = config.load_protocol(pid)["nodes"]["u_no_clinician"]["text"]
+    assert any(item.value == expected for item in app.info)
+    assert data.load_episodes()[0]["current_node"] == "u_no_clinician"
+    app.run()
+    assert any(item.value == expected for item in app.info)
+    next(b for b in app.button if b.label == "Continue").click().run()
+    assert not app.exception
+    saved = data.load_episodes()[0]
+    assert saved["current_node"] == "u_handover"
+    assert saved["status"] == "active" and saved["severity"] == "medical_urgency"
+    assert saved["closed_at"] is None and saved["outcome"] is None
+    next(b for b in app.button if b.label == "Done").click().run()
+    assert not app.exception
+    assert data.load_episodes()[0]["status"] == "handed_over"
