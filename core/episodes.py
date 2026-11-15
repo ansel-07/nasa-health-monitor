@@ -98,6 +98,19 @@ def _new_episode(stored: list[dict], astronaut: str, environment: str, match: di
     }
 
 
+def _later_equal_time_evidence(m: dict, previous: dict) -> bool:
+    """Use stored row order to distinguish a fresh same-time reading from a replay."""
+    if (m["indicator"], m["value"]) == (previous["indicator"], previous["value"]):
+        return True
+    rows = data.load_measurements(astronaut=m["astronaut"])
+    rows = rows[rows["timestamp"] == _at(m["timestamp"])]
+    incoming = rows.index[(rows["indicator"] == m["indicator"]) & (rows["value"] == m["value"])]
+    if incoming.empty:
+        return True  # a fresh manual/protocol reading, not saved yet
+    earlier = rows.index[(rows["indicator"] == previous["indicator"]) & (rows["value"] == previous["value"])]
+    return earlier.empty or incoming[-1] > earlier[-1]
+
+
 def _pending_items(items: list[dict], matches: list[dict], m: dict, exclude: str | None) -> list[dict]:
     """Keep one pending item per astronaut/problem, with the most recent evidence."""
     updated = deepcopy(items)
@@ -109,7 +122,10 @@ def _pending_items(items: list[dict], matches: list[dict], m: dict, exclude: str
                          and p["problem"] == item["problem"]), None)
         if previous is None:
             updated.append(item)
-        elif _at(item["measured_at"]) > _at(previous["measured_at"]):
+        elif _at(item["measured_at"]) > _at(previous["measured_at"]) or (
+            _at(item["measured_at"]) == _at(previous["measured_at"])
+            and _later_equal_time_evidence(m, previous)
+        ):
             previous.update(item)
     return [p for p in updated if not (p["astronaut"] == m["astronaut"] and p["problem"] == exclude)]
 
@@ -283,9 +299,10 @@ def confirm(episode_id: str, measurement: dict) -> dict:
     pending = data.load_pending()
     new_pending = _pending_items(pending, matches, m, episode["problem"])
     _save_measurement_once(m)
-    data.save_episode(updated)
+    # Keep confirmation retryable until its queue changes have been saved.
     if new_pending != pending:
         data.save_pending(new_pending)
+    data.save_episode(updated)
     return updated
 
 

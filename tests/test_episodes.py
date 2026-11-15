@@ -65,6 +65,41 @@ def test_normal_measurement_is_saved_without_episode(state):
     assert len(data.load_measurements()) == 1
 
 
+@pytest.mark.parametrize("failed_write", ["save_pending", "save_episode"])
+@pytest.mark.parametrize("value,status", [(20, "active"), (0, "dismissed")])
+def test_confirmation_storage_failure_can_retry_without_losing_other_alerts(state, monkeypatch, failed_write, value, status):
+    clock, problems = state
+    initial = open_episode(state)
+    problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [{
+        "severity": "mild", "when": {"indicator": "x", "above" if value else "below": 10},
+    }]}
+    other = {"astronaut": "a2", "problem": "problem_b", "severity": "mild", "indicator": "x",
+             "value": 20, "z": None, "measured_at": clock[0].isoformat()}
+    data.save_pending([other])
+    clock[0] += timedelta(minutes=5)
+    m = measurement(clock, value=value)
+    original_write = getattr(data, failed_write)
+
+    def fail(*args):
+        raise OSError("Synthetic confirmation storage failure")
+
+    with monkeypatch.context() as failure:
+        failure.setattr(data, failed_write, fail)
+        with pytest.raises(OSError, match="Synthetic confirmation"):
+            episodes.confirm(initial["id"], m)
+    assert data.get_open_episode("a1") == initial
+    assert len(data.load_measurements()) == 2
+    assert other in data.load_pending()
+    assert getattr(data, failed_write) is original_write
+    result = episodes.confirm(initial["id"], m)
+    assert result["status"] == status
+    assert len(data.load_measurements()) == 2
+    assert data.load_episodes() == [result]
+    assert len(data.load_pending("a1")) == 1
+    assert data.load_pending("a1")[0]["problem"] == "problem_b"
+    assert data.load_pending("a2") == [other]
+
+
 def test_highest_severity_opens_and_ties_follow_configuration(state):
     clock, problems = state
     problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [rule("severe")]}
@@ -119,6 +154,42 @@ def test_older_pending_evidence_cannot_replace_newer(state):
     original = data.load_pending()
     episodes.on_new_measurement(measurement(clock, timestamp=(clock[0] - timedelta(minutes=1)).isoformat(), value=12), "mars")
     assert data.load_pending() == original
+
+
+@pytest.mark.parametrize("source", ["manual", "protocol", "simulated"])
+def test_same_time_pending_uses_newer_evidence_without_replay_rollback(state, source):
+    clock, problems = state
+    problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [rule(), rule("severe", above=30)]}
+    first = measurement(clock, source=source)
+    episodes.on_new_measurement(first, "mars")
+    newer = measurement(clock, source=source, value=40)
+    if source == "simulated":
+        data.add_measurement(newer)  # simulated rows are stored before detection
+    episodes.on_new_measurement(newer, "mars")
+    pending = episodes.get_pending("a1")
+    assert [(p["value"], p["severity"]) for p in pending] == [(40, "severe")]
+    episodes.on_new_measurement(first, "mars")
+    assert episodes.get_pending("a1") == pending
+    newest = measurement(clock, source=source, value=25)
+    episodes.on_new_measurement(newest, "mars")
+    pending = episodes.get_pending("a1")
+    assert [(p["value"], p["severity"]) for p in pending] == [(25, "mild")]
+    episodes.on_new_measurement(newer, "mars")
+    assert episodes.get_pending("a1") == pending
+    assert len(data.load_measurements()) == 3
+
+
+def test_same_time_pending_can_move_between_indicators(state):
+    clock, problems = state
+    open_episode(state)
+    problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [rule(indicator="x"), rule(indicator="y")]}
+    old = measurement(clock, value=12)
+    episodes.on_new_measurement(old, "mars")
+    episodes.on_new_measurement(measurement(clock, indicator="y", value=30), "mars")
+    pending = episodes.get_pending("a1")
+    assert pending[0]["indicator"] == "y" and pending[0]["value"] == 30
+    episodes.on_new_measurement(old, "mars")
+    assert episodes.get_pending("a1") == pending
 
 
 def test_astronauts_have_independent_open_episodes_and_unique_ids(state):

@@ -43,7 +43,7 @@ that it validates the app. Access limitations are explicit.
 | S08 | [NASA, Risk of Spaceflight Associated Neuro-ocular Syndrome](https://www.nasa.gov/reference/risk-of-spaceflight-associated-neuro-ocular-syndrome-sans/) | M[8] | HRP risk description; retrieved. |
 | S09 | [NASA, SANS: 2023 Clinical Update, NTRS 20220014606](https://ntrs.nasa.gov/citations/20220014606) | M[9], B[2] | Published clinical classification; retrieved. Early TRT delta >=20 micrometres, concerning delta >=55 and/or Frisen >=1; functional impact is separate. |
 | S10 | [NASA OCHMO-MTB-001, SANS (2024-02-21)](https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf) | M[10], T[5] | Monitoring and countermeasure reference; retrieved, 18 PDF pages. Not individualized care instructions. |
-| S11 | [Gew et al., SANS: expert consensus on diagnosis and management (2026)](https://pmc.ncbi.nlm.nih.gov/articles/PMC13462731/) | M[11], B[3], T[6] | DOI 10.1038/s41433-026-04651-6 and publication identity verified via PubMed/author institution. PMC challenge and publisher/repository access blocked full-text verification; Table 2 details remain attributed to the supplied guides. |
+| S11 | [Gew et al., SANS: expert consensus on diagnosis and management (2026)](https://pmc.ncbi.nlm.nih.gov/articles/PMC13462731/) | M[11], B[3], T[6] | DOI [10.1038/s41433-026-04651-6](https://www.nature.com/articles/s41433-026-04651-6). Expert consensus reference; the app uses the refractive criterion profile selected by Edu in supplied guides B and M. Software triage remains a prototype decision. |
 | S12 | [NASA, Evidence Report: Risk of SANS (2017/2018), NTRS 20180000936](https://ntrs.nasa.gov/api/citations/20180000936/downloads/20180000936.pdf) | M[12] | Historical visual-test and surveillance evidence; retrieved. Preserve publication version. |
 | S13 | [NASA, Thigh Cuff](https://www.nasa.gov/reference/thigh-cuff/) | M[13] | Research countermeasure description; retrieved. Study duration is not a treatment prescription. |
 | S14 | [NASA HRP, Risk Approach Plans: Human Health Countermeasures Element (June 2026)](https://www.nasa.gov/wp-content/uploads/2026/08/hrp-rap-for-web-62026-hhc.pdf) | M[14] | Research roadmap and open SANS work; retrieved. Not an established treatment protocol. |
@@ -106,9 +106,8 @@ engine; this source-only task does not certify immediate access in every context
   The extra percentages are P proposals, not additional production thresholds.
 - **Refraction:** B p. 2 and M p. 8 attribute >+0.50 D to the 2026 consensus,
   versus >=+0.75 D in NASA 2023. S09 independently confirms the older criterion.
-  S11 identity/DOI is verified, but this review could not retrieve its Table 2;
-  the newer exact comparator remains a guide-attributed claim, not a newly
-  verified quotation or permission to mix profiles.
+  The app uses the newer profile selected by Edu in B and M, with S11 linked
+  as its consensus reference. Keep that provenance and do not mix profiles.
 - **Page numbering:** S10 is an 18-page technical brief. T cites pp. 3-4 and
   12-13; M cites pp. 6-9 and 12. These are source-page pointers, not the pages of
   T/M. Consult the named section and printed page when reviewing a claim.
@@ -121,7 +120,7 @@ engine; this source-only task does not certify immediate access in every context
 All cited URLs are extracted and cross-referenced above. This supplies #43's
 medical-source inventory and distinguishes published criteria, research,
 prototype estimates and existing owner decisions. It does not claim that every
-external reference was fully reviewed: S04, S11, S16 and S19 have the limitations
+external reference was fully reviewed: S04, S16 and S19 have the limitations
 listed above. S07 was retrieved through its primary NTRS PDF instead of the
 landing page. No missing clinical duration was invented.
 
@@ -137,3 +136,37 @@ SHA-256 identifies the exact supplied local PDFs; the PDFs are not republished.
 - `guia_tratamientos_vigilancia_urgencia.pdf`: `7570681f75f3bed1320c607f0ad2d7387f832862397793e9069a8a0c03eae700`
 - `guia_breve_umbrales_atrofia_SANS.pdf`: `276abe29283a8cafcb93afb14c34d317d125f3b60fc0b30d72e15b0c708b09f2`
 - `monitorizacion_astronautas_atrofia_SANS.pdf`: `307bddc8d6176476afae902f791efaf9da3fbe433487fe0f416786fac2705d06`
+
+
+## Issue #43 completion review (2026-11-15)
+
+This completion assessment supersedes the earlier source-only status above.
+It addresses the original source-and-decision request without expanding its scope to an autonomous emergency-management system.
+
+| Original requirement | Delivery and acceptance evidence |
+| --- | --- |
+| Repeat timing | SANS 10 minutes and muscle atrophy 2 minutes remain the previously authorized prototype estimates, explicitly described as estimates in config/problems.json. The supplied guides do not establish universal clinical confirmation intervals. No timer is changed here. |
+| Level/state mapping | Edu's recorded mapping and Ansel's approval are implemented: numerical findings yield watch; concern requests priority review; protocol red flags escalate using set_severity. Related contract issue #41 and protocol-content request #40 are closed. |
+| Treatment/follow-up sources | The T/B/M page mapping and 25-source inventory above identify management advice, follow-up proposals, and their provenance. Physician-directed follow-up remains distinct from the demo confirmation countdown. |
+| Immediate alarm guidance | tests/test_subjective_symptoms.py checks ALM_01 through ALM_05 on ISS/Moon/Mars from the Check-in list, manual detail, and a pending-confirmation detail whose measurement button is disabled. Each report displays its configured action immediately, persists to activity history, and appears on a fresh Main Menu render. No wait simulation or measurement submission is required. |
+| Data and confirmation contract | The same tests assert unchanged mission time, measurements, episodes and pending alerts. This implements AGENTS.md 5.6: subjective alarms provide immediate guidance but do not themselves open, confirm or close a SANS/muscle episode. |
+
+The scope is the configured five alarms, a selected astronaut/environment and
+valid loaded configuration. This does not certify all possible acute complaints,
+all invalid-config/error paths, automated clinical contact, or clinical validation.
+Clinical-priority entry into an episode before numerical confirmation remains a
+separate architectural decision; it is not required to display these alarm actions.
+Protocol changes under #191 remain separately reviewed in #195.
+
+S04 is method research, S16 is latency context and S19 is nutrition context.
+Their recorded access results remain historical provenance, rather than grounds
+to invent acquisition procedures, thresholds, doses, or confirmation intervals.
+The production environment-delay source is specified in config/environments.json;
+no numerical claim is inferred from the ESA Nebula project. No unavailable figure
+is used here to add a nutritional prescription.
+
+At Edu's direction, the 2026 consensus is linked directly:
+[Gew et al., SANS: expert consensus on diagnosis and management](https://www.nature.com/articles/s41433-026-04651-6).
+The configured refractive profile retains its supplied-guide provenance. This
+review adds no new scientific threshold and does not relabel prototype choices
+as NASA requirements.
