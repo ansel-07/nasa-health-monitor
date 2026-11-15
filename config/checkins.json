@@ -20,7 +20,7 @@
     "bar_full_hours": 168
   },
   "muscle_strength_test": {
-    "name": "Muscle strength",
+    "name": "Right-hand grip strength",
     "indicators": ["muscle_strength"],
     "bar_full_hours": 168
   },

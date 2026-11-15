@@ -42,10 +42,10 @@
     "source": "Measurement guidance (AI-assisted source review; reviewed by Edu): NHLBI, Sleep Diary, quantity and quality of sleep: https://www.nhlbi.nih.gov/resources/sleep-diary"
   },
   "muscle_strength": {
-    "name": "Muscle strength",
+    "name": "Right-hand grip strength",
     "unit": "N",
     "how_to_measure": "With a trained operator, squeeze a hand dynamometer using your right hand and the same grip setting and posture as pre-flight. Enter the peak grip force in newtons, not the device reading in kilograms.",
-    "why_it_matters": "Tracks muscle force against the personal pre-flight baseline, with priority given to the legs and trunk.",
+    "why_it_matters": "Tracks right-hand grip force against the same hand's pre-flight reference. This test does not directly measure leg or trunk strength.",
     "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; [1] NASA-STD-3001, Vol. 1, Rev. C, section 4.6.2 (V1 4024). Measurement guidance (AI-assisted source review; reviewed by Edu): PhenX/NHANES muscle strength protocol, device, grip setting and consistent positioning: https://www.phenxtoolkit.org/protocols/view/150302 . Right-hand peak grip is the project measurement definition; the trained operator must provide force in N."
   },
   "muscle_area": {
