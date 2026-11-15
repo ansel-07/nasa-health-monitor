@@ -1,4 +1,4 @@
-# AI-assisted: Lumi designed by Ansel with an AI assistant; integrated with Claude Code and reviewed by Ansel.
+# AI-assisted: Lumi designed by Ansel with Claude; integrated with Claude Code and reviewed by Ansel.
 """
 Lumi — mascota LED para la app de seguimiento médico (NASA Space Apps 2026).
 
