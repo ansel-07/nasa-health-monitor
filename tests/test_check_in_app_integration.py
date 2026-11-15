@@ -112,6 +112,18 @@ def back_to_menu(app):
     click(app, "Main Menu")
 
 
+def test_reset_demo_discards_in_progress_tutorial(workspace):
+    app = browser()
+    click(app, "Tutorials")
+    app.button(key="tutorial_card:synthetic_a").click().run()
+    assert not app.exception and "tutorial_run" in app.session_state, [item.value for item in app.info]
+    back_to_menu(app)
+    click(app, "Reset demo")
+    click(app, "Tutorials")
+    assert "tutorial_run" not in app.session_state
+    assert any(b.key == "tutorial_card:synthetic_a" for b in app.button)
+
+
 @pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
 def test_menu_confirmation_protocol_and_next_alert(workspace, environment):
     _, seed = workspace
@@ -227,7 +239,7 @@ def test_reset_after_storage_failure_allows_a_fresh_check_in(workspace, monkeypa
     assert not any(str(key).startswith("check_in_") for key in app.session_state.keys())
     assert app.session_state["astronaut"] == "a1" and app.session_state["environment"] == "mars"
     assert app.session_state["voice_on"] is False
-    assert app.session_state["tutorial_run"] == {"kept": True}
+    assert "tutorial_run" not in app.session_state
     assert mission.now() == START
     assert data.load_measurements(astronaut="a1").query("source == 'manual'").empty
     assert data.load_episodes() == [] and data.load_pending() == []

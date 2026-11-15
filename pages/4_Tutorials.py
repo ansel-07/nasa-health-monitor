@@ -21,7 +21,12 @@ def show_whole_protocol(episode: dict) -> None:
     """The whole diagram in a large dialog (#233): the focused chart stays as it is."""
     # Natural size (top to bottom, readable text), centred; the dialog scrolls instead of stretching it.
     with st.container(key="whole_protocol"):
-        st.html("<style>.st-key-whole_protocol { align-items: center; }</style>")
+        st.html("""<style>
+          .st-key-whole_protocol { align-items: center; }
+          .st-key-whole_protocol [data-testid="stGraphVizChart"] { overflow-x: auto; max-width: 100%; }
+          .st-key-whole_protocol [data-testid="stGraphVizChart"] svg {
+            width: auto !important; height: auto !important; max-width: none !important; }
+        </style>""")
         st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="content",
                           alt="Whole protocol flowchart. The current step is highlighted; completed steps are green.")
 
@@ -80,7 +85,11 @@ def advance(astronaut: str, episode: dict, response: dict) -> None:
         st.error("Check your response and try again.")
         return
     if updated["status"] in OUTCOMES:
-        activity.complete(astronaut, "tutorial", updated["problem"])
+        try:
+            activity.complete(astronaut, "tutorial", updated["problem"])
+        except (ValueError, KeyError, OSError):
+            st.error("Your practice completion could not be saved. Try this step again.")
+            return
     st.session_state[RUN] = updated
     st.rerun()
 
@@ -112,8 +121,10 @@ def show_practice(astronaut: str, episode: dict) -> None:
         st.markdown(step["text"])
     if st.button("Show whole protocol", icon=":material/open_in_full:", type="tertiary", key="tutorial_whole"):
         show_whole_protocol(episode)
-    st.graphviz_chart(protocol_engine.flowchart_dot(episode), width="stretch",
-                      alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
+    _, visual, _ = st.columns([1, 6, 1])
+    with visual:
+        st.graphviz_chart(protocol_engine.flowchart_dot(episode), width="stretch",
+                          alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
     key = f"tutorial_{episode['problem']}_{step['id']}_{len(episode.get('log', []))}"
     kind = step["type"]
     if kind in ("info", "contact"):
