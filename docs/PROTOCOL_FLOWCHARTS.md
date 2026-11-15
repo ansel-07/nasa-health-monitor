@@ -7,7 +7,8 @@ Local care never waits for Earth. Priority reviews can escalate only on a clinic
 urgency. SANS correction insufficiency is asked explicitly; a generic inability is not
 an urgency finding. No numerical criteria, timing or treatment settings change.
 
-Existing node ids remain available for saved episodes. The handover hold is intentional:
+Existing node ids remain available for saved episodes, except `u_mars_send`: it duplicated the
+ISS flight-surgeon contact word for word, so Mars now uses that same step (Javi, protocol structure). The handover hold is intentional:
 only acknowledged clinician review and accepted responsibility closes the urgency.
 If handover cannot be accepted, show the existing emergency guidance, then return
 to the handover question; acknowledging the guidance does not accept care (#217).
@@ -31,7 +32,6 @@ flowchart TD
     w_end["Keep the follow-up plan agreed with your clinician; no medicine is proven to reverse these spaceflight eye changes. Do not start medicines, pressure-changing treatments or invasive eye procedures from this app."]
     u_stop["Stop risky tasks and spacewalks; alert the crew medical officer now. Record when symptoms began and which eye is affected; do not wait for an eye scan."]
     u_env["decision"]
-    u_mars_send["Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer."]
     u_ground["Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer."]
     u_end["Clinician review and transfer of care are recorded; follow medical limits and follow-up. This does not mean you are cured or cleared for spacewalks; any transfer is a medical and mission decision."]
     u_help["Request immediate assistance from the crew medical officer. Do not continue the risky task."]
@@ -58,8 +58,6 @@ flowchart TD
     u_stop -->|I can't| u_help
     u_env -->|otherwise| u_ground
     u_env -->|moon| u_support
-    u_env -->|mars| u_mars_send
-    u_mars_send -->|continue| u_handover
     u_ground -->|continue| u_handover
     u_help -->|continue| u_local
     w_concern -->|otherwise| w_notify
@@ -95,7 +93,6 @@ flowchart TD
     u_env["decision"]
     u_orbit["Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer."]
     u_moon["Continue local care in the habitat. The clinician decides any transfer according to clinical need, vehicle and resources."]
-    u_mars_send["Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer."]
     u_end["Clinician review and transfer of care are recorded; follow medical limits and recovery plan for the condition found. Return or transfer depends on clinical need, vehicle and resources, not just a sensor value."]
     u_help["Request immediate assistance from the crew medical officer. Do not continue the risky task."]
     w_concern["decision"]
@@ -118,10 +115,8 @@ flowchart TD
     u_stop -->|I can't| u_help
     u_env -->|otherwise| u_orbit
     u_env -->|moon| u_support
-    u_env -->|mars| u_mars_send
     u_orbit -->|continue| u_handover
     u_moon -->|continue| u_handover
-    u_mars_send -->|continue| u_handover
     u_help -->|continue| u_local
     w_concern -->|otherwise| w_limits
     w_concern -->|concern present| w_priority_review
