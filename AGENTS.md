@@ -20,11 +20,11 @@ The app **guides, it does not diagnose**.
 | Person | Role | Owns |
 |---|---|---|
 | Gonzalo | Product, coordination and testing (does not code) | User stories, UI texts, demo story, test issues |
-| Edu | Science and health | Every health value, rule, protocol and source in `config/` |
+| Edu | Science and health | Every health value, rule and source in `config/`, and the medical content of protocols (step texts, sources, thresholds, what escalates) |
 | Ansel | Architecture, integration and mascot | Repo, contracts, reviews and merges, `app.py`, `pages/0_Home.py`, `core/models.py`, `core/config.py`, `core/mascot.py` |
 | Fran | Data and trends | `core/data.py`, `core/mission.py`, `core/charts.py`, `pages/3_Trends.py`, data generator |
 | Juan Carlos | Detection | `core/conditions.py`, `core/triggers.py`, `core/episodes.py`, `pages/1_Check_in.py` |
-| Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py` |
+| Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py`, protocol structure in `config/protocols/*.json` and `tests/test_protocol_content.py` |
 
 ## 3. Stack
 
@@ -62,7 +62,8 @@ core/triggers.py            Juan Carlos  Evaluate a new measurement against the 
 core/episodes.py            Juan Carlos  Open, confirm, dismiss, pending list, one-at-a-time rule
 core/protocol_engine.py     Javi         Current step and advance with the astronaut's input
 config/*.json               Edu          Health content (format owned by Ansel)
-config/protocols/*.json     Edu          Protocol flowcharts (format owned by Ansel)
+config/protocols/*.json     Javi         Protocol flowcharts: structure (nodes, branches, routes); medical content is Edu's and he reviews every change (format owned by Ansel)
+tests/test_protocol_content.py Javi       Protocol content tests
 .streamlit/config.toml      Ansel        Theme (colours of the spec)
 data/                       Fran         data/seed/ = demo starting point, copied into every new browser session (5.5); data/*.csv|json = used by scripts only
 scripts/generate_data.py    Fran         Generates pre-flight and simulated mission data
