@@ -41,8 +41,8 @@ def show_list(astronaut: str, environment: str) -> None:
             grid = st.columns(3)   # rows of three: narrow screens keep the configured order
         with grid[index % 3]:
             with st.container(border=True):
-                st.markdown(f"**{problem['name']}**")
-                st.progress(level / 100, text=f"Review bar: {level}%" if level else "Review bar: 0% (due)")
+                st.markdown(f":material/school: **{problem['name']}**")
+                st.progress(level / 100, text=f"Review recency: {level}%" if level else "Review recency: 0% (due)")
                 ready = available(astronaut, problem_id, environment)
                 allowed = activity.can_repeat_tutorial(astronaut, problem_id)
                 if st.button("Start tutorial", key=f"tutorial_{problem_id}", disabled=not (ready and allowed),

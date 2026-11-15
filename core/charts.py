@@ -218,7 +218,6 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
     triggers that only apply there. None: only bands valid in every environment.
     """
     info = config.load_indicators().get(indicator, {})
-    name = info.get("name", indicator)
     unit = info.get("unit", "")
 
     df = data.load_measurements(astronaut=astronaut, indicator=indicator)
@@ -297,17 +296,17 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
 
     fig.update_yaxes(range=[y_low, y_high], title=None if compact else unit,
                      nticks=4 if compact else None, gridcolor=GRID_COLOR, zeroline=False)
-    fig.update_xaxes(title="Mission day", tickformat="d", nticks=5 if compact else None,
+    fig.update_xaxes(title="Mission day", tickformat=",.1~f", nticks=5 if compact else None,
                      gridcolor=GRID_COLOR, zeroline=False)
     fig.update_layout(
         font=dict(size=COMPACT_FONT_SIZE if compact else FULL_FONT_SIZE, family=FONT_FAMILY),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         title_font=dict(size=FULL_FONT_SIZE + 1),
-        title=None if compact else name,
+        title=None,   # the card around the chart names it (docs/UI_STYLE.md: no titles)
         height=COMPACT_HEIGHT if compact else FULL_HEIGHT,
         showlegend=not compact,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         hovermode="closest",
-        margin=dict(l=10, r=10, t=30 if compact else 60, b=10),
+        margin=dict(l=10, r=10, t=30 if compact else 40, b=10),
     )
     return fig
