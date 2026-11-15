@@ -313,6 +313,21 @@ def test_projector_font_sizes(tmp_data, fixed_now):
             == charts.COMPACT_FONT_SIZE)
 
 
+def test_bands_are_told_apart_and_labels_avoid_the_right_edge(tmp_data, fake_problems, fixed_now):
+    # #218: more serious bands are more opaque and have an edge line in their colour;
+    # band labels sit on the left, away from the alert marks, "Launch" and "Now".
+    add_preflight_60_62_64()
+    add("2027-04-02T08:00:00", 70)
+    fig = charts.indicator_chart("a1", "_example_indicator")
+    opacity = {s.fillcolor: s.opacity for s in fig.layout.shapes if s.type == "rect"}
+    assert opacity[charts.WARNING] < opacity[charts.SERIOUS] < opacity[charts.CRITICAL]
+    edge_colors = {s.line.color for s in fig.layout.shapes if s.type == "line" and s.y0 == s.y1}
+    assert {charts.WARNING, charts.SERIOUS, charts.CRITICAL} <= edge_colors
+    band_labels = [a for a in fig.layout.annotations if a.text.split(" ·")[0] in
+                   ("Mild", "Moderate", "Severe", "Watch", "Concern")]
+    assert band_labels and all(a.xanchor == "left" for a in band_labels)
+
+
 def test_every_chart_text_has_an_explicit_projector_size(tmp_data, fixed_now):
     # #189: axis ticks, axis titles and every label (baseline, bands, Launch, Now) carry their
     # own size, so the Streamlit template cannot shrink them below ~14 px.
