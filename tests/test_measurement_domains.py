@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex for Juan Carlos; human review pending.
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Edu's #236 invalid representations must never consume a real alert."""
 from copy import deepcopy
 from datetime import datetime, timedelta
