@@ -55,8 +55,10 @@ levels = [activity.bar_level(astronaut, "check_in", checkin_id) for checkin_id i
 problems = config.load_problems()
 ready = sum(activity.can_repeat_tutorial(astronaut, problem_id) for problem_id in problems)
 tracked = len(data.latest_values(astronaut))
-CARDS = [("Check-in", "pages/1_Check_in.py", "monitor_heart",
-          f"Lowest recency {min(levels)}%" if levels else "", min(levels) if levels else None),
+repeat_waiting = bool(open_episode and open_episode["status"] == "pending_confirmation")
+checkin_status = ("Repeat measurement waiting" if repeat_waiting
+                  else f"Lowest recency {min(levels)}%" if levels else "")
+CARDS = [("Check-in", "pages/1_Check_in.py", "monitor_heart", checkin_status, min(levels) if levels else None),
          ("Trends", "pages/3_Trends.py", "show_chart", f"{tracked} indicators tracked", None),
          ("Tutorials", "pages/4_Tutorials.py", "school", f"{ready} of {len(problems)} ready to practise", None)]
 if (open_episode and open_episode["status"] == "active") or pending:
@@ -65,7 +67,7 @@ if (open_episode and open_episode["status"] == "active") or pending:
     CARDS.insert(0, ("Protocols", "pages/2_Protocol.py", "medical_services", status, None))
 for column, (label, page, icon, status, level) in zip(st.columns(len(CARDS)), CARDS):
     with column:
-        if ui.card(f"menu_{label}", label, icon, status, level, primary=label == "Protocols"):
+        if ui.card(f"menu_{label}", label, icon, status, level, primary=label == "Protocols" or (label == "Check-in" and repeat_waiting)):
             st.switch_page(page)
 
 if feedback := st.session_state.pop("menu_feedback", None):
