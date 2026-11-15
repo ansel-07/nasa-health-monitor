@@ -223,6 +223,20 @@ def test_replaying_closed_episodes_original_measurement_does_not_reopen_it(state
     assert len(data.load_episodes()) == 1
 
 
+@pytest.mark.parametrize("change", [{"value": 1}, {"unit": "other example units"}, {"source": "protocol"}])
+def test_same_time_duplicate_search_preserves_distinct_rows(state, change):
+    clock, _ = state
+    original = measurement(clock, value=0)
+    episodes.on_new_measurement(original, "mars")
+    distinct = {**original, **change}
+    episodes.on_new_measurement(distinct, "mars")
+    episodes.on_new_measurement(distinct, "mars")
+    assert len(data.load_measurements()) == 2
+    clock[0] += timedelta(minutes=1)
+    episodes.on_new_measurement(measurement(clock, value=0), "mars")
+    assert len(data.load_measurements()) == 3
+
+
 def test_confirmation_activates_with_repeat_severity_and_preserves_initial_trigger(state):
     _, problems = state
     problems["problem_a"]["triggers"].append(rule("severe", above=30))

@@ -59,6 +59,31 @@ def test_first_matching_level_and_state_win(symptom_setup):
     assert triggers.evaluate(m, "mars")[0]["severity"] == "watch"
 
 
+@pytest.mark.parametrize("initially_missing", [False, True])
+def test_baseline_lookup_is_shared_only_within_one_evaluation(symptom_setup, monkeypatch, initially_missing):
+    problems, _, m = symptom_setup
+    problems["test_problem"]["symptoms"]["a"]["levels"] = [
+        {"level": "concern", "when": {"indicator": "x", "metric": "baseline_fraction", "above": 2.5}},
+        {"level": "watch", "when": {"indicator": "x", "metric": "baseline_fraction", "above": 1.5}},
+    ]
+    baseline = [None if initially_missing else {"mean": 10, "std": 1, "n": 2}]
+    calls = []
+
+    def lookup(astronaut, indicator):
+        calls.append((astronaut, indicator))
+        return baseline[0]
+
+    monkeypatch.setattr(data, "get_baseline", lookup)
+    result = triggers.evaluate(m, "mars")
+    assert bool(result) is not initially_missing
+    if result:
+        assert result[0]["symptoms"]["a"] == "watch"
+    assert calls == [("a1", "x")]
+    baseline[0] = {"mean": 10 if initially_missing else 20, "std": 1, "n": 2}
+    assert bool(triggers.evaluate(m, "mars")) is initially_missing
+    assert calls == [("a1", "x"), ("a1", "x")]
+
+
 def test_environment_missing_values_and_unrelated_indicators(symptom_setup):
     problems, latest, m = symptom_setup
     problems["test_problem"]["symptoms"]["a"]["levels"][0]["environments"] = ["mars"]
