@@ -234,3 +234,13 @@ def test_medium_say_fades_in_after_a_small_mascot():
     app = _run(script, {"mascot_layout": "small"})
     assert "mascot-fade-in" in _styles(app) and "mascot-to-centre" not in _styles(app)
     assert app.session_state["mascot_layout"] == "medium"
+
+
+def test_voice_prefers_natural_female_en_us_and_keeps_default_otherwise():
+    """#211: ranking runs in the browser; the order of preferences is checked here."""
+    from core import mascot
+    out = build_html("Hi", voice_on=True)
+    assert "u.voice = voice" in out and "function rankVoice" in out
+    scores = [score for _, score in mascot._VOICE_PREFERENCES]
+    assert scores == sorted(scores, reverse=True) and min(scores) > 10
+    assert "Online \\(Natural\\)" in out and "Google US English" in out
