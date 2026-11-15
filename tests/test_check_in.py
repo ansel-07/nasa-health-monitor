@@ -555,6 +555,42 @@ def test_incomplete_assessments_have_focused_warnings_and_brief_mascot_guidance(
         assert "standard deviation" not in state["speech"][-1][0]
 
 
+@pytest.mark.parametrize("status,draft", [("pending_confirmation", False), ("pending_confirmation", True), ("active", False)])
+def test_incomplete_manual_checkin_guidance_preserves_the_alert_status(screen, monkeypatch, status, draft):
+    app, state = screen
+    opened(state, status)
+    before = deepcopy(state["open"])
+    state["problems"]["problem_a"]["triggers"].append({
+        "severity": "mild", "when": {"indicator": "y", "metric": "baseline_delta", "above": 5},
+    })
+    monkeypatch.setattr(data, "get_baseline", lambda *args: None)
+    if draft:
+        group_xy(state)
+        app.session_state["check_in_draft:a1:mars:x"] = {
+            "measurements": [{"indicator": key, "value": 20.0} for key in ("x", "y")], "saved": 1,
+        }
+        app.run()
+    else:
+        app.run()
+        button(app, "Back to check-ins").click().run()
+        button(app, "Check y").click().run()
+
+    assert not app.exception
+    assert any("Cannot evaluate y: no valid pre-flight baseline" in warning.value for warning in app.warning)
+    narration = state["speech"][-1][0]
+    if status == "pending_confirmation":
+        assert "Your alert still needs a repeat measurement" in narration
+        assert "confirmed" not in narration.lower() and "Open Protocol" not in narration
+        if draft:
+            assert not button(app, "Record measurement").disabled
+        else:
+            assert not button(app, "Continue repeat measurement").disabled
+    else:
+        assert "Alert confirmed. Open Protocol" in narration
+        assert not button(app, "Open Protocol").disabled
+    assert state["open"] == before and state["calls"] == []
+
+
 def test_list_cards_use_configured_groups_and_allow_full_bars(screen, monkeypatch):
     app, state = screen
     app.session_state['check_in_selected:a1:mars'] = None
