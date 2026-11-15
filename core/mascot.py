@@ -21,7 +21,6 @@ import json
 import re
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from core.models import MASCOT_SIZES, MOODS
 
@@ -205,8 +204,9 @@ def _render(text: str, mood: str, size: str) -> None:
     """Draw one frame; speak and animate only when the text differs from the last one."""
     animate = st.session_state.get(_LAST_TEXT) != text
     voice_on = bool(st.session_state.get("voice_on", False))
-    components.html(build_html(text, mood, size, voice_on, animate=animate),
-                    height=frame_height(text, size))
+    # st.iframe (not the deprecated components.html): same-origin, so the frame can use the
+    # parent's speech synthesis and resize itself.
+    st.iframe(build_html(text, mood, size, voice_on, animate=animate), height=frame_height(text, size))
     st.session_state[_LAST_TEXT] = text
 
 

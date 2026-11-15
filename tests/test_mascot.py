@@ -108,7 +108,7 @@ def test_render_animates_only_new_text(monkeypatch):
     import streamlit as st
     from core import mascot
     calls = []
-    monkeypatch.setattr(mascot.components, "html", lambda body, height: calls.append(body))
+    monkeypatch.setattr(mascot.st, "iframe", lambda body, height: calls.append(body))
     st.session_state.clear()
     mascot._render("One", "neutral", "large")
     mascot._render("One", "neutral", "large")
