@@ -62,3 +62,17 @@ def test_no_mascot_and_no_voice_on_tutorials(storage):
     assert not app.exception
     assert not app.get("iframe") and all(item.label != "Voice" for item in app.toggle)
     assert app.markdown and app.get("graphviz_chart")
+
+
+def test_changing_the_environment_ends_the_practice_run(storage):
+    """A run started on Mars must not keep following Mars branches after the Welcome picks another environment."""
+    app = page()
+    button(app, "Start tutorial").click().run()
+    assert app.session_state["tutorial_run"]["environment"] == "mars"
+    app.session_state["environment"] = "moon"
+    app.run()
+    assert "tutorial_run" not in app.session_state
+    assert button(app, "Start tutorial")   # back on the list
+    button(app, "Start tutorial").click().run()
+    assert app.session_state["tutorial_run"]["environment"] == "moon"
+    assert not app.exception
