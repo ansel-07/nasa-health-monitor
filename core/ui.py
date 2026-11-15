@@ -110,3 +110,101 @@ def status_bar(astronaut: str, environment: str) -> None:
 def footnote(text: str) -> None:
     """Small centred line at the foot of a screen (e.g. the Welcome's prototype notice)."""
     st.html(f'<div class="ui-footnote">{html.escape(text)}</div>')
+
+
+# --- Cards -------------------------------------------------------------------------------------
+
+def _card_css(key: str, primary: bool) -> str:
+    sel = f".st-key-{key}"
+    edge = ACCENT if primary else BORDER
+    glow = "box-shadow: 0 0 0 1px rgba(94, 242, 255, 0.35), 0 0 24px rgba(94, 242, 255, 0.12);" if primary else ""
+    return f"""<style>
+{sel} {{ position: relative; background: {SURFACE}; border: 1px solid {edge}; border-radius: 0.75rem;
+  padding: 1rem 1.1rem 0.9rem; gap: 0.35rem; min-height: 8.5rem; transition: border-color 150ms, transform 150ms; {glow} }}
+{sel}:hover {{ border-color: {ACCENT}; transform: translateY(-1px); }}
+{sel} [data-testid="stVerticalBlock"], {sel} [data-testid="stElementContainer"] {{ position: static; }}
+/* The whole card is the button: the real button covers it, its own label hidden. */
+{sel} [data-testid="stButton"] {{ position: absolute; inset: 0; z-index: 2; margin: 0; }}
+{sel} [data-testid="stButton"] button {{ width: 100%; height: 100%; opacity: 0; cursor: pointer; }}
+{sel} [data-testid="stButton"] button:focus-visible {{ opacity: 1; background: transparent;
+  outline: 2px solid {ACCENT}; color: transparent; }}
+{sel} .ui-card-title {{ font-size: 1.15rem; font-weight: 600; color: {TEXT}; }}
+{sel} .ui-card-status {{ font-family: {MONO}; font-size: 0.75rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: {MUTED}; }}
+{sel} [data-testid="stMarkdownContainer"] p {{ margin: 0; }}
+{sel} [data-testid="stMarkdownContainer"] p span {{ color: {ACCENT}; font-size: 1.6rem; line-height: 1.2; }}
+{sel} [data-testid="stProgressBarTrack"] {{ background: {BORDER}; }}
+</style>"""
+
+
+def level_color(level: int) -> str:
+    """Colour of an activity bar (time since completion, not health): full, half, low."""
+    return NORMAL if level >= 80 else WATCH if level >= 40 else URGENCY
+
+
+def card(key: str, label: str, icon: str, status: str = "", level: int | None = None,
+         primary: bool = False) -> bool:
+    """A clickable card: Material icon, label, a status line and an optional activity bar.
+
+    The whole card is one button whose label is `label` (what screen readers and tests see).
+    Returns True when clicked.
+    """
+    box = f"ui_card_{key}".replace(":", "_")
+    with st.container(key=box):
+        st.html(_card_css(box, primary))
+        st.markdown(f":material/{icon}:")
+        st.html(f'<div class="ui-card-title">{html.escape(label)}</div>'
+                + (f'<div class="ui-card-status">{html.escape(status)}</div>' if status else ""))
+        if level is not None:
+            st.html(f"<style>.st-key-{box} [data-testid='stProgressBarTrack'] > div "
+                    f"{{ background-color: {level_color(level)}; }}</style>")
+            st.progress(level)
+        return st.button(label, key=key, type="primary" if primary else "secondary")
+
+
+# --- Data tiles --------------------------------------------------------------------------------
+
+_BAND_TONES = {"watch": WATCH, "mild": WATCH, "concern": "#FF8A4C", "moderate": "#FF8A4C",
+               "medical_urgency": URGENCY, "severe": URGENCY}
+
+
+def band_status(bands: list[dict], value: float | None) -> dict | None:
+    """The most serious band (charts.threshold_bands, Edu's rules) that contains `value`."""
+    if value is None:
+        return None
+    inside = [band for band in bands
+              if (band["low"] is None or value >= band["low"]) and (band["high"] is None or value <= band["high"])]
+    return inside[-1] if inside else None   # bands are sorted least serious first
+
+
+def chip(text: str, tone: str = MUTED) -> None:
+    """A small status label; colour always comes with the words."""
+    st.html(f'<span style="display:inline-block;font-family:{MONO};font-size:0.72rem;letter-spacing:0.08em;'
+            f'text-transform:uppercase;color:{tone};border:1px solid {tone};border-radius:999px;'
+            f'padding:0.15rem 0.6rem;">{html.escape(text)}</span>')
+
+
+def indicator_tiles(astronaut: str, indicator: str, unit: str, environment: str | None) -> None:
+    """Latest value, personal baseline and distance from it, plus the band it falls in.
+
+    Presentation only: the numbers come from core.data and the bands from config/ (Edu).
+    """
+    from core import charts   # charts imports plotly; keep it out of the status bar's path
+
+    latest = data.latest_values(astronaut).get(indicator)
+    baseline = data.get_baseline(astronaut, indicator)
+    valid = baseline is not None and baseline["n"] >= 2 and baseline["std"] > 0
+    band = band_status(charts.threshold_bands(astronaut, indicator, environment), latest)
+    if band:
+        chip(band["label"], _BAND_TONES.get(band["severity"], WATCH))
+    elif latest is not None and not valid:
+        chip("No valid pre-flight baseline yet")
+    latest_col, baseline_col, delta_col = st.columns(3)
+    latest_col.metric("Latest", "—" if latest is None else f"{latest:.1f} {unit}")
+    baseline_col.metric("Baseline", f"{baseline['mean']:.1f} {unit}" if valid else "—")
+    if valid and latest is not None:
+        z = (latest - baseline["mean"]) / baseline["std"]
+        delta_col.metric("From baseline", f"{latest - baseline['mean']:+.1f} {unit}", f"z {z:+.1f}",
+                         delta_color="off")
+    else:
+        delta_col.metric("From baseline", "—")

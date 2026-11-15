@@ -47,7 +47,7 @@ for key, info in cards.items():
     summary = "no value yet" if latest is None else f"latest {latest:.1f} {unit}".rstrip()
     with st.expander(f"{_label(info, key)} · {summary}"):
         st.plotly_chart(charts.indicator_chart(astronaut, key, environment=environment),
-                        key=f"trends_chart:{astronaut}:{key}")
+                        key=f"trends_chart:{astronaut}:{key}", config={"displayModeBar": False})
         baseline = data.get_baseline(astronaut, key)
         z = data.z_score(astronaut, key, latest) if latest is not None else None
         col_latest, col_baseline, col_z = st.columns(3)

@@ -148,8 +148,10 @@ def test_chart_is_right_of_mascot_and_controls_are_below_both(screen, status):
     app.run()
 
     assert not app.exception
-    columns = app.get("column")
-    assert len(columns) == 2
+    # Mascot | visual; the data tiles under the chart add three columns inside the visual one.
+    columns = app.get("column")[:2]
+    assert len(columns) == 2 and len(app.get("column")) in (2, 5)
+    assert len(columns[1].get("metric")) in (0, 3)
     assert not columns[0].get("plotly_chart")
     assert len(columns[1].get("plotly_chart")) == 1
     assert all(not column.get("button") and not column.get("form") for column in columns)

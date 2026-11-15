@@ -10,7 +10,7 @@ from math import ceil, isfinite
 
 import streamlit as st
 
-from core import activity, charts, config, data, episodes, mascot, mission, triggers
+from core import activity, charts, config, data, episodes, mascot, mission, triggers, ui
 
 
 def _unfinished(value) -> bool:
@@ -264,15 +264,14 @@ def main() -> None:
             if index % 3 == 0:
                 grid = st.columns(3)
             with grid[index % 3]:
-                with st.container(border=True, key=f"check_in_activity_{index}"):
-                    if st.button(checkin["name"], key=f"check_in_card:{checkin_id}", width="stretch"):
-                        st.session_state[selection_key] = checkin_id
-                        st.rerun()
-                    level = activity.bar_level(astronaut, "check_in", checkin_id)
-                    color = "#81C995" if level >= 80 else "#FDD663" if level >= 40 else "#F28B82"
-                    st.html(f"<style>.st-key-check_in_activity_{index} [data-testid='stProgressBarTrack'] > div"
-                            f" {{background-color: {color};}}</style>")
-                    st.progress(level, text=f"Activity recency: {level}%")
+                # One card per check-in (core/ui.py): the whole card opens it; the bar is time
+                # since completion, never a health status.
+                level = activity.bar_level(astronaut, "check_in", checkin_id)
+                count = len(checkin["indicators"])
+                if ui.card(f"check_in_card:{checkin_id}", checkin["name"], "assignment",
+                           f"{count} measurement{'s' if count != 1 else ''} · recency {level}%", level):
+                    st.session_state[selection_key] = checkin_id
+                    st.rerun()
         _subjective_issues(astronaut, "check_in_list", report)
         if opened and opened["status"] == "pending_confirmation":
             if st.button("Continue repeat measurement", width="stretch"):
@@ -328,7 +327,9 @@ def main() -> None:
                 st.caption("Unavailable indicator" if _unfinished(name) else name)
             st.plotly_chart(charts.indicator_chart(
                 astronaut, key, compact=True, environment=assessment_environment,
-            ), key=f"check_in_chart:{key}")
+            ), key=f"check_in_chart:{key}", config={"displayModeBar": False})
+            unit = indicators[key].get("unit", "")
+            ui.indicator_tiles(astronaut, key, "" if _unfinished(unit) else unit, assessment_environment)
 
     if opened:
         label = "Problem state" if "symptoms" in problems[opened["problem"]] else "Alert severity"
