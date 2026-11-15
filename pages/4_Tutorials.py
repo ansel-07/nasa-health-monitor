@@ -107,6 +107,11 @@ def show_practice(astronaut: str, episode: dict) -> None:
     elif kind == "action":
         # "I can't" only when the protocol has a route for it; never a dead button.
         can_refuse = "next_if_cannot" in step
+        log = episode.get("log", [])
+        if (step.get("next_if_cannot") == step["id"] and log and log[-1].get("node") == step["id"]
+                and log[-1].get("input") == "cannot"):
+            # Same step and text after "I can't" (e.g. the handover hold): say so, or nothing seems to happen.
+            st.info("Noted. This step stays open until you can select Done.")
         done_col, cannot_col = st.columns(2) if can_refuse else (st.container(), None)
         if done_col.button("Done", key=f"{key}_done", use_container_width=True):
             advance(astronaut, episode, {"action": "done"})

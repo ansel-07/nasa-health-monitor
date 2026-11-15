@@ -62,3 +62,22 @@ def test_no_mascot_and_no_voice_on_tutorials(storage):
     assert not app.exception
     assert not app.get("iframe") and all(item.label != "Voice" for item in app.toggle)
     assert app.markdown and app.get("graphviz_chart")
+
+
+def test_cannot_on_a_step_that_loops_back_says_it_stays_open(storage, monkeypatch):
+    from copy import deepcopy
+    from core import protocol_engine
+    protocol = config.load_protocol("_example")
+    protocol["nodes"]["do_action"]["next_if_cannot"] = "do_action"   # like the handover hold
+    monkeypatch.setattr(protocol_engine, "load_protocol", lambda _: deepcopy(protocol))
+    note = "Noted. This step stays open until you can select Done."
+    app = page()
+    button(app, "Start tutorial").click().run()
+    button(app, "Continue").click().run()                   # intro_mars
+    button(app, "No").click().run()                         # -> do_action
+    assert not any(item.value == note for item in app.info)
+    button(app, "I can't").click().run()
+    assert any(item.value == note for item in app.info)
+    button(app, "Done").click().run()
+    assert not any(item.value == note for item in app.info)
+    assert not app.exception
