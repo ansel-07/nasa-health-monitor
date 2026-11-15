@@ -12,8 +12,6 @@ import streamlit as st
 
 from core import charts, config, data
 
-st.title("Trends")
-
 if "astronaut" not in st.session_state:
     st.warning("Choose an astronaut on the Home page first.")
     st.stop()
@@ -21,10 +19,6 @@ if "astronaut" not in st.session_state:
 astronaut = st.session_state["astronaut"]
 environment = st.session_state.get("environment")
 
-astronauts = data.load_astronauts()
-names = dict(zip(astronauts["id"], astronauts["name"]))
-env_name = config.load_environments().get(environment, {}).get("name", environment)
-st.caption(f"{names.get(astronaut, astronaut)} · {env_name}")
 
 
 def _label(info: dict, key: str) -> str:

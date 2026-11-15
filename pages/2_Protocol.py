@@ -86,7 +86,6 @@ def show_result(episode: dict, step: dict, astronaut: str) -> None:
 
 
 def main() -> None:
-    st.title("Protocol")
     mascot.voice_toggle()
     astronaut = st.session_state.get("astronaut")
     if not astronaut:

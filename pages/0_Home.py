@@ -9,7 +9,7 @@ always starts at step 1. Run through app.py (st.navigation), which sets the page
 """
 import streamlit as st
 
-from core import config, data, mascot
+from core import config, data, mascot, ui
 
 astronauts = data.load_astronauts()
 environments = config.load_environments()
@@ -21,8 +21,6 @@ if step == 2 and st.session_state.get("astronaut") not in names:
 
 with st.container(key="welcome_screen"):
     mascot.voice_toggle()
-    st.title("SpaceDoc")
-    st.caption("Your health, guided through every mission. Prototype: it guides; it does not diagnose.")
     if step == 1:
         mascot.say("Hello! Who are you?", "happy", size="large")
         for column, astronaut_id in zip(st.columns(len(names) or 1), names):
@@ -39,7 +37,7 @@ with st.container(key="welcome_screen"):
                 st.session_state["environment"] = env_id
                 st.session_state.pop("welcome_step", None)
                 st.switch_page("pages/5_Menu.py")
-        if st.button("← Change astronaut", key="welcome_back"):
+        if st.button("Change astronaut", key="welcome_back", icon=":material/arrow_back:", type="tertiary"):
             st.session_state["welcome_step"] = 1
             st.rerun()
 
@@ -49,3 +47,4 @@ with st.container(key="welcome_screen"):
         st.markdown("2. " + 'Press **Advance mission 24 h** to reveal an ocular measurement alert. Open **Check-in** to compare it with your personal pre-flight baseline.')
         st.markdown("3. " + 'Use **Simulate wait** and repeat the flagged measurement with the demo value (**360** µm) to confirm the anomaly.')
         st.markdown("4. " + 'Open **Protocols** and follow the guidance through to medical follow-up. SpaceDoc guides you; it does not diagnose.')
+    ui.footnote("Built for NASA Space Apps 2026 · Prototype: it guides, it does not diagnose")

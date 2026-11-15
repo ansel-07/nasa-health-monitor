@@ -210,7 +210,7 @@ def test_pending_confirmation_locks_indicator_and_wait(screen):
     assert app.number_input[0].disabled
     assert button(app, "Confirm repeat measurement").disabled
     assert button(app, "Simulate wait")
-    assert "Repeat measurement" in app.subheader[0].value
+    assert any("Repeat measurement" in item.value for item in app.subheader)
 
 
 @pytest.mark.parametrize("status,expected_environment", [

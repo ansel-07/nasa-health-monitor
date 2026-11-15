@@ -1,9 +1,68 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
-# Dark theme from docs/ASTRONAUT_HEALTH_APP_SPEC.md §2 (colour tokens). Owner: Ansel.
+# "Mission console + clinical" theme (Ansel, docs/UI_STYLE.md): night-blue surfaces, the mascot's
+# cyan as the accent, one status colour per meaning. Owner: Ansel.
+[server]
+# Serves static/ at app/static/: the IBM Plex fonts (SIL Open Font License, static/fonts/).
+enableStaticServing = true
+
+[client]
+toolbarMode = "minimal"
+
+[ui]
+# No Streamlit header: the app draws its own mission status bar (core/ui.py).
+hideTopBar = true
+
 [theme]
 base = "dark"
-backgroundColor = "#111111"
+backgroundColor = "#0B1220"
+secondaryBackgroundColor = "#131C2E"
+borderColor = "#22304A"
+dataframeBorderColor = "#22304A"
+textColor = "#E6EDF7"
 primaryColor = "#5EF2FF"
-secondaryBackgroundColor = "#2D2B27"
-borderColor = "#4A4742"
-textColor = "#EDEBE8"
+linkColor = "#5EF2FF"
+linkUnderline = false
+# Status colours: normal / watch / urgency (always with a text label, never colour alone).
+greenColor = "#3DDC97"
+yellowColor = "#FFB547"
+orangeColor = "#FFB547"
+redColor = "#FF5C5C"
+blueColor = "#7AA2D6"
+grayColor = "#7C8BA5"
+font = "'IBM Plex Sans', sans-serif"
+headingFont = "'IBM Plex Sans', sans-serif"
+codeFont = "'IBM Plex Mono', monospace"
+codeBackgroundColor = "#131C2E"
+baseFontSize = 16
+metricValueFontSize = "2rem"
+metricValueFontWeight = 500
+baseRadius = "0.5rem"
+buttonRadius = "0.5rem"
+showWidgetBorder = true
+paddingTop = "1rem"
+chartCategoricalColors = ["#5EF2FF", "#7C8BA5", "#3DDC97", "#FFB547", "#FF5C5C", "#7AA2D6"]
+
+[[theme.fontFaces]]
+family = "IBM Plex Sans"
+url = "app/static/fonts/IBMPlexSans-Regular.woff2"
+weight = 400
+
+[[theme.fontFaces]]
+family = "IBM Plex Sans"
+url = "app/static/fonts/IBMPlexSans-Medium.woff2"
+weight = 500
+
+[[theme.fontFaces]]
+family = "IBM Plex Sans"
+url = "app/static/fonts/IBMPlexSans-SemiBold.woff2"
+weight = 600
+
+[[theme.fontFaces]]
+family = "IBM Plex Mono"
+url = "app/static/fonts/IBMPlexMono-Regular.woff2"
+weight = 400
+
+[[theme.fontFaces]]
+family = "IBM Plex Mono"
+url = "app/static/fonts/IBMPlexMono-Medium.woff2"
+weight = 500

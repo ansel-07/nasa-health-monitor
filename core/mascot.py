@@ -252,8 +252,8 @@ def _voice_changed() -> None:
 def voice_toggle() -> None:
     """Voice on/off control, fixed in the top-right corner. Draw it once per astronaut screen."""
     with st.container(key="mascot_voice"):
-        # Above Streamlit's header (z-index 999990), left of its Deploy and menu buttons.
-        st.html("<style>.st-key-mascot_voice { position: fixed; top: 0.75rem; right: 8rem; "
+        # Top-right corner of the window (no Streamlit header: config.toml ui.hideTopBar).
+        st.html("<style>.st-key-mascot_voice { position: fixed; top: 0.75rem; right: 1.5rem; "
                 "z-index: 1000000; width: auto !important; }</style>")
         st.toggle("Voice", value=bool(st.session_state.get("voice_on", False)),
                   on_change=_voice_changed, help="The mascot reads its messages aloud.")

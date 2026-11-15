@@ -61,4 +61,4 @@ def test_no_mascot_and_no_voice_on_tutorials(storage):
     button(app, "Start tutorial").click().run()
     assert not app.exception
     assert not app.get("iframe") and all(item.label != "Voice" for item in app.toggle)
-    assert app.subheader and app.get("graphviz_chart")
+    assert app.markdown and app.get("graphviz_chart")

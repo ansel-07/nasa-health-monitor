@@ -70,7 +70,7 @@ def test_real_seed_check_in_confirms_without_incomplete_baselines(tmp_path, monk
 
     confirmed = data.get_open_episode("a1")
     assert confirmed["id"] == initial["id"] and confirmed["status"] == "active"
-    assert [title.value for title in app.title] == ["Protocol"]
+    assert app.get("graphviz_chart")  # the Protocol screen (no page titles)
     checkin_id = next(key for key, item in config.load_checkins().items()
                       if initial["trigger"]["indicator"] in item["indicators"])
     assert activity.bar_level("a1", "check_in", checkin_id) == 100

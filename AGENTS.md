@@ -35,6 +35,7 @@ The app **guides, it does not diagnose**.
 - Multipage Streamlit app: `app.py` is the entry point and only sets the navigation (`st.navigation`); every screen is a file in `pages/`. **A new page must be added to the list in `app.py`**, or it will not appear.
 - **Screens and navigation** follow `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (Gonzalo) with the overrides of section 16. No sidebar menu: people move with buttons and cards. Welcome (conversational buttons: astronaut, then environment; no dropdowns, no NEXT) → Main Menu → Check-in (list → detail) · Trends · Tutorials; Protocols opens only from a confirmed alert (or an active episode). Use `st.switch_page("pages/<file>.py")` for every button that changes screen. Theme: `.streamlit/config.toml` (colours of the spec).
 - Mascot: SVG/CSS/JS inside `st.iframe` (HTML string, same-origin). No image files, no external services.
+- **Look:** `docs/UI_STYLE.md` (Ansel): no page titles, mission status bar, theme and IBM Plex fonts in `.streamlit/config.toml` + `static/fonts/`, shared styles in `core/ui.py`, Material icons, no emojis.
 
 ## 4. Repository layout and owners
 
@@ -51,6 +52,7 @@ pages/3_Trends.py           Fran         History charts with colour bands and pe
 core/models.py              Ansel        Shared constants: severities, statuses, node types, moods, paths
 core/config.py              Ansel        Load and validate config/*.json
 core/mascot.py              Ansel        The mascot: face, expressions, speech bubble, voice
+core/ui.py                  Ansel        Shared look: global styles, mission status bar (docs/UI_STYLE.md)
 core/data.py                Fran         Measurements, baseline, astronauts, episodes (read/write)
 core/mission.py             Fran         Simulated mission clock
 core/activity.py            Fran         Activity bars (check-ins, tutorials) and subjective-issue history

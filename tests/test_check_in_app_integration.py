@@ -108,8 +108,8 @@ def click(app, label):
 
 def back_to_menu(app):
     labels = [item.label for item in app.button]
-    assert "← Main Menu" in labels, (labels, [item.value for item in app.title])
-    click(app, "← Main Menu")
+    assert "Main Menu" in labels, labels
+    click(app, "Main Menu")
 
 
 @pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
@@ -128,7 +128,7 @@ def test_menu_confirmation_protocol_and_next_alert(workspace, environment):
     app.number_input[0].set_value(20)
     click(app, "Confirm repeat measurement")
     assert data.get_open_episode("a1")["status"] == "active"
-    assert [item.value for item in app.title] == ["Protocol"]
+    assert app.get("graphviz_chart")             # the Protocol screen (no page titles)
     back_to_menu(app)
     click(app, "Check-in")
     assert not app.number_input

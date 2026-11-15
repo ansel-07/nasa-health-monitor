@@ -29,7 +29,7 @@ def test_astronaut_button_asks_for_the_environment_and_can_go_back():
     assert not app.exception
     assert app.session_state["astronaut"] == "a2" and app.session_state["welcome_step"] == 2
     assert "International Space Station" in [item.label for item in app.button]
-    button(app, "← Change astronaut").click().run()
+    button(app, "Change astronaut").click().run()
     assert app.session_state["welcome_step"] == 1
     assert "Astronaut A" in [item.label for item in app.button]
 
@@ -44,7 +44,7 @@ def test_environment_button_opens_the_main_menu_with_the_chosen_context():
 
 
 def test_leaving_welcome_forgets_the_step():
-    """Arriving at Welcome again (← Back) must start at step 1. AppTest cannot click app.py's
+    """Arriving at Welcome again (Change astronaut) must start at step 1. AppTest cannot click app.py's
     back button after a page switch, so this checks the state the Main Menu leaves behind."""
     app = AppTest.from_file("../app.py").run()
     app.button(key="welcome_astronaut_a1").click().run()
@@ -57,7 +57,7 @@ def test_menu_cards_open_their_screens():
     app = _welcome(AppTest.from_file("../app.py").run())
     button(app, "Tutorials").click().run()
     assert not app.exception
-    assert any(item.value == "Tutorials" for item in app.title)
+    assert any(item.label == "Start tutorial" for item in app.button)
 
 
 def test_reset_demo_clears_check_in_session_state(monkeypatch):
