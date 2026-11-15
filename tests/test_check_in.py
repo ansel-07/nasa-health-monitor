@@ -203,6 +203,25 @@ def test_selecting_indicator_changes_chart_and_submitted_unit(screen):
     assert state["calls"][0][1]["indicator"] == "y"
 
 
+@pytest.mark.parametrize("now,wait,expected", [
+    ("2027-04-02T00:00:00", 10, "Repeat after 00:10, mission day 2 (10 minutes remaining)."),
+    ("2027-04-02T00:00:00", 1, "Repeat after 00:01, mission day 2 (1 minute remaining)."),
+    ("2027-04-02T23:55:00", 10, "Repeat after 00:05, mission day 3 (10 minutes remaining)."),
+    ("2027-04-02T00:00:00", 0.5, "Repeat after 00:00, mission day 2 (1 minute remaining)."),
+])
+def test_pending_confirmation_shows_readable_due_time(screen, monkeypatch, now, wait, expected):
+    app, state = screen
+    monkeypatch.setattr(config, "load_mission", lambda: {"start": "2027-04-01T00:00:00"})
+    state["now"] = datetime.fromisoformat(now)
+    state["problems"]["problem_a"]["confirm_wait_min"] = wait
+    opened(state)
+    app.run()
+    assert not app.exception
+    assert expected in [item.value for item in app.info]
+    assert button(app, "Confirm repeat measurement").disabled
+    assert state["calls"] == []
+
+
 def test_pending_confirmation_locks_indicator_and_wait(screen):
     app, state = screen
     opened(state)

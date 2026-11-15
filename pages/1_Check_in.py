@@ -384,7 +384,11 @@ def main() -> None:
             remaining = max(0.0, (due - now).total_seconds())
             ready = remaining == 0 and now > original
             if remaining:
-                st.info(f"Repeat after {due.isoformat(timespec='seconds')} ({ceil(remaining / 60)} minute(s) remaining).")
+                start = datetime.fromisoformat(config.load_mission()["start"])
+                day = (due - start).days + 1
+                minutes = ceil(remaining / 60)
+                unit = "minute" if minutes == 1 else "minutes"
+                st.info(f"Repeat after {due:%H:%M}, mission day {day} ({minutes} {unit} remaining).")
             elif not ready:
                 st.info("Advance mission time before taking a new repeat measurement.")
             else:
