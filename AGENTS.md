@@ -33,9 +33,9 @@ The app **guides, it does not diagnose**.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
 - Multipage Streamlit app: `app.py` is the entry point and only sets the navigation (`st.navigation`); every screen is a file in `pages/`. **A new page must be added to the list in `app.py`**, or it will not appear.
-- **Screens and navigation** follow `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (Gonzalo) with the overrides of section 16. No sidebar menu: people move with buttons and cards. Welcome (conversational buttons: astronaut, then environment; no dropdowns, no NEXT) → Main Menu → Check-in (list → detail) · Trends · Tutorials; Protocols opens only from a confirmed alert (or an active episode). Use `st.switch_page("pages/<file>.py")` for every button that changes screen. Theme: `.streamlit/config.toml` (colours of the spec).
+- **Screens and navigation** follow the product spec (removed before submission; in git history) (Gonzalo) with the overrides of section 16. No sidebar menu: people move with buttons and cards. Welcome (conversational buttons: astronaut, then environment; no dropdowns, no NEXT) → Main Menu → Check-in (list → detail) · Trends · Tutorials; Protocols opens only from a confirmed alert (or an active episode). Use `st.switch_page("pages/<file>.py")` for every button that changes screen. Theme: `.streamlit/config.toml` (colours of the spec).
 - Mascot: SVG/CSS/JS inside `st.iframe` (HTML string, same-origin). No image files, no external services.
-- **Look:** `docs/UI_STYLE.md` (Ansel): no page titles, mission status bar, theme and IBM Plex fonts in `.streamlit/config.toml` + `static/fonts/`, shared styles in `core/ui.py`, Material icons, no emojis.
+- **Look:** the UI style notes (in git history) (Ansel): no page titles, mission status bar, theme and IBM Plex fonts in `.streamlit/config.toml` + `static/fonts/`, shared styles in `core/ui.py`, Material icons, no emojis.
 
 ## 4. Repository layout and owners
 
@@ -52,7 +52,7 @@ pages/3_Trends.py           Fran         History charts with colour bands and pe
 core/models.py              Ansel        Shared constants: severities, statuses, node types, moods, paths
 core/config.py              Ansel        Load and validate config/*.json
 core/mascot.py              Ansel        The mascot: face, expressions, speech bubble, voice
-core/ui.py                  Ansel        Shared look: global styles, mission status bar (docs/UI_STYLE.md)
+core/ui.py                  Ansel        Shared look: global styles, mission status bar (UI style notes, in git history)
 core/data.py                Fran         Measurements, baseline, astronauts, episodes (read/write)
 core/mission.py             Fran         Simulated mission clock
 core/activity.py            Fran         Activity bars (check-ins, tutorials) and subjective-issue history
@@ -148,12 +148,12 @@ The app is deployed on Streamlit, so all judges use **one server**. To keep them
 
 ### 5.6 Check-ins, activity bars and subjective issues
 
-From `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (sections 3-4), adapted to this repo:
+From the product spec (removed before submission; in git history) (sections 3-4), adapted to this repo:
 
 - `config/checkins.json`: `{checkin_id: {name, indicators: [...], bar_full_hours}}`. A **check-in** is a group of indicators measured in the same test (one card in the Check-in list, one form). Every indicator used by a real problem is in **exactly one** check-in. Each submitted value still goes through detection and confirmation **per indicator** (section 10).
 - **Activity bars** (`core/activity.py`): `BAR_LEVELS` 100..0 in 10-point steps, from the last completion and the **mission clock** (`mission.now()`), so advancing mission time drains them. Never completed = 0. A check-in bar refills to 100 when its check-in session ends; a tutorial bar when the tutorial is completed. **A bar is not a health status and never blocks a measurement or an active protocol.**
 - Durations: check-in bar 100 → 0 in `bar_full_hours` (spec demo default 24); tutorial bar 100 → 0 in `tutorial_bar_full_days` of each problem (`problems.json`, Edu: more important protocols are reviewed more often). A tutorial can be repeated only when its bar is **below 80** (`TUTORIAL_REPEAT_BELOW`).
-- `config/subjective_issues.json`: `{"settings": {persistence_days, speed_multiplier}, "issues": {issue_id: {label, check_ins: [...]}}}`. Issues and their check-in links come from Edu; settings are demo placeholders from the spec. An issue reported on `persistence_days` calendar days makes its linked check-in bars drain `speed_multiplier` times faster from then on (not retroactively); resolving it stops the acceleration (no refill). A subjective issue never opens an episode by itself. Issues come from Edu's `docs/sintomas_subjetivos_atrofia_SANS.md`: 12 routine symptoms (`MUS_*`, `VIS_*`, each with its `question` and check-in links decided by Ansel) and 4 **alarms** (`ALM_*`: `"alarm": true`, an `action`, no check-in links). Reporting an alarm shows its action at once, and the Main Menu keeps it visible until the astronaut marks it resolved; it never closes by itself and does not open a SANS or muscle-atrophy episode.
+- `config/subjective_issues.json`: `{"settings": {persistence_days, speed_multiplier}, "issues": {issue_id: {label, check_ins: [...]}}}`. Issues and their check-in links come from Edu; settings are demo placeholders from the spec. An issue reported on `persistence_days` calendar days makes its linked check-in bars drain `speed_multiplier` times faster from then on (not retroactively); resolving it stops the acceleration (no refill). A subjective issue never opens an episode by itself. Issues come from Edu's `Edu's team symptom guide`: 12 routine symptoms (`MUS_*`, `VIS_*`, each with its `question` and check-in links decided by Ansel) and 4 **alarms** (`ALM_*`: `"alarm": true`, an `action`, no check-in links). Reporting an alarm shows its action at once, and the Main Menu keeps it visible until the astronaut marks it resolved; it never closes by itself and does not open a SANS or muscle-atrophy episode.
 - **Details of a report** (optional, Edu's section 4): onset, trend, location (eye for `VIS_*` issues, else free text), impact, intensity 0-10 (the astronaut's own rating, never a threshold), context, notes; ids in `activity.ISSUE_DETAIL_CHOICES` / `EYE_LOCATIONS`. Stored on that day's report; a later save the same day replaces them. `impact = task_not_completed` shows that an immediate safety assessment is needed (triage rule 3); details never open an episode.
 - Storage: `data/activity.json` (completions and issue history, per astronaut) through `models.data_file()`.
 
@@ -277,11 +277,11 @@ Streamlit session state (created by the Welcome, `pages/0_Home.py`): `st.session
 
 ## 8. The mascot
 
-Layout decided by Ansel; details in `docs/FRONTEND_MASCOT_LAYOUT.md` (it wins over the spec here):
+Layout decided by Ansel; details in the mascot layout notes (in git history) (it wins over the spec here):
 
 - **Where it appears:** Welcome, Main Menu, Check-in and Protocols. **Not** on Trends or Tutorials.
 - **Look:** **Lumi** (`core/lumi.py`, Ansel's design): a glowing LED alien head, no frame, with **subtitles below it** (no speech bubble). Its colour and shape follow the astronaut's health state (`mascot.health_state()`): **alarm** (red) for an urgent symptom or an episode in medical urgency, **symptom** (amber) for a routine symptom, a pending alert or an open episode, **nominal** (blue) otherwise.
-- **Alone on the screen:** on the Welcome `mascot.say(text, mood, size="large")`, big (35 % of the browser height) and centred; on every other screen `size="medium"`, a compact assistant line (face at most 112 px left of its subtitles, in a panel; Ansel, `docs/UI_STYLE.md`). Cards and buttons are **not** a visual: they go below the subtitles (Welcome, Main Menu, Check-in list, every Protocols state without a step).
+- **Alone on the screen:** on the Welcome `mascot.say(text, mood, size="large")`, big (35 % of the browser height) and centred; on every other screen `size="medium"`, a compact assistant line (face at most 112 px left of its subtitles, in a panel; Ansel, the UI style notes (in git history)). Cards and buttons are **not** a visual: they go below the subtitles (Welcome, Main Menu, Check-in list, every Protocols state without a step).
 - **Only with a chart or a flowchart** (Check-in detail, an active protocol step): `mascot.beside()`; the mascot slides to the left and shrinks (a 600 ms entry animation, once), the visual takes the right. **Buttons always go below**, full width.
 
   ```python
@@ -357,7 +357,6 @@ python -m core.config --strict    # also lists values still marked TODO
 
 - `main` always starts. Run the app and `python -m pytest` before every push.
 - One branch per task: `<name>/short-description` (e.g. `juancarlos/confirmation-step`). Open a pull request; Ansel reviews and merges.
-- **Exception, Saturday night after v1 (until Ansel says otherwise):** one coding agent works alone and merges its own pull requests under the rules and self-review checklist of `docs/TONIGHT_HANDOFF.md`.
 - Small commits with messages that say what changes. Commit every time something works.
 - If the pull request completes a request (section 14), write `Closes #<issue>` in its description.
 - Integrations: Saturday 14:00 and 19:00 (first deploy), Sunday 13:00. Feature freeze Sunday 16:00.
@@ -429,9 +428,9 @@ The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **ab
 
 ## 16. Product specification (Gonzalo) and its overrides
 
-`docs/ASTRONAUT_HEALTH_APP_SPEC.md` is the product reference for screens, navigation, bars, subjective issues, tutorials and the visual style. Read it before UI work. Where it says to reuse the repository (medical rules, severities, protocols), this file and `config/` win. **Decisions that override the spec (Ansel):**
+the product spec (removed before submission; in git history) is the product reference for screens, navigation, bars, subjective issues, tutorials and the visual style. Read it before UI work. Where it says to reuse the repository (medical rules, severities, protocols), this file and `config/` win. **Decisions that override the spec (Ansel):**
 
-1. **Mascot:** keeps subtitles and voice. Big and centred when alone, cards and buttons below it; small **on the left** only beside a chart or a flowchart (`mascot.beside()`); none on Trends and Tutorials (section 8, `docs/FRONTEND_MASCOT_LAYOUT.md`).
+1. **Mascot:** keeps subtitles and voice. Big and centred when alone, cards and buttons below it; small **on the left** only beside a chart or a flowchart (`mascot.beside()`); none on Trends and Tutorials (section 8, the mascot layout notes (in git history)).
 2. **Check-ins are grouped by test** (`config/checkins.json`, 5.6), not one card per indicator.
 3. **Bars use the mission clock**, not real time, so the live demo can show them draining.
 4. **Tutorials = practising a real protocol**: the same engine and flowchart, in practice mode (the episode dict has `"practice": true` and nothing is saved: no measurements, no detection, no episode). Each protocol has its own review interval (`tutorial_bar_full_days`).

@@ -61,7 +61,7 @@ Two problems are covered: [SANS (NASA HRP)](https://www.nasa.gov/reference/risk-
 | Muscle | Muscle endurance | Right-knee repetitions at a fixed preflight load and tempo | [Hillen et al., 2026](https://www.mdpi.com/2813-0413/5/2/26) |
 | Muscle | Muscle tone and stiffness | Right rectus femoris: frequency (Hz) and stiffness (N/m) | [MyotonPRO guide](https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf); [ESA Myotones](https://www.esa.int/ESA_Multimedia/Images/2018/07/Tricorder) |
 
-Method references do not validate every alert threshold. NASA's muscle-strength retention requirement and published SANS criteria are distinguished from the team's experimental statistical bands, triage choices and estimated confirmation waits in [`config/`](config/). Criteria are version-specific; source/access limitations are recorded in the [medical source review](docs/MEDICAL_SOURCE_REVIEW.md). Numerical concern requests priority review, not an automatic diagnosis or medical urgency. Activity-bar timers are [synthetic, non-clinical demo choices](docs/CHECK_IN_INTERVALS.md).
+Method references do not validate every alert threshold. NASA's muscle-strength retention requirement and published SANS criteria are distinguished from the team's experimental statistical bands, triage choices and estimated confirmation waits in [`config/`](config/). Criteria are version-specific; source/access limitations are recorded in the [medical source review](docs/MEDICAL_SOURCE_REVIEW.md). Numerical concern requests priority review, not an automatic diagnosis or medical urgency. Activity-bar timers are synthetic, non-clinical demo choices.
 
 ## NASA data and resources used
 
@@ -78,7 +78,7 @@ The demo uses locally generated fictional observations, not downloaded astronaut
 
 ## Other data and references
 
-The following references support methods, context or research comparisons; they are not imported clinical datasets. The [synthetic-data handoff](docs/DEMO_DATA_HANDOFF.md) distinguishes integrated inputs, proposed inputs and empirical alternatives. The team's supplied guides are independently authored prototype material, not NASA publications; their public references and access limitations are catalogued in the [25-source extraction](docs/MEDICAL_SOURCE_REVIEW.md). [Protocol diagrams](docs/PROTOCOL_FLOWCHARTS.md) map that evidence to guidance; [subjective-issue provenance](docs/sintomas_subjetivos_atrofia_SANS.md) distinguishes symptoms from alarms.
+The following references support methods, context or research comparisons; they are not imported clinical datasets. The [synthetic-data handoff](docs/DEMO_DATA_HANDOFF.md) distinguishes integrated inputs, proposed inputs and empirical alternatives. The team's supplied guides are independently authored prototype material, not NASA publications; their public references and access limitations are catalogued in the [25-source extraction](docs/MEDICAL_SOURCE_REVIEW.md). [Protocol diagrams](docs/PROTOCOL_FLOWCHARTS.md) map that evidence to guidance; [subjective-issue provenance](Edu's team symptom guide) distinguishes symptoms from alarms.
 
 - [Patel et al., 2018](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551): OCT region and observed cohort magnitudes, not personal daily SDs.
 - [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/): eye-specific case observations; grade 0 does not exclude OCT changes.
@@ -146,7 +146,7 @@ core/               logic: data, baseline, detection, episodes, protocol engine,
 config/             health rules, check-ins, environments, problems and protocols (JSON)
 data/seed/          synthetic demo data copied into every browser session
 scripts/            synthetic data generator
-docs/               product specification and demo-data notes
+docs/               slides, protocol flowcharts, medical source review, demo-data notes
 tests/              pytest tests
 ```
 
