@@ -70,7 +70,7 @@ def test_reset_demo_clears_check_in_session_state(monkeypatch):
     button(app, "Reset demo").click().run()
     assert not app.exception
     assert "check_in_completion:a1:iss" not in app.session_state
-    assert app.session_state["tutorial_run"] == {"kept": True}
+    assert "tutorial_run" not in app.session_state
     assert app.session_state["astronaut"] == "a1" and app.session_state["environment"] == "iss"
 
 

@@ -85,7 +85,11 @@ def advance(astronaut: str, episode: dict, response: dict) -> None:
         st.error("Check your response and try again.")
         return
     if updated["status"] in OUTCOMES:
-        activity.complete(astronaut, "tutorial", updated["problem"])
+        try:
+            activity.complete(astronaut, "tutorial", updated["problem"])
+        except (ValueError, KeyError, OSError):
+            st.error("Your practice completion could not be saved. Try this step again.")
+            return
     st.session_state[RUN] = updated
     st.rerun()
 
