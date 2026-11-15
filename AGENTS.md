@@ -28,13 +28,13 @@ The app **guides, it does not diagnose**.
 
 ## 3. Stack
 
-- Python 3.12, Streamlit **1.67.0 (pinned in `requirements.txt`: the mascot uses `components.html`, removed in newer versions; do not upgrade without Ansel)**, pandas, Plotly, numpy. pytest for tests (always run as `python -m pytest`).
+- Python 3.12, Streamlit **1.67.0 (pinned in `requirements.txt`: the tested version; the mascot uses `st.iframe`, no longer the deprecated `components.html`; do not upgrade without Ansel)**, pandas, Plotly, numpy. pytest for tests (always run as `python -m pytest`).
 - Always work inside the project virtual environment (`.venv`). Use Python 3.12: newer versions (3.14) may fail to install some packages.
 - **Do not add any other library without asking Ansel.**
 - Storage: CSV and JSON files. No database server. In the app, each browser session has its own copy of `data/seed/` (section 5.5).
 - Multipage Streamlit app: `app.py` is the entry point and only sets the navigation (`st.navigation`); every screen is a file in `pages/`. **A new page must be added to the list in `app.py`**, or it will not appear.
 - **Screens and navigation** follow `docs/ASTRONAUT_HEALTH_APP_SPEC.md` (Gonzalo) with the overrides of section 16. No sidebar menu: people move with buttons and cards. Welcome (conversational buttons: astronaut, then environment; no dropdowns, no NEXT) → Main Menu → Check-in (list → detail) · Trends · Tutorials; Protocols opens only from a confirmed alert (or an active episode). Use `st.switch_page("pages/<file>.py")` for every button that changes screen. Theme: `.streamlit/config.toml` (colours of the spec).
-- Mascot: SVG/CSS/JS inside `streamlit.components.v1.html`. No image files, no external services.
+- Mascot: SVG/CSS/JS inside `st.iframe` (HTML string, same-origin). No image files, no external services.
 
 ## 4. Repository layout and owners
 
