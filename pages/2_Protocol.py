@@ -57,7 +57,12 @@ def show_whole_protocol(episode: dict) -> None:
     """The whole diagram in a large dialog (#233): the focused chart stays as it is."""
     # Natural size (top to bottom, readable text), centred; the dialog scrolls instead of stretching it.
     with st.container(key="whole_protocol"):
-        st.html("<style>.st-key-whole_protocol { align-items: center; }</style>")
+        st.html("""<style>
+          .st-key-whole_protocol { align-items: center; }
+          .st-key-whole_protocol [data-testid="stGraphVizChart"] { overflow-x: auto; max-width: 100%; }
+          .st-key-whole_protocol [data-testid="stGraphVizChart"] svg {
+            width: auto !important; height: auto !important; max-width: none !important; }
+        </style>""")
         st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="content",
                           alt="Whole protocol flowchart. The current step is highlighted; completed steps are green.")
 
