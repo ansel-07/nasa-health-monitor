@@ -32,7 +32,7 @@ with _CORE_LOCK:
     sys._lumi_core_stamp = _CORE_STAMP
     from core import ui  # noqa: E402  (after the core purge above, inside the lock)
 
-st.set_page_config(page_title="Lumi · Astronaut Health Monitor", page_icon=":material/monitor_heart:", layout="wide")
+st.set_page_config(page_title="Lumi - Astronaut Health Companion", page_icon=":material/monitor_heart:", layout="wide")
 
 welcome = st.Page("pages/0_Home.py", title="Welcome", default=True)
 menu = st.Page("pages/5_Menu.py", title="Main Menu")

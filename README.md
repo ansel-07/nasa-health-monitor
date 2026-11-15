@@ -1,4 +1,4 @@
-# Lumi
+# Lumi - Astronaut Health Companion
 
 > Your health, guided through every mission.
 
