@@ -313,6 +313,23 @@ def test_projector_font_sizes(tmp_data, fixed_now):
             == charts.COMPACT_FONT_SIZE)
 
 
+def test_every_chart_text_has_an_explicit_projector_size(tmp_data, fixed_now):
+    # #189: axis ticks, axis titles and every label (baseline, bands, Launch, Now) carry their
+    # own size, so the Streamlit template cannot shrink them below ~14 px.
+    add_preflight_60_62_64()
+    add("2027-04-02T08:00:00", 70)
+    for compact, size in ((False, charts.FULL_FONT_SIZE), (True, charts.COMPACT_FONT_SIZE)):
+        fig = charts.indicator_chart("a1", "_example_indicator", compact=compact)
+        assert size >= 14
+        for axis in (fig.layout.xaxis, fig.layout.yaxis):
+            assert axis.tickfont.size == size and axis.title.font.size == size
+        assert fig.layout.annotations
+        assert all(a.font.size == size for a in fig.layout.annotations)
+        assert "Your baseline" in {a.text for a in fig.layout.annotations}
+        if not compact:
+            assert fig.layout.legend.font.size == size
+
+
 def test_alert_marks_use_the_mission_day(tmp_data, fixed_now):
     add("2027-04-02T08:00:00", 90)
     data.save_episode({"id": "ep-1", "astronaut": "a1", "problem": "p", "status": "active",
