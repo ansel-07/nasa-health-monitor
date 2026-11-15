@@ -37,9 +37,49 @@ def test_voice_only_when_on_and_text_is_new():
 
 
 @pytest.mark.parametrize("mood", MOODS)
-def test_face_has_no_frame(mood):
+def test_face_is_lumi_without_its_box(mood):
     out = build_html("Hello", mood)
-    assert 'fill="#111"' not in out and out.count("<rect") == 2
+    assert 'class="lumi"' in out and 'class="box"' not in out and 'class="bubble"' not in out
+    assert 'aria-label="Lumi (' in out
+
+
+@pytest.mark.parametrize("state", ["nominal", "symptom", "alarm"])
+def test_face_is_drawn_in_the_health_state(state):
+    from core import lumi
+    out = build_html("Hello", state=state)
+    assert f'data-state="{state}"' in out and lumi.COLORS[state] in out and ".lumi { color: var(--c" in out
+    assert lumi.SHAPES[state]["antL"] in out
+
+
+def test_talking_uses_lumis_capsule():
+    assert 'classList.add("speaking")' in build_html("Hello")
+    assert 'classList.add("speaking")' not in build_html("Hello", animate=False).split("if (!ANIMATE) return;")[0]
+
+
+def _health(monkeypatch, issues=(), episode=None, pending=()):
+    from core import activity, config, data, mascot
+    monkeypatch.setattr(config, "load_subjective_issues", lambda: {"issues": {
+        "ALM_01": {"alarm": True}, "VIS_01": {}}})
+    monkeypatch.setattr(activity, "active_issues", lambda a: [{"issue": i} for i in issues])
+    monkeypatch.setattr(data, "get_open_episode", lambda a: episode)
+    monkeypatch.setattr(data, "load_pending", lambda a: list(pending))
+    return mascot.health_state("a1")
+
+
+def test_health_state_priority(monkeypatch):
+    assert _health(monkeypatch) == "nominal"
+    assert _health(monkeypatch, issues=["VIS_01"]) == "symptom"
+    assert _health(monkeypatch, pending=[{"problem": "sans"}]) == "symptom"
+    assert _health(monkeypatch, episode={"severity": "watch"}) == "symptom"
+    assert _health(monkeypatch, episode={"severity": "medical_urgency"}) == "alarm"
+    assert _health(monkeypatch, issues=["VIS_01", "ALM_01"]) == "alarm"
+
+
+def test_health_state_is_nominal_without_astronaut_or_on_errors(monkeypatch):
+    from core import activity, mascot
+    assert mascot.health_state(None) == "nominal"
+    monkeypatch.setattr(activity, "active_issues", lambda a: (_ for _ in ()).throw(OSError("x")))
+    assert mascot.health_state("a1") == "nominal"
 
 
 def test_same_text_shows_full_subtitles_without_reveal():

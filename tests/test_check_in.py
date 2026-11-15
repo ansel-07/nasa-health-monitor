@@ -187,7 +187,7 @@ def test_empty_submission_is_not_sent_to_core(screen):
     button(app, "Record measurement").click().run()
     assert not app.exception
     assert state["calls"] == []
-    assert "Enter a finite" in app.error[0].value
+    assert "enter a finite" in app.error[0].value
 
 
 def test_selecting_indicator_changes_chart_and_submitted_unit(screen):
@@ -310,7 +310,7 @@ def test_core_error_is_displayed_without_success(screen, monkeypatch):
     assert state["speech"][-1][0] == app.error[0].value
     app.run()
     assert not app.error
-    assert state["speech"][-1][0] == "Record the measurements of this check-in."
+    assert state["speech"][-1][0] == "Let's record this check-in's measurements."
 
 
 def test_simulate_wait_advances_real_clock_and_processes_revealed_measurements(screen, monkeypatch):
@@ -353,7 +353,7 @@ def test_simulate_wait_reports_shared_detection_failure_without_confirming(scree
     assert not app.exception
     assert calls == [(1, "mars")]
     assert "Synthetic storage failure" in app.error[0].value
-    assert ("Mission time advanced, but detection could not finish" in app.error[0].value) is clock_moved
+    assert ("Mission time moved forward, but detection didn't finish" in app.error[0].value) is clock_moved
     assert not app.success
     assert state["open"] == initial
     assert state["calls"] == []
@@ -540,13 +540,13 @@ def test_incomplete_assessments_have_focused_warnings_and_brief_mascot_guidance(
     assert "Cannot evaluate x: no valid pre-flight baseline" in app.warning[0].value
     assert app.warning[1].value == "3 other indicators have incomplete assessments."
     narration = state["speech"][-1][0]
-    assert "incomplete" in narration
+    assert ("missing some assessments" if status is None else "incomplete") in narration
     assert "standard deviation" not in narration
     assert "unmeasured_" not in narration
     if status == "active":
-        assert "open Protocol" in narration
+        assert "Open Protocol" in narration
     elif status == "pending_confirmation":
-        assert "Repeat" in narration
+        assert "repeat" in narration
     else:
         app.number_input[0].set_value(20)
         button(app, "Record measurement").click().run()
@@ -610,7 +610,7 @@ def test_group_requires_all_values_before_recording_any(screen):
     button(app, 'Record measurement').click().run()
     assert not app.exception
     assert state['calls'] == state['completions'] == []
-    assert 'every indicator' in app.error[0].value
+    assert 'each indicator' in app.error[0].value
 
 
 def test_group_saves_independent_values_and_completes_once(screen):
@@ -772,7 +772,7 @@ def test_subjective_report_failure_preserves_existing_issue(screen, monkeypatch)
     app.multiselect[0].set_value(['issue_b'])
     button(app, 'Save issues').click().run()
     assert not app.exception
-    assert any('could not be fully saved' in item.value for item in app.error)
+    assert any("didn't save" in item.value for item in app.error)
     assert state['issue_calls'] == []
     assert state['issue_records']['a1'][0]['issue'] == 'issue_a'
 
@@ -806,7 +806,7 @@ def test_urgent_action_survives_issue_storage_failure(screen, monkeypatch, failu
     app.multiselect[1].set_value(["alarm"])
     button(app, "Save issues").click().run()
     assert not app.exception
-    assert any("Synthetic configured action." in item.value and "could not be fully saved" in item.value
+    assert any("Synthetic configured action." in item.value and "didn't save" in item.value
                for item in app.error)
     assert not app.success
     assert state["calls"] == []
@@ -825,7 +825,7 @@ def test_task_safety_message_survives_details_storage_failure(screen, monkeypatc
     next(item for item in app.radio if item.label == "Effect on your tasks").set_value("task_not_completed")
     button(app, "Save details").click().run()
     assert not app.exception
-    assert any("immediate safety assessment" in item.value and "Details could not be saved" in item.value
+    assert any("immediate safety assessment" in item.value and "Couldn't save the details" in item.value
                for item in app.error)
     assert not app.success
     assert state["calls"] == []
@@ -845,5 +845,108 @@ def test_approved_symptom_detail_wording_preserves_stored_ids(screen, monkeypatc
     assert not app.exception
     assert saved[0]["onset"] == "gradual" and saved[0]["impact"] == "task_not_completed"
     assert any(item.value == "A critical task you could not complete needs an immediate safety assessment, "
-               "even if the intensity is low." for item in app.error)
+                              "even if the intensity is low." for item in app.error)
+    assert state["calls"] == []
+
+
+def active_alarm(state):
+    subjective_fixture(state)
+    state["subjective_config"]["issues"]["alarm_a"] = {
+        "label": "Synthetic urgent symptom", "alarm": True, "check_ins": [],
+        "action": "Synthetic configured action.",
+    }
+    state["issue_records"]["a1"] = [{"issue": "alarm_a", "since": "2027-04-10T08:00:00", "persistent": False}]
+
+
+@pytest.mark.parametrize("detail", [False, True])
+@pytest.mark.parametrize("status", [None, "pending_confirmation", "active"])
+def test_active_alarm_persists_in_both_views_with_episode(screen, monkeypatch, detail, status):
+    app, state = screen
+    active_alarm(state)
+    if status:
+        opened(state, status)
+    if not detail:
+        app.session_state["check_in_selected:a1:mars"] = None
+    before = deepcopy(state["open"])
+    read = activity.active_issues
+    reads = []
+
+    def history(astronaut):
+        reads.append(astronaut)
+        return read(astronaut)
+
+    monkeypatch.setattr(activity, "active_issues", history)
+    for _ in range(2):
+        app.run()
+        assert not app.exception
+        assert "urgent symptom" in state["speech"][-1][0]
+        assert any("Synthetic configured action." in item.value for item in app.error)
+        if status == "active":
+            assert not button(app, "Open Protocol").disabled
+        if status == "pending_confirmation" and detail:
+            assert button(app, "Confirm repeat measurement").disabled
+    assert reads == ["a1", "a1"]
+    assert state["open"] == before and state["calls"] == []
+
+
+def test_alarm_survives_success_is_isolated_and_requires_explicit_resolution(screen):
+    app, state = screen
+    active_alarm(state)
+    app.run()
+    app.number_input[0].set_value(0)
+    button(app, "Record measurement").click().run()
+    assert not app.exception
+    assert app.success and "urgent symptom" in state["speech"][-1][0]
+    assert any("Synthetic configured action." in item.value for item in app.error)
+    assert state["issue_records"]["a1"][0]["issue"] == "alarm_a"
+    app.session_state["astronaut"] = "a2"
+    app.run()
+    assert not app.exception and not app.error
+    assert "urgent symptom" not in state["speech"][-1][0]
+    app.session_state["astronaut"] = "a1"
+    app.run()
+    assert any("Synthetic configured action." in item.value for item in app.error)
+    next(item for item in app.multiselect if item.label == "Urgent symptoms you have now").set_value([])
+    button(app, "Save issues").click().run()
+    assert not app.exception and not app.error
+    assert state["issue_records"]["a1"] == []
+    assert state["issue_calls"] == [("resolve", "a1", "alarm_a")]
+    assert len(state["calls"]) == 1 and state["open"] is None
+
+
+def test_alarm_preserves_baseline_warnings_and_storage_errors(screen, monkeypatch):
+    app, state = screen
+    active_alarm(state)
+    state["problems"]["problem_a"]["triggers"][0]["when"] = {"indicator": "x", "z_above": 2}
+    monkeypatch.setattr(data, "get_baseline", lambda *args: None)
+    app.session_state["check_in_feedback:a1:mars"] = {"level": "error", "text": "Synthetic storage error"}
+    app.run()
+    assert not app.exception
+    assert any("pre-flight baseline" in item.value for item in app.warning)
+    assert any("Synthetic storage error" in item.value for item in app.error)
+    assert any("Synthetic configured action." in item.value for item in app.error)
+    assert "urgent symptom" in state["speech"][-1][0]
+
+
+@pytest.mark.parametrize("detail", [False, True])
+def test_unavailable_issue_history_is_not_presented_as_no_alarm(screen, monkeypatch, detail):
+    app, state = screen
+    active_alarm(state)
+    if not detail:
+        app.session_state["check_in_selected:a1:mars"] = None
+
+    def fail(*args):
+        raise OSError("Synthetic history error")
+
+    monkeypatch.setattr(activity, "active_issues", fail)
+    monkeypatch.setattr(activity, "bar_level", fail)
+    app.run()
+    assert not app.exception
+    assert any("Subjective issues could not be loaded" in item.value for item in app.error)
+    assert "Synthetic history error" in state["speech"][-1][0]
+    assert not any(item.label == "Save issues" for item in app.button)
+    if detail:
+        assert not button(app, "Record measurement").disabled
+    else:
+        assert not button(app, "Check x").disabled and not app.get("progress")
     assert state["calls"] == []
