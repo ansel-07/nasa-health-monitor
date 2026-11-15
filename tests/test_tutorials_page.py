@@ -5,7 +5,7 @@ from datetime import datetime
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from core import activity, config, mission, models
+from core import activity, config, mission, models, protocol_engine
 
 
 @pytest.fixture
@@ -64,6 +64,36 @@ def test_practice_run_saves_nothing_and_refills_the_bar(storage):
     assert [path.name for path in storage.iterdir()] == ["activity.json"]
     assert activity.bar_level("a1", "tutorial", "_example") == 100
     assert button(app, "Back to Tutorials")
+
+
+def test_failed_completion_write_keeps_practice_retryable(storage, monkeypatch):
+    app = page()
+    start(app)
+    for label in ("Continue", "No", "Done"):
+        button(app, label).click().run()
+    app.number_input[0].set_value(25)
+    next(f for f in app.get("form_submit_button") if f.label == "Continue").click().run()
+    complete = activity.complete
+    attempts = []
+
+    def fail_once(*args):
+        attempts.append(args)
+        if len(attempts) == 1:
+            raise OSError("Synthetic completion storage failure")
+        complete(*args)
+
+    monkeypatch.setattr(activity, "complete", fail_once)
+    before = app.session_state["tutorial_run"]
+    assert protocol_engine.current_step(before)["type"] == "contact"
+    button(app, "Continue").click().run()
+    assert not app.exception
+    assert app.error
+    assert app.session_state["tutorial_run"] == before
+    assert not list(storage.iterdir())
+    button(app, "Continue").click().run()
+    assert not app.exception
+    assert any("Tutorial completed" in item.value for item in app.success)
+    assert activity.bar_level("a1", "tutorial", "_example") == 100
 
 
 def test_no_mascot_and_no_voice_on_tutorials(storage):

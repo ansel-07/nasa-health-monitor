@@ -107,8 +107,9 @@ with st.container(key="demo_panel"):
                 st.session_state["menu_feedback"] = ("error", f"Demo data could not be reset: {error}")
             else:
                 # Check-in keeps drafts, retries and feedback in the session (#132): drop them with
-                # the data. Astronaut, environment, voice and other screens' state are kept.
+                # the data. An in-memory tutorial also belongs to the old demo run.
                 for key in [k for k in st.session_state if str(k).startswith("check_in_")]:
                     del st.session_state[key]
+                st.session_state.pop("tutorial_run", None)
                 st.session_state["menu_feedback"] = ("info", "Demo data reset.")
             st.rerun()
