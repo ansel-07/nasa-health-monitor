@@ -1,5 +1,5 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
-"""The mascot: animated face, subtitles and voice. Owner: Ansel.
+"""The mascot, Lumi: animated face, subtitles and voice. Owner: Ansel.
 
 Rules: AGENTS.md, section 8; layout: docs/FRONTEND_MASCOT_LAYOUT.md section 1.
 Pages call only say(), beside() and voice_toggle(); one mascot per screen run.
@@ -14,6 +14,10 @@ Pages call only say(), beside() and voice_toggle(); one mascot per screen run.
   meanwhile, only when the text is new (session_state["mascot_last_text"]). A rerun with the
   same text shows the full subtitles at once, silently.
 
+Face: Lumi (core/lumi.py, Ansel's design), drawn in the astronaut's health state: alarm (red)
+for an urgent symptom or an episode in medical urgency; symptom (amber) for a routine symptom,
+a pending alert or an open episode; nominal (blue) otherwise. The mood only names the line.
+
 Voice: browser speech synthesis (no AI service). The HTML runs inside an iframe that
 Streamlit re-creates on every rerun, so it first tries the parent page's speechSynthesis
 (the parent keeps the user's click activation) and falls back to its own.
@@ -24,23 +28,14 @@ import re
 
 import streamlit as st
 
+from core import lumi
 from core.models import MASCOT_SIZES, MOODS
 
-MASCOT_NAME = "TODO: mascot name"
+MASCOT_NAME = "Lumi"
 
-# Face drawn on the page background, no frame (spec section 2: viewBox 0 0 122 120).
-_VIEWBOX_W, _VIEWBOX_H = 122, 120
-# Mouth per mood (SVG path in the viewBox) and an open mouth used while talking.
-_MOUTHS = {
-    "happy": "M24 87 Q61 119 99 87",
-    "neutral": "M30 96 L92 96",
-    "thinking": "M40 97 Q61 90 84 101",
-    "worried": "M26 104 Q61 80 96 104",
-    "serious": "M34 98 L88 98",
-}
-_OPEN_MOUTH = "M44 90 Q61 84 78 90 Q78 110 61 112 Q44 110 44 90 Z"
-# Eye height per mood (squinted, normal...); eyes stay centred on y = 42.
-_EYE_HEIGHT = {"happy": 18, "neutral": 26, "thinking": 14, "worried": 30, "serious": 12}
+# Lumi's face, square viewBox, drawn without its box on the page background (or the panel).
+_VIEWBOX_W, _VIEWBOX_H = 200, 200
+_URGENT_SEVERITIES = {"medical_urgency", "severe"}
 
 # Fallback face heights when the parent page cannot be measured (35 % of 1080 px; 45 % of it).
 _FACE_PX = {"large": 380, "medium": 104, "small": 171}
@@ -52,12 +47,12 @@ _NARROW_PX, _NARROW_FONT_PX = 640, {"large": 22, "medium": 17, "small": 16}
 _FONT_PX = {"large": 28, "medium": 21, "small": 17}
 _CHARS_PER_LINE = {"large": 48, "medium": 60, "small": 18}
 # Colours and fonts of docs/UI_STYLE.md (the iframe does not inherit the page's styles).
-_ACCENT, _TEXT, _SURFACE, _BORDER = "#5EF2FF", "#E6EDF7", "#131C2E", "#22304A"
+_TEXT, _SURFACE, _BORDER, _BACKGROUND = "#E6EDF7", "#131C2E", "#22304A", "#0B1220"
 _FONT_FACES = "".join(
     f"@font-face {{ font-family: 'IBM Plex Sans'; font-weight: {weight}; "
     f"src: url('/app/static/fonts/IBMPlexSans-{name}.woff2') format('woff2'); }}"
     for weight, name in ((400, "Regular"), (500, "Medium")))
-_WORD_MS, _TALK_MS, _BOUNDARY_WAIT_MS = 330, 160, 700
+_WORD_MS, _BOUNDARY_WAIT_MS = 330, 700
 
 _LAST_TEXT = "mascot_last_text"
 _LAYOUT = "mascot_layout"
@@ -99,8 +94,26 @@ def _word_spans(text: str) -> str:
                     for m in re.finditer(r"\S+", text))
 
 
+def health_state(astronaut: str | None) -> str:
+    """Lumi's state from what the app already knows (priority: alarm > symptom > nominal)."""
+    if not astronaut:
+        return "nominal"
+    from core import activity, config, data   # imported here: pages patch these modules in tests
+    try:
+        definitions = config.load_subjective_issues().get("issues", {})
+        issues = [definitions.get(item["issue"], {}) for item in activity.active_issues(astronaut)]
+        episode = data.get_open_episode(astronaut)
+        if any(issue.get("alarm") for issue in issues) or (episode and episode.get("severity") in _URGENT_SEVERITIES):
+            return "alarm"
+        if issues or episode or data.load_pending(astronaut):
+            return "symptom"
+    except Exception:   # the face must never break a screen; errors are shown by the page
+        return "nominal"
+    return "nominal"
+
+
 def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: bool = False,
-               animate: bool = True) -> str:
+               animate: bool = True, state: str = "nominal") -> str:
     """HTML for one mascot frame. Separate from say() so it can be tested without Streamlit.
 
     animate=False (same text as the last render): full subtitles at once, no voice, no talking.
@@ -112,8 +125,6 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
 
     face_px = _FACE_PX[size]
     face_w = round(face_px * _VIEWBOX_W / _VIEWBOX_H)
-    eye_h = _EYE_HEIGHT[mood]
-    eye_y = 42 - eye_h / 2
     font = _FONT_PX[size]
     speak = "true" if (voice_on and animate) else "false"
     hidden = "hidden" if animate else "visible"
@@ -126,12 +137,7 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
               if row else "flex-direction:column;align-items:center;gap:14px;")
     return f"""
 <div class="mascot" style="display:flex;{layout}font-family:'IBM Plex Sans',sans-serif;">
-  <svg class="face" width="{face_w}" height="{face_px}" viewBox="0 0 {_VIEWBOX_W} {_VIEWBOX_H}" fill="none" role="img" aria-label="{html.escape(MASCOT_NAME)} ({mood})">
-    <rect class="eye" x="13" y="{eye_y}" width="30" height="{eye_h}" rx="9" fill="{_ACCENT}"/>
-    <rect class="eye" x="80" y="{eye_y}" width="30" height="{eye_h}" rx="9" fill="{_ACCENT}"/>
-    <path class="mouth" d="{_MOUTHS[mood]}" stroke="{_ACCENT}" stroke-width="9" stroke-linecap="round"/>
-    <path class="mouth-open" d="{_OPEN_MOUTH}" fill="{_ACCENT}" style="display:none"/>
-  </svg>
+  {lumi.face_svg(state, face_w, face_px, html.escape(f"{MASCOT_NAME} ({mood})"))}
   <div class="subtitles" style="color:{_TEXT};font-weight:{500 if size == "large" else 400};font-size:{font}px;line-height:1.45;text-align:{"left" if row else "center"};max-width:{"none" if row else "92%"};flex:{"1" if row else "none"};">
     {_word_spans(text)}
   </div>
@@ -141,8 +147,7 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
   html, body {{ margin: 0; padding: 0; background: transparent; overflow: hidden; }}
   .face {{ flex: none; }}
   .w {{ visibility: {hidden}; }}
-  .eye {{ animation: blink 4s infinite; transform-origin: center; transform-box: fill-box; }}
-  @keyframes blink {{ 0%, 94%, 100% {{ transform: scaleY(1); }} 97% {{ transform: scaleY(0.1); }} }}
+  {lumi.face_css(_SURFACE if row else _BACKGROUND)}
 </style>
 <script>
   (function () {{
@@ -170,19 +175,15 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
     if (!ANIMATE) return;
 
     var words = Array.prototype.slice.call(document.querySelectorAll(".w"));
-    var mouth = document.querySelector(".mouth"), open = document.querySelector(".mouth-open");
-    var done = false, timer = null, next = 0, isOpen = false;
-    var talking = setInterval(function () {{
-      isOpen = !isOpen;
-      mouth.style.display = isOpen ? "none" : "";
-      open.style.display = isOpen ? "" : "none";
-    }}, {_TALK_MS});
+    var head = document.querySelector(".lumi");
+    var done = false, timer = null, next = 0;
+    head.classList.add("speaking");   // Lumi's LED capsule talks until the line is finished
     function finish() {{
       if (done) return;
       done = true;
       words.forEach(function (w) {{ w.style.visibility = "visible"; }});
-      clearInterval(timer); clearInterval(talking);
-      mouth.style.display = ""; open.style.display = "none";
+      clearInterval(timer);
+      head.classList.remove("speaking");
     }}
     function upTo(charIndex) {{
       words.forEach(function (w, k) {{
@@ -228,7 +229,8 @@ def _render(text: str, mood: str, size: str) -> None:
     voice_on = bool(st.session_state.get("voice_on", False))
     # st.iframe (not the deprecated components.html): same-origin, so the frame can use the
     # parent's speech synthesis and resize itself.
-    st.iframe(build_html(text, mood, size, voice_on, animate=animate), height=frame_height(text, size))
+    state = health_state(st.session_state.get("astronaut"))
+    st.iframe(build_html(text, mood, size, voice_on, animate=animate, state=state), height=frame_height(text, size))
     st.session_state[_LAST_TEXT] = text
 
 
