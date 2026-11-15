@@ -54,6 +54,22 @@ _FONT_FACES = "".join(
     for weight, name in ((400, "Regular"), (500, "Medium")))
 _WORD_MS, _BOUNDARY_WAIT_MS = 330, 700
 
+# Voice ranking (#211): natural female en-US voices first, then any en-US, else the default.
+# Scores are read in the browser; 0 means "do not choose", so the default voice is kept.
+_VOICE_PREFERENCES = [
+    (r"(Aria|Jenny|Ava|Emma|Michelle).*Online \(Natural\)", 100),   # Edge natural voices
+    (r"Online \(Natural\)", 90),
+    (r"^Google US English", 80),                                    # Chrome (female)
+    (r"^(Samantha|Ava|Allison|Susan|Zoe)", 70),                      # Apple
+    (r"(Zira|Aria|Jenny)", 60),                                      # Windows desktop
+    (r"female", 50),
+]
+_VOICE_RANK_JS = (
+    "      if (!/^en[-_]US/i.test(lang)) return /^en/i.test(lang) ? 1 : 0;\n"
+    + "".join(f"      if (/{pattern}/i.test(name)) return {score};\n" for pattern, score in _VOICE_PREFERENCES)
+    + "      return 10;"
+)
+
 _LAST_TEXT = "mascot_last_text"
 _LAYOUT = "mascot_layout"
 
@@ -200,6 +216,19 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
     }}
     if (!words.length) {{ finish(); return; }}
 
+    // #211: the most natural female en-US voice installed, else the browser default.
+    function bestVoice(voices) {{
+      var best = null, bestScore = 0;
+      voices.forEach(function (v) {{
+        var score = rankVoice(v.name || "", v.lang || "");
+        if (score > bestScore) {{ best = v; bestScore = score; }}
+      }});
+      return best;
+    }}
+    function rankVoice(name, lang) {{
+{_VOICE_RANK_JS}
+    }}
+
     var synth = null, Utterance = window.SpeechSynthesisUtterance;
     try {{ synth = window.parent.speechSynthesis; Utterance = window.parent.SpeechSynthesisUtterance; }} catch (e) {{}}
     if (!synth) {{ synth = window.speechSynthesis; Utterance = window.SpeechSynthesisUtterance; }}
@@ -207,6 +236,8 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
     if (!SPEAK || !synth || !Utterance) {{ startTimer(); return; }}
     var u = new Utterance({text_js});
     u.lang = "en-US";
+    var voice = bestVoice(synth.getVoices ? synth.getVoices() : []);
+    if (voice) u.voice = voice;
     var boundary = false, started = false;
     u.onstart = function () {{
       started = true;
