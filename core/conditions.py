@@ -146,7 +146,8 @@ def _metric_value(cond: dict, ctx: dict):
         result = (value - mean) / std
         if metric == "abs_z_score":
             result = abs(result)
-    return result if _is_number(result) else None
+    # Ansel's #237 policy removes arithmetic roundoff only from derived metrics.
+    return round(result, 9) if _is_number(result) else None
 
 
 def _evaluate(cond: dict, ctx: dict) -> bool:
@@ -181,6 +182,7 @@ def _evaluate(cond: dict, ctx: dict) -> bool:
             z = data.z_score(astronaut, indicator, value)
             if not _is_number(z):
                 return False
+            z = round(z, 9)
         for operator in comparisons:
             actual = z if operator.startswith("z_") else value
             if not _COMPARISONS[operator](actual, cond[operator]):
