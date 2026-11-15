@@ -1,0 +1,197 @@
+{
+  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137, then reviewed and rewritten with Claude against guia_tratamientos_vigilancia_urgencia.pdf; human review by Edu pending.",
+  "_integration_status": "Activated for confirmed numerical findings. Immediate clinical-priority entry before measurement confirmation remains a separate owner integration; no numerical finding automatically establishes urgency.",
+  "problem": "sans",
+  "start": "route",
+  "nodes": {
+    "route": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "severity_is": "medical_urgency"
+          },
+          "next": "u_stop"
+        }
+      ],
+      "default": "w_red_flags",
+      "source": "Prototype flow composition [P]: no published primary source."
+    },
+    "w_red_flags": {
+      "type": "question",
+      "text": "Are any of these present in either eye: a new visual-field gap, central distortion, needed correction beyond what is available, sudden vision loss, severe eye pain, or severe headache with neurological signs?",
+      "source": "Gew et al., SANS expert consensus, Eye, 2026 [6] (doi:10.1038/s41433-026-04651-6): acute visual field loss and central visual distortion as key risks. NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf). Their use as in-flight urgency criteria, and sudden visual loss, intense eye pain or headache with neurological signs: Team triage proposal [P]: no published primary source.",
+      "save_as": "red_flags",
+      "options": {
+        "yes": "w_escalate",
+        "no": "w_concern"
+      }
+    },
+    "w_escalate": {
+      "type": "set_severity",
+      "severity": "medical_urgency",
+      "next": "u_stop",
+      "source": "Team triage proposal [P]: no published primary source."
+    },
+    "w_concern": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "any": [
+              {
+                "symptom": "peripapillary_trt_left",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "optic_disc_edema_grade_left",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "refraction_left",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "visual_acuity_left",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "peripapillary_trt_right",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "optic_disc_edema_grade_right",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "refraction_right",
+                "level_is": "concern"
+              },
+              {
+                "symptom": "visual_acuity_right",
+                "level_is": "concern"
+              }
+            ]
+          },
+          "next": "w_priority_review"
+        }
+      ],
+      "default": "w_notify",
+      "source": "NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed pp. 4 and 13, and Gew et al., SANS expert consensus, Eye, 2026 [6] (doi:10.1038/s41433-026-04651-6): TRT increase and Frisen grade as indications for post-flight lumbar puncture. Use as an in-flight priority-review trigger: Team triage proposal [P]: no published primary source."
+    },
+    "w_priority_review": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Ask the crew medical officer for priority medical review of the concerning finding, with each eye's corrected acuity, OCT and visual fields when available. A concerning number alone does not establish a medical urgency.",
+      "next": "w_review_outcome",
+      "source": "NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed pp. 4, 6-9 and 13: in-flight acuity, OCT and visual-field testing, more when clinically indicated. Priority review: Team triage proposal [P]: no published primary source."
+    },
+    "w_review_outcome": {
+      "type": "question",
+      "text": "Answer once the clinician has completed the priority review; until then stay on this step. Has the clinician declared a medical urgency?",
+      "source": "Clinician-held escalation after a priority review: Team triage proposal [P]: no published primary source.",
+      "save_as": "clinician_declared_urgency",
+      "options": {
+        "yes": "w_escalate",
+        "no": "w_symptoms"
+      }
+    },
+    "w_notify": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Notify the crew medical officer. Together, agree on your check-ups and who is responsible for them.",
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): crews keep regular contact with their doctors. Notification step: Team triage proposal [P]: no published primary source.",
+      "next": "w_acuity"
+    },
+    "w_acuity": {
+      "type": "action",
+      "text": "With the clinician, compare each eye's corrected acuity with your personal baseline using Check-in results; review OCT and visual fields when available. Select I can't if results are missing or invalid: they must not be treated as normal.",
+      "source": "NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed pp. 6-9: visual acuity, OCT and visual fields tested in flight, more when clinically indicated. Check-in results reviewed instead of new measurements (Edu decision, #137); 'not evaluable' rule: Team triage proposal [P]: no published primary source.",
+      "next": "w_symptoms",
+      "next_if_cannot": "w_missing_data"
+    },
+    "w_missing_data": {
+      "type": "info",
+      "text": "Not evaluable: a missing or invalid eye test is not a normal result, and without OCT the structural surveillance is incomplete. Agree with the clinician how to complete the tests.",
+      "next": "w_symptoms",
+      "source": "NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed p. 6: OCT is the in-flight measure of optic disc edema. 'Not evaluable' rule: Team triage proposal [P]: no published primary source."
+    },
+    "w_symptoms": {
+      "type": "question",
+      "text": "Do you have mild, gradual difficulty focusing or reading?",
+      "source": "NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed p. 5, and Gew et al., SANS expert consensus, Eye, 2026 [6] (doi:10.1038/s41433-026-04651-6): hyperopic shift with reduced near vision as the reported symptom. Use as the watch criterion: Team triage proposal [P]: no published primary source.",
+      "save_as": "mild_focus_difficulty",
+      "options": {
+        "yes": "w_correction",
+        "no": "w_end"
+      }
+    },
+    "w_correction": {
+      "type": "action",
+      "text": "Use only your prescribed correction: space anticipation glasses or the prescribed adjustment. Select Done if it restores your focus, although clearer focus does not prove swelling has resolved; select I can't only if no available correction is enough.",
+      "source": "NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed pp. 9 and 12: optical correction of increasing power, several lens pairs flown. Gew et al., SANS expert consensus, Eye, 2026 [6] (doi:10.1038/s41433-026-04651-6): space anticipation glasses are the only established measure. Urgency when no available correction is enough: Team triage proposal [P]: no published primary source.",
+      "next": "w_end",
+      "next_if_cannot": "w_escalate"
+    },
+    "w_end": {
+      "type": "end",
+      "outcome": "monitoring",
+      "text": "Keep the agreed check-ups and follow sleep and habitat procedures. LBNP, thigh cuffs and supplements are under research, and acetazolamide or other drugs have no established SANS efficacy: never start them, pressure manipulation or invasive eye procedures from this app.",
+      "source": "NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed pp. 12-13: LBNP, thigh cuffs and B vitamins under study, no medication proven, acetazolamide limits; printed p. 2: impaired sleep and CO2 as possible risk factors. Gew et al., SANS expert consensus, Eye, 2026 [6] (doi:10.1038/s41433-026-04651-6): no established treatment beyond glasses."
+    },
+    "u_stop": {
+      "type": "action",
+      "text": "Stop risky tasks and EVA, and alert the crew medical officer immediately. Record when symptoms began and which eye is affected; do not wait for OCT.",
+      "source": "Stop-task and record-onset response: Team triage proposal [P]: no published primary source.",
+      "next": "u_local"
+    },
+    "u_local": {
+      "type": "contact",
+      "target": "crew_medical_officer",
+      "text": "Activate the on-board medical lead for immediate ocular and neurological assessment; the clinician decides care and restrictions. Do not assume every acute visual problem is SANS, and glasses that compensate do not replace the assessment of a visual loss.",
+      "next": "u_env",
+      "source": "Immediate ocular and neurological assessment without assuming SANS: Team triage proposal [P]: no published primary source."
+    },
+    "u_env": {
+      "type": "decision",
+      "branches": [
+        {
+          "if": {
+            "environment_in": [
+              "moon"
+            ]
+          },
+          "next": "u_moon"
+        }
+      ],
+      "default": "u_earth",
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): flight surgeons follow each crew during the mission. NASA, Hazard: Distance From Earth [7] (https://www.nasa.gov/hrp/hazard-distance-from-earth/): delayed Earth support at Mars. Routing by environment: Team triage proposal [P]: no published primary source."
+    },
+    "u_moon": {
+      "type": "info",
+      "text": "Care continues on board or in the habitat; this alert does not trigger an evacuation. The clinician evaluates any transfer according to vehicle and resources and decides whether to request Earth support.",
+      "next": "u_handover",
+      "source": "Moon routing (care on board, transfer evaluated by the clinician, no Earth contact named): Team triage proposal [P]: no published primary source."
+    },
+    "u_earth": {
+      "type": "contact",
+      "target": "flight_surgeon",
+      "text": "Send the case to the flight surgeons for remote medical support; this app does not send the message itself. Do not wait for the reply: on-board care continues under the local emergency protocol.",
+      "next": "u_handover",
+      "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): flight surgeons follow each crew during the mission. NASA, Hazard: Distance From Earth [7] (https://www.nasa.gov/hrp/hazard-distance-from-earth/): up to 20 minutes one-way delay at Mars, crews act with minimal Earth support. NASA, Mars Communications Disruption and Delay (https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf)."
+    },
+    "u_handover": {
+      "type": "action",
+      "text": "Confirm that a clinician has reviewed this episode and accepted responsibility for ongoing care. Select Done only then; otherwise keep this task active and stay assisted.",
+      "next": "u_end",
+      "next_if_cannot": "u_handover",
+      "source": "Urgency held until clinician acceptance; crew acknowledgement, not authenticated sign-off (Edu decision, #137): Team triage proposal [P]: no published primary source."
+    },
+    "u_end": {
+      "type": "end",
+      "outcome": "handed_over",
+      "text": "Clinical review and accepted handover are recorded; this is not a cure or EVA clearance. No rescue drug is established for SANS: the clinician treats the diagnosis found, sets restrictions and assesses any feasible return or transfer.",
+      "source": "Gew et al., SANS expert consensus, Eye, 2026 [6] (doi:10.1038/s41433-026-04651-6) and NASA OCHMO-MTB-001, SANS, 2024 [5] (https://www.nasa.gov/wp-content/uploads/2024/02/ochmo-mtb-001-sans.pdf), printed p. 12: no proven medication or established rescue treatment. NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): return in the crew's spacecraft if an emergency requires it. EVA and closing rules: Team triage proposal [P]: no published primary source."
+    }
+  }
+}
