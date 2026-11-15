@@ -125,7 +125,7 @@ CONTACT_TARGETS = ["crew_medical_officer", "flight_surgeon"]
 
 # Mascot expressions. Provisional: the team decides the final list and when each one is used.
 MOODS = ["happy", "neutral", "thinking", "worried", "serious"]
-MASCOT_SIZES = ["large", "small"]
+MASCOT_SIZES = ["large", "medium", "small"]
 
 # Node type -> required fields. Optional fields are listed in AGENTS.md, section 7.
 NODE_TYPES = {

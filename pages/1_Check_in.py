@@ -2,7 +2,7 @@
 # AI-assisted: Check-in implementation generated with Codex; human review pending.
 """Check-in: measurement form, trigger alert and confirmation step. Owner: Juan Carlos.
 
-Mascot: large and centered without a visual; small to the left of the chart.
+Mascot: a compact assistant line without a visual; small to the left of the chart.
 Forms and buttons stay below both (AGENTS.md, section 8).
 """
 from datetime import datetime, timedelta
@@ -162,7 +162,7 @@ def main() -> None:
     if not st.session_state.get("astronaut") or not st.session_state.get("environment"):
         text = "Choose an astronaut and environment on the Home page first."
         st.warning(text)
-        mascot.say(text, "neutral", size="large")
+        mascot.say(text, "neutral", size="medium")
         return
 
     astronaut = st.session_state["astronaut"]
@@ -250,8 +250,8 @@ def main() -> None:
         if alarms:
             list_text, list_mood = ("You reported an urgent symptom. Stop the risky task and contact "
                                     "the crew medical officer now.", "serious")
-        # Big centred mascot, cards below it (docs/FRONTEND_MASCOT_LAYOUT.md 4.1).
-        mascot.say(list_text, list_mood, size="large")
+        # Compact mascot line, cards below it (docs/UI_STYLE.md).
+        mascot.say(list_text, list_mood, size="medium")
         for alarm in alarms:
             st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
                      "When it is no longer present, mark it as resolved in Subjective issues below.")

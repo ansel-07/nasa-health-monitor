@@ -123,7 +123,7 @@ def test_home_selection_is_required(screen):
     assert not app.exception
     assert "Home" in app.warning[0].value
     assert not app.number_input
-    assert state["speech"][-1][2] == "large"
+    assert state["speech"][-1][2] == "medium"
 
 
 def test_form_is_empty_unbounded_and_hides_fixtures(screen):
@@ -543,7 +543,7 @@ def test_list_cards_use_configured_groups_and_allow_full_bars(screen, monkeypatc
     assert not app.number_input
     assert [item.value for item in app.get('progress')] == [100, 100]
     assert calls == [('a1', 'check_in', 'x'), ('a1', 'check_in', 'y')]
-    assert state['speech'][-1][2] == 'large'      # list: big mascot, cards below
+    assert state['speech'][-1][2] == 'medium'     # list: compact mascot line, cards below
     assert not button(app, 'Check y').disabled
     button(app, 'Check y').click().run()
     assert state['chart_calls'][-1][1] == 'y'

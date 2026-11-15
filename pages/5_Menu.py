@@ -2,7 +2,7 @@
 """Main Menu: Check-in, Trends and Tutorials cards, plus the demo controls. Owner: Ansel.
 
 docs/ASTRONAUT_HEALTH_APP_SPEC.md, screen 2, with the layout of docs/FRONTEND_MASCOT_LAYOUT.md 3:
-big centred mascot, urgent alarms, then one row of cards below. Protocols is not a menu item: its card appears only while the astronaut
+compact mascot line (docs/UI_STYLE.md), urgent alarms, then one row of cards below. Protocols is not a menu item: its card appears only while the astronaut
 has an active episode or pending alerts. The top-left back button (to Welcome) comes from app.py.
 """
 import streamlit as st
@@ -41,7 +41,7 @@ elif pending:
 else:
     text, mood = f"Hi {names[astronaut]}! What would you like to do?", "happy"
 
-mascot.say(text, mood, size="large")
+mascot.say(text, mood, size="medium")
 
 for alarm in alarms:
     st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
