@@ -530,3 +530,39 @@ def test_focused_labels_show_more_text_on_short_lines_but_whole_view_stays_short
     ({"any": [{"symptom": "a", "level_is": "concern"}, {"environment_in": ["mars"]}]}, "Condition met")])
 def test_symptom_group_branches_get_short_labels(cond, label):
     assert engine._condition_label(cond) == label
+
+
+# #247: protocol measure steps reject impossible values (config.measurement_errors, #236).
+def _with_domain(monkeypatch, valid):
+    indicators = deepcopy(engine.load_indicators())
+    indicators["_example_indicator"]["valid"] = valid
+    monkeypatch.setattr(engine, "load_indicators", lambda: indicators)
+
+
+@pytest.mark.parametrize("value", [-1, 2.5])
+@pytest.mark.parametrize("practice", [False, True])
+def test_out_of_domain_measurement_is_rejected_and_nothing_changes(episode, monkeypatch, dependencies, value, practice):
+    saved, measured = dependencies
+    _with_domain(monkeypatch, {"min": 0, "integer": True})
+    episode.update(current_node="remeasure", practice=practice)
+    before = deepcopy(episode)
+    with pytest.raises(engine.InvalidMeasurement) as error:
+        engine.submit(episode, {"value": value})
+    assert ("cannot be below 0" if value < 0 else "must be a whole number") in str(error.value)
+    measured.assert_not_called()          # no new measurement row, no detection
+    saved.assert_not_called()             # the stored episode stays on the same step
+    assert episode == before
+    assert engine.current_step(episode)["id"] == "remeasure"
+
+
+def test_in_domain_measurement_is_still_accepted(episode, monkeypatch, dependencies):
+    saved, measured = dependencies
+    _with_domain(monkeypatch, {"min": 0, "integer": True})
+    episode.update(current_node="remeasure")
+    updated = engine.submit(episode, {"value": 8})
+    measured.assert_called_once()
+    assert updated["vars"]["value_after"] == 8 and updated["current_node"] != "remeasure"
+
+
+def test_invalid_measurement_is_a_value_error_for_existing_callers():
+    assert issubclass(engine.InvalidMeasurement, ValueError)

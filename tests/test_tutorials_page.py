@@ -113,3 +113,22 @@ def test_main_practice_actions_are_primary_like_protocols(storage):
     assert kind("Yes") == "secondary" and kind("No") == "secondary"
     button(app, "No").click().run()                         # -> do_action
     assert kind("Done") == "primary" and kind("I can't") == "secondary"
+
+
+def test_out_of_domain_practice_value_shows_why_and_stays(storage, monkeypatch):
+    """#247: practice measure steps use the same domain check (nothing is saved anyway)."""
+    from copy import deepcopy
+    from core import protocol_engine
+    indicators = deepcopy(protocol_engine.load_indicators())
+    indicators["_example_indicator"]["valid"] = {"min": 0}
+    monkeypatch.setattr(protocol_engine, "load_indicators", lambda: indicators)
+    app = page()
+    start(app)
+    button(app, "Continue").click().run()                   # intro_mars
+    button(app, "No").click().run()
+    button(app, "Done").click().run()                       # -> remeasure
+    app.number_input[0].set_value(-1)
+    next(f for f in app.get("form_submit_button") if f.label == "Continue").click().run()
+    assert not app.exception
+    assert any("cannot be below 0" in item.value for item in app.error)
+    assert app.session_state["tutorial_run"]["current_node"] == "remeasure"

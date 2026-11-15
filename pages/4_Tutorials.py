@@ -70,6 +70,9 @@ def show_list(astronaut: str, environment: str) -> None:
 def advance(astronaut: str, episode: dict, response: dict) -> None:
     try:
         updated = protocol_engine.submit(episode, response)
+    except protocol_engine.InvalidMeasurement as exc:   # #247: same check as Protocols; practice saves nothing
+        st.error(str(exc))
+        return
     except (ValueError, KeyError, OSError):
         st.error("Check your response and try again.")
         return

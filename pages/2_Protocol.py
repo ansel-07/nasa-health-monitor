@@ -43,6 +43,9 @@ def advance(episode: dict, response: dict) -> None:
     """Delegate validation, measurements and persistence to the engine."""
     try:
         protocol_engine.submit(episode, response)
+    except protocol_engine.InvalidMeasurement as exc:   # #247: say why; nothing was saved
+        st.error(str(exc))
+        return
     except (ValueError, KeyError, OSError):
         st.error("The step could not be saved or completed. Check your response and try again. If this continues, ask the mission team for help.")
         return

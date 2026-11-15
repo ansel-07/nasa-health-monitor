@@ -6,9 +6,17 @@ from datetime import datetime
 from math import isfinite
 
 from core import conditions, data, episodes, mission, triggers
-from core.config import load_environments, load_indicators, load_problems, load_protocol
+from core.config import load_environments, load_indicators, load_problems, load_protocol, measurement_errors
 from core.models import NODE_TYPES, OUTCOMES, PROBLEM_STATES, SEVERITIES, TODO_MARK
 
+
+
+class InvalidMeasurement(ValueError):
+    """A measure-step value outside its indicator's unit or measurement domain (#236, #247).
+
+    Raised before anything is saved: no measurement row, no detection, no episode change.
+    The message says why, so pages can show it to the astronaut.
+    """
 
 def _require_complete(value, path: str = "protocol") -> None:
     """Reject placeholders anywhere in a protocol before any execution effects."""
@@ -202,20 +210,24 @@ def submit(episode: dict, user_input: dict | None) -> dict:
                 value = user_input.get("value")
                 if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value):
                     raise ValueError("Measurement must be a finite number.")
-                indicator = load_indicators()[node["indicator"]]
-                unit = indicator["unit"]
+                indicators = load_indicators()
+                unit = indicators[node["indicator"]]["unit"]
                 if unit.startswith("TODO"):
                     raise ValueError("Measurement unit is still TODO in config/indicators.json.")
+                measurement = {"timestamp": timestamp, "astronaut": updated["astronaut"],
+                               "indicator": node["indicator"], "value": value, "unit": unit,
+                               "phase": "mission", "source": "protocol"}
+                # #247: an impossible value (outside the indicator's domain) is rejected before
+                # anything is saved, so the step stays and no alert or episode can change.
+                if errors := measurement_errors(measurement, indicators):
+                    raise InvalidMeasurement(" ".join(errors))
                 if not practice:
                     # Detection suppresses the problem of the astronaut's open episode, so
                     # that stored episode must be this one; otherwise it could reopen it.
                     stored_open = data.get_open_episode(updated["astronaut"])
                     if not stored_open or stored_open["id"] != updated["id"]:
                         raise ValueError("This episode is not the astronaut's open episode in storage.")
-                    episodes.on_new_measurement({
-                        "timestamp": timestamp, "astronaut": updated["astronaut"],
-                        "indicator": node["indicator"], "value": value, "unit": unit,
-                        "phase": "mission", "source": "protocol"}, updated["environment"])
+                    episodes.on_new_measurement(measurement, updated["environment"])
                 updated["vars"][node["save_as"]] = value
                 latest[node["indicator"]] = value
                 recorded_input = value
