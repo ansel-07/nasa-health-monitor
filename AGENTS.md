@@ -439,4 +439,4 @@ The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **ab
 6. The confirmation wait (`confirm_wait_min`) and the one-open-episode rule (section 10) stay; the Protocols screen shows the active episode and the pending alerts by severity.
 7. **Welcome** uses conversational buttons (astronaut, then environment), no dropdowns and no NEXT.
 
-**Before submission (after the Sunday 16:00 freeze; Ansel):** delete the internal Spanish documents in `docs/` (`ESTRUCTURA.md`, `Preparación del entorno · NASA Space Apps 2026.md`, `WORKFLOW.md`); complete every `TODO` in the README; make the repository public.
+**Before submission (Ansel):** internal Spanish documents and bug-hunt notes removed; README without `TODO`; make the repository public.

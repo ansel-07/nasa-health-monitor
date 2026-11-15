@@ -10,8 +10,6 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 ## Links
 
 - Live app: https://nasa-health-monitor-jyjqxq9oyta7gece258ben.streamlit.app/
-- Slides (7 slides, live demo): TODO
-- Space Apps project page: TODO
 
 ## The problem
 
@@ -21,7 +19,7 @@ Lumi focuses on two risks studied by NASA's Human Research Program: [Spaceflight
 
 ## What it does
 
-The astronaut chooses who they are and where the mission is (ISS, Moon or Mars). From the Main Menu they record health check-ins, review their trends and practise protocols. Each measurement is compared with **their own pre-flight baseline**; an anomaly is confirmed with a **repeat measurement** before anything else happens, and a confirmed one opens a **step-by-step protocol** adapted to the problem, its severity and the mission environment (for example, the communication delay with Earth on Mars). Progress bars remind the astronaut when a check-in or a protocol practice is due. A simple animated face narrates every step with subtitles and an optional voice.
+The astronaut chooses who they are and where the mission is (ISS, Moon or Mars). From the Main Menu they record health check-ins, review their trends and practise protocols. Each measurement is compared with **their own pre-flight baseline**; an anomaly is confirmed with a **repeat measurement** before anything else happens, and a confirmed one opens a **step-by-step protocol** adapted to the problem, its severity and the mission environment (for example, the communication delay with Earth on Mars). Progress bars remind the astronaut when a check-in or a protocol practice is due. Lumi, the app's mascot, narrates every step with subtitles and an optional voice.
 
 ### Try it in 1 minute
 
@@ -39,7 +37,7 @@ The app is named after its mascot, **Lumi**: a glowing LED alien head drawn in c
 - **Subtitles** appear word by word while its LED mouth talks; with **Voice** on (top-right toggle) it reads them aloud with the browser's own speech synthesis, in sync. It only speaks a new line, never the same one twice.
 - It never invents health content: it reads the alert, question or protocol step the screen would otherwise show.
 
-It is not shown on Trends or Tutorials, where the charts and the practice flowchart need the space. Its name is still to be chosen by the team.
+It is not shown on Trends or Tutorials, where the charts and the practice flowchart need the space.
 
 ## How it works
 
