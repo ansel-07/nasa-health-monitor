@@ -9,6 +9,8 @@ an urgency finding. No numerical criteria, timing or treatment settings change.
 
 Existing node ids remain available for saved episodes. The handover hold is intentional:
 only acknowledged clinician review and accepted responsibility closes the urgency.
+If handover cannot be accepted, show the existing emergency guidance, then return
+to the handover question; acknowledging the guidance does not accept care (#217).
 This is crew acknowledgement, not authenticated clinician sign-off.
 
 Adapted watch paths show 5-8 SANS steps and 5-6 muscle steps, counting the end
@@ -38,6 +40,7 @@ flowchart TD
     w_missing_data["Tell the crew medical officer which eye results are unavailable or invalid. Arrange appropriate assessment; missing OCT means structural surveillance is incomplete."]
     u_local["Activate the on-board medical lead for immediate ocular and neurological assessment. Do not assume every acute visual problem is SANS; the clinician decides care and restrictions."]
     u_support["Has the local clinician requested Earth support while local care continues?"]
+    u_no_clinician["Keep risky tasks stopped and follow your pre-authorized local emergency protocol without waiting for Earth. This episode stays open until a clinician reviews it and accepts care."]
     u_handover["Confirm that a clinician has reviewed this episode and accepted responsibility for ongoing care. Select Done only then; otherwise keep this task active and stay assisted."]
     w_review_outcome["Wait here until the clinician completes the priority review. Has the clinician declared a medical urgency?"]
     w_symptoms["Do you have mild, gradual difficulty focusing or reading?"]
@@ -66,8 +69,9 @@ flowchart TD
     u_local -->|continue| u_env
     u_support -->|yes| u_ground
     u_support -->|no| u_handover
-    u_handover -->|continue| u_end
-    u_handover -->|I can't| u_handover
+    u_handover -->|Done| u_end
+    u_handover -->|I can't| u_no_clinician
+    u_no_clinician -->|continue| u_handover
     w_review_outcome -->|yes| w_escalate
     w_review_outcome -->|no| w_symptoms
     w_symptoms -->|yes| w_correction_check
@@ -98,6 +102,7 @@ flowchart TD
     w_priority_review["Ask the crew medical officer for priority review of the concerning finding or unexpected task limitation. A concerning number alone does not establish medical urgency."]
     u_local["Activate the on-board medical lead for immediate assessment and stabilization; investigate injury or another acute cause. Follow the local emergency protocol without waiting for Earth."]
     u_support["Has the local clinician requested Earth support while local care continues?"]
+    u_no_clinician["Keep risky tasks stopped and follow your pre-authorized local emergency protocol without waiting for Earth. This episode stays open until a clinician reviews it and accepts care."]
     u_handover["Confirm that a clinician has reviewed this episode and accepted responsibility for ongoing care. Select Done only then; otherwise keep this task active and stay assisted."]
     w_review_outcome["Wait here until the clinician completes the priority review. Has the clinician declared a medical urgency?"]
     route -->|otherwise| w_red_flags
@@ -124,8 +129,9 @@ flowchart TD
     u_local -->|continue| u_env
     u_support -->|yes| u_orbit
     u_support -->|no| u_moon
-    u_handover -->|continue| u_end
-    u_handover -->|I can't| u_handover
+    u_handover -->|Done| u_end
+    u_handover -->|I can't| u_no_clinician
+    u_no_clinician -->|continue| u_handover
     w_review_outcome -->|yes| w_escalate
     w_review_outcome -->|no| w_exercise
 ```
@@ -157,7 +163,7 @@ flowchart TD
 - Shared destinations alone are not a defect: routine and priority contacts
   communicate different requests. Keep the inability-to-stop assistance route,
   and then show local assessment rather than skipping it.
-- The handover self-loop is the required hold, not an automatic engine cycle.
+- The user-driven handover/guidance return is the required hold, not an automatic engine cycle.
 - Keep node ids to support saved episodes rather than deleting in-progress steps.
   The old Earth-support question can still be resumed if saved before deployment;
   new ISS/Mars routes bypass it and request Earth contact directly.

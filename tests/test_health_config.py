@@ -92,7 +92,7 @@ def test_real_config_detection_confirmation_protocol(tmp_path, monkeypatch, pid,
                 refused_review = True
         episode = protocol_engine.submit(episode, user_input)
         if step["id"] == "u_handover" and user_input["action"] == "cannot":
-            assert episode["status"] == "active" and episode["current_node"] == "u_handover"
+            assert episode["status"] == "active" and episode["current_node"] == "u_no_clinician"
     assert episode["status"] == ("handed_over" if red_flags == "yes" else "monitoring")
     assert episode["severity"] == ("medical_urgency" if red_flags == "yes" else "watch")
     if red_flags == "no":
