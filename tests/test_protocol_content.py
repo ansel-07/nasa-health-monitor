@@ -57,10 +57,9 @@ def test_watch_stays_in_monitoring_after_completed_review(
 @pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
 @pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
 @pytest.mark.parametrize("earth_support", ["yes", "no"])
-@pytest.mark.parametrize("cannot_stop", [False, True])
 @pytest.mark.parametrize("initial_severity", ["watch", "medical_urgency"])
 def test_urgency_contacts_local_first_and_cannot_close_before_review(
-        run_context, pid, environment, earth_support, cannot_stop, initial_severity):
+        run_context, pid, environment, earth_support, initial_severity):
     episode = run_context(pid, environment, severity=initial_severity)
     contacts = []
     for _ in range(12):
@@ -73,12 +72,13 @@ def test_urgency_contacts_local_first_and_cannot_close_before_review(
         if step["type"] == "question":
             response = {"answer": "yes" if step["save_as"] == "red_flags" else earth_support}
         elif step["type"] == "action":
-            response = {"action": "cannot" if cannot_stop and step["id"] == "u_stop" else "done"}
+            assert step["id"] != "u_stop" or "next_if_cannot" not in step   # one exit: no duplicate contact
+            response = {"action": "done"}
         else:
             response = {"action": "continue"}
         episode = protocol_engine.submit(episode, response)
     assert episode["current_node"] == "u_handover"
-    expected = ["crew_medical_officer"] * (2 if cannot_stop else 1)
+    expected = ["crew_medical_officer"]
     if environment != "moon" or earth_support == "yes":
         expected.append("flight_surgeon")
     assert contacts == expected
@@ -173,7 +173,8 @@ def test_sans_correction_escalation_uses_explicit_clinician_answer(run_context, 
 def test_previous_protocol_node_ids_remain_available(pid):
     nodes = config.load_protocol(pid)["nodes"]
     # u_mars_send was merged into the identical ISS contact (Javi, protocol structure).
-    legacy = {"u_support", "u_help", "u_handover"}
+    # u_help was removed: it only repeated the crew-medical-officer contact (Javi, protocol structure).
+    legacy = {"u_support", "u_handover"}
     legacy |= {"u_orbit", "u_moon"} if pid == "muscle_atrophy" else {"u_ground"}
     assert legacy <= set(nodes)
 
@@ -294,3 +295,17 @@ def test_urgent_iss_and_mars_share_one_flight_surgeon_step(run_context, pid, env
         episode = protocol_engine.submit(episode, {"action": "done" if step["type"] == "action" else "continue"})
     expected = "u_orbit" if pid == "muscle_atrophy" else "u_ground"
     assert contacts[-1] == (expected, "flight_surgeon", True)
+
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+def test_no_route_contacts_the_same_person_twice_in_a_row(pid):
+    """A contact straight after a contact to the same person is a duplicate step (e.g. the old u_help)."""
+    nodes = config.load_protocol(pid)["nodes"]
+    for nid, node in nodes.items():
+        if node["type"] != "contact":
+            continue
+        for target in config._node_targets(node):
+            nxt = nodes[target]
+            assert not (nxt["type"] == "contact" and nxt["target"] == node["target"]), \
+                f"{nid} -> {target}: two {node['target']} contacts in a row"

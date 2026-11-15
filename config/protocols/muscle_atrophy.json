@@ -66,8 +66,7 @@
       "type": "action",
       "text": "Stop exercise and risky tasks, get to a safe position and alert the crew medical officer now. Do not repeat tests at maximum effort or wait for another sensor reading.",
       "source": "Team triage proposal [P], no published primary source: stop exercise and risky tasks, get safe, alert the medical lead; no maximal tests and no waiting for another sensor reading.",
-      "next": "u_local",
-      "next_if_cannot": "u_help"
+      "next": "u_local"
     },
     "u_env": {
       "type": "decision",
@@ -102,13 +101,6 @@
       "outcome": "handed_over",
       "text": "Clinician review and transfer of care are recorded; follow medical limits and recovery plan for the condition found. Return or transfer depends on clinical need, vehicle and resources, not just a sensor value.",
       "source": "NASA, The Real Story About Astronaut Health Care in Space [3] (https://www.nasa.gov/missions/station/faq-the-real-story-about-astronaut-health-care-in-space/): return in the crew's spacecraft if an emergency requires it. Team triage proposal [P], no published primary source: medical limits, recovery plan and any transfer are clinical decisions, not set by a sensor value."
-    },
-    "u_help": {
-      "type": "contact",
-      "target": "crew_medical_officer",
-      "text": "Request immediate assistance from the crew medical officer. Do not continue the risky task.",
-      "next": "u_local",
-      "source": "Team triage proposal [P], no published primary source: if the risky task cannot be stopped, get immediate help from the on-board medical lead."
     },
     "w_concern": {
       "type": "decision",
