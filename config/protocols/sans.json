@@ -1,5 +1,5 @@
 {
-  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137; human review pending.",
+  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137; human review pending. Adapted with Codex for Edu decisions on #191; human review pending.",
   "_integration_status": "Activated for confirmed numerical findings. Immediate clinical-priority entry before measurement confirmation remains a separate owner integration; no numerical finding automatically establishes urgency.",
   "problem": "sans",
   "start": "route",
@@ -44,7 +44,7 @@
       "type": "action",
       "text": "With your clinician, review corrected acuity and baseline per eye in Check-in, plus OCT and visual fields when available. Missing or invalid tests are not normal results.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS, watch: initial action [P]",
-      "next": "w_correction",
+      "next": "w_symptoms",
       "next_if_cannot": "w_missing_data"
     },
     "w_correction": {
@@ -72,6 +72,14 @@
         {
           "if": {
             "environment_in": [
+              "moon"
+            ]
+          },
+          "next": "u_support"
+        },
+        {
+          "if": {
+            "environment_in": [
               "mars"
             ]
           },
@@ -79,20 +87,20 @@
         }
       ],
       "default": "u_ground",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Prototype flow composition [P]."
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule."
     },
     "u_mars_send": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Transmit the requested case summary to Earth and continue local care under the pre-authorized protocol. The communication delay must not delay local assessment.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
+      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_ground": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the requested case summary to the flight surgeons while local medical care continues. This app does not send a message or authorize transfer.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
+      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_end": {
@@ -105,7 +113,7 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Request immediate assistance from the crew medical officer. Do not continue the risky task.",
-      "next": "u_support",
+      "next": "u_local",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; clinical-priority response [P]."
     },
     "w_concern": {
@@ -158,20 +166,20 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Ask the crew medical officer for priority medical review of the concerning finding. A concerning number alone does not establish a medical urgency.",
-      "next": "w_acuity",
+      "next": "w_review_outcome",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; prototype review routing [P]."
     },
     "w_missing_data": {
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Tell the crew medical officer which eye results are unavailable or invalid. Arrange appropriate assessment; missing OCT means structural surveillance is incomplete.",
-      "next": "w_correction",
+      "next": "w_symptoms",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
     },
     "u_local": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "next": "u_support",
+      "next": "u_env",
       "text": "Activate the on-board medical lead for immediate ocular and neurological assessment. Do not assume every acute visual problem is SANS; the clinician decides care and restrictions.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
     },
@@ -180,10 +188,10 @@
       "text": "Has the local clinician requested Earth support while local care continues?",
       "save_as": "earth_support_requested",
       "options": {
-        "yes": "u_env",
+        "yes": "u_ground",
         "no": "u_handover"
       },
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]. Optional Earth support in all environments is Edu-approved team workflow, not a universal treatment requirement from the PDF."
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule. Legacy node retained; now used for optional lunar Earth support."
     },
     "u_handover": {
       "type": "action",
@@ -191,6 +199,36 @@
       "next": "u_end",
       "next_if_cannot": "u_handover",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
+    },
+    "w_review_outcome": {
+      "type": "question",
+      "text": "Wait here until the clinician completes the priority review. Has the clinician declared a medical urgency?",
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
+      "save_as": "clinician_declared_urgency",
+      "options": {
+        "yes": "w_escalate",
+        "no": "w_symptoms"
+      }
+    },
+    "w_symptoms": {
+      "type": "question",
+      "text": "Do you have mild, gradual difficulty focusing or reading?",
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule. Symptom wording: docs/sintomas_subjetivos_atrofia_SANS.md section 2.",
+      "save_as": "mild_focus_difficulty",
+      "options": {
+        "yes": "w_correction_check",
+        "no": "w_end"
+      }
+    },
+    "w_correction_check": {
+      "type": "question",
+      "text": "Has the clinician confirmed that the optical correction you need exceeds what is available?",
+      "save_as": "correction_insufficient",
+      "options": {
+        "yes": "w_escalate",
+        "no": "w_correction"
+      },
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule. Existing urgency criterion: w_red_flags; guia_tratamientos_vigilancia_urgencia.pdf p. 2."
     }
   }
 }
