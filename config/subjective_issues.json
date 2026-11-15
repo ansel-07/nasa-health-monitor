@@ -133,6 +133,14 @@
       "check_ins": [],
       "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3. Not a diagnosis of SANS or muscle atrophy; prototype triage proposal."
     },
+    "ALM_05": {
+      "label": "New double vision or severe headache with neurological signs",
+      "question": "Do you have new double vision, or a severe headache with neurological signs?",
+      "alarm": true,
+      "action": "Stop the risky task and tell the crew medical officer immediately. Get urgent medical assessment; do not assume this is SANS.",
+      "check_ins": [],
+      "source": "docs/sintomas_subjetivos_atrofia_SANS.md (Edu, 2026-11-14), section 3, note after ALM_04; immediate-action wording follows section 3 alarm response. Question and triage wording are prototype proposals, not a validated questionnaire or a diagnosis of SANS."
+    },
     "_example_issue": {
       "label": "Example issue (test fixture)",
       "check_ins": [
