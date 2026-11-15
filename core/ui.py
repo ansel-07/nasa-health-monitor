@@ -38,6 +38,9 @@ _CSS = f"""<style>
 [data-testid="stBaseButton-primary"], [data-testid="stBaseButton-primaryFormSubmit"],
 [data-testid="stBaseButton-primary"] p, [data-testid="stBaseButton-primaryFormSubmit"] p {{
   color: {BACKGROUND} !important; font-weight: 600; }}
+[data-testid="stBaseButton-primary"]:disabled, [data-testid="stBaseButton-primaryFormSubmit"]:disabled,
+[data-testid="stBaseButton-primary"]:disabled p, [data-testid="stBaseButton-primaryFormSubmit"]:disabled p {{
+  color: {MUTED} !important; }}
 [data-testid="stBaseButton-secondary"], [data-testid="stBaseButton-secondaryFormSubmit"] {{
   background: {SURFACE}; }}
 [data-testid="stBaseButton-secondary"]:hover, [data-testid="stBaseButton-secondaryFormSubmit"]:hover {{
@@ -56,8 +59,8 @@ _CSS = f"""<style>
 @media (prefers-reduced-motion: reduce) {{ * {{ animation: none !important; transition: none !important; }} }}
 /* Mission status bar. */
 .ui-status {{ display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center;
-  gap: 0.35rem 1.1rem; font-family: {MONO}; font-size: 0.78rem; letter-spacing: 0.08em;
-  text-transform: uppercase; color: {MUTED}; padding-right: 7.5rem; }}
+  gap: 0.35rem 0.9rem; font-family: {MONO}; font-size: 0.74rem; white-space: nowrap; letter-spacing: 0.08em;
+  text-transform: uppercase; color: {MUTED}; padding-right: 6.5rem; }}
 .ui-status b {{ color: {TEXT}; font-weight: 500; }}
 .ui-status .ui-live {{ width: 0.5rem; height: 0.5rem; border-radius: 50%; background: {NORMAL};
   box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.18); }}
