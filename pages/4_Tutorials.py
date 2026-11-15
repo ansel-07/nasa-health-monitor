@@ -90,7 +90,9 @@ def show_practice(astronaut: str, episode: dict) -> None:
         close_button("Back to Tutorials")
         return
 
-    st.subheader(step["text"])
+    with st.container(key="tutorial_step"):
+        st.html("<style>.st-key-tutorial_step p { font-size: 1.3rem; line-height: 1.45; }</style>")
+        st.markdown(step["text"])
     whole = st.toggle("Show whole protocol", key="tutorial_whole")
     st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=whole), width="stretch",
                       alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
@@ -133,7 +135,6 @@ if "astronaut" not in st.session_state or "environment" not in st.session_state:
 astronaut = st.session_state["astronaut"]
 environment = st.session_state["environment"]
 
-st.title("Tutorials")
 run = st.session_state.get(RUN)
 if run and run["astronaut"] != astronaut:   # astronaut changed on the Welcome screen
     st.session_state.pop(RUN, None)

@@ -18,13 +18,16 @@ import plotly.graph_objects as go
 from core import config, data, mission
 from core.models import CONDITION_METRICS
 
-# Colours (dataviz reference palette). Severity uses the reserved status colours and
-# always comes with a text label, so colour never carries the meaning alone.
-MISSION_COLOR = "#2a78d6"
-PREFLIGHT_COLOR = "#9e9c97"
-BASELINE_COLOR = "#7a7974"
-USUAL_RANGE_FILL = "rgba(158, 156, 151, 0.15)"
-WARNING, SERIOUS, CRITICAL = "#fab219", "#ec835a", "#d03b3b"
+# Colours of the app theme (docs/UI_STYLE.md): mission data in the cyan accent, pre-flight and
+# the baseline in muted blue-grey. Severity uses the reserved status colours and always comes
+# with a text label, so colour never carries the meaning alone.
+MISSION_COLOR = "#5EF2FF"
+PREFLIGHT_COLOR = "#7C8BA5"
+BASELINE_COLOR = "#9FB0C8"
+USUAL_RANGE_FILL = "rgba(124, 139, 165, 0.16)"
+WARNING, SERIOUS, CRITICAL = "#FFB547", "#FF8A4C", "#FF5C5C"
+GRID_COLOR = "rgba(124, 139, 165, 0.18)"
+FONT_FAMILY = "'IBM Plex Sans', sans-serif"
 # Symptom levels and problem states (AGENTS.md 5.3), plus the legacy severity names.
 SEVERITY_COLORS = {
     "watch": WARNING, "concern": SERIOUS, "medical_urgency": CRITICAL,
@@ -43,7 +46,7 @@ COMPACT_HEIGHT = 220
 # Projector-friendly text (AGENTS.md 15: charts must read well on a projector).
 FULL_FONT_SIZE = 15
 COMPACT_FONT_SIZE = 14
-NOW_COLOR = "#52514e"
+NOW_COLOR = "#E6EDF7"
 
 
 def _is_number(x) -> bool:
@@ -289,14 +292,17 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
     if (df["phase"] == "preflight").any() and (df["phase"] == "mission").any():
         launch_label = {} if compact else dict(annotation_text="Launch", annotation_position="top")
         fig.add_vline(x=1, line=dict(color=BASELINE_COLOR, width=1, dash="dot"), **launch_label)
-    fig.add_vline(x=_mission_day(mission.now(), start), line=dict(color=NOW_COLOR, width=2),
+    fig.add_vline(x=_mission_day(mission.now(), start), line=dict(color=NOW_COLOR, width=1, dash="dash"),
                   annotation_text="Now", annotation_position="top")
 
     fig.update_yaxes(range=[y_low, y_high], title=None if compact else unit,
-                     nticks=4 if compact else None)
-    fig.update_xaxes(title="Mission day", tickformat="d", nticks=5 if compact else None)
+                     nticks=4 if compact else None, gridcolor=GRID_COLOR, zeroline=False)
+    fig.update_xaxes(title="Mission day", tickformat="d", nticks=5 if compact else None,
+                     gridcolor=GRID_COLOR, zeroline=False)
     fig.update_layout(
-        font=dict(size=COMPACT_FONT_SIZE if compact else FULL_FONT_SIZE),
+        font=dict(size=COMPACT_FONT_SIZE if compact else FULL_FONT_SIZE, family=FONT_FAMILY),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        title_font=dict(size=FULL_FONT_SIZE + 1),
         title=None if compact else name,
         height=COMPACT_HEIGHT if compact else FULL_HEIGHT,
         showlegend=not compact,

@@ -79,7 +79,6 @@ def test_one_card_per_indicator_with_data_and_no_demo_controls(screen):
     app.run()
     assert not app.exception
     assert [e.label for e in app.expander] == ["Indicator X · latest 66.0 u", "y · latest 7.0 u"]
-    assert app.caption[0].value == "Astronaut A · Mars"
     assert sorted(calls) == [("a1", "x", False, "mars"), ("a1", "y", False, "mars")]  # full charts
     assert not [b for b in app.button if "Advance" in b.label]       # moved to the Main Menu (#94)
 

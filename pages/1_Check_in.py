@@ -158,7 +158,6 @@ def _issue_details(astronaut: str, source: str, active: list, definitions: dict,
 
 
 def main() -> None:
-    st.title("Check-in")
     mascot.voice_toggle()
     if not st.session_state.get("astronaut") or not st.session_state.get("environment"):
         text = "Choose an astronaut and environment on the Home page first."
@@ -181,7 +180,6 @@ def main() -> None:
         mascot.say("This episode is not available for Check-in.", "serious")
         return
     now = mission.now()
-    st.caption(f"Mission time: {now.isoformat(timespec='seconds')} | Environment: {environments[environment]['name']}")
     blocked = not problems or any(
         _unfinished({key: problem.get(key) for key in (
             ("name", "symptoms", "states", "confirm_wait_min")
@@ -286,11 +284,11 @@ def main() -> None:
         waiting_alerts()
         return
 
-    if st.button("Back to check-ins"):
+    if st.button("Back to check-ins", icon=":material/arrow_back:", type="tertiary"):
         st.session_state[selection_key] = None
         st.rerun()
     checkin = checkins[selected]
-    st.header(checkin["name"])
+    st.subheader(checkin["name"])
     group = checkin["indicators"]
     if not group or any(key not in indicators for key in group):
         st.error("The indicators for this check-in are unavailable.")

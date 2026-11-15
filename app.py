@@ -5,7 +5,8 @@ Screens and navigation follow docs/ASTRONAUT_HEALTH_APP_SPEC.md (AGENTS.md 3 and
 menu, people move with buttons and cards. This file lists the screens and adds the top-left
 back button: Main Menu goes back to Welcome; every other screen goes back to Main Menu.
 On Welcome it hides Streamlit's header so the conversation fills the viewport.
-A new page must be added to PAGES.
+A new page must be added to PAGES. Look: docs/UI_STYLE.md (theme in .streamlit/config.toml, the
+shared styles and the mission status bar in core/ui.py).
 """
 import sys
 from pathlib import Path
@@ -25,7 +26,9 @@ if "pytest" not in sys.modules and getattr(sys, "_spacedoc_core_stamp", None) !=
         del sys.modules[_name]
 sys._spacedoc_core_stamp = _CORE_STAMP
 
-st.set_page_config(page_title="Astronaut Health Monitor", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Astronaut Health Monitor", page_icon=":material/monitor_heart:", layout="wide")
+
+from core import ui  # noqa: E402  (after the core purge above)
 
 welcome = st.Page("pages/0_Home.py", title="Welcome", default=True)
 menu = st.Page("pages/5_Menu.py", title="Main Menu")
@@ -38,10 +41,7 @@ PAGES = [
     st.Page("pages/4_Tutorials.py", title="Tutorials"),
 ]
 navigation = st.navigation(PAGES, position="hidden")
-# Primary buttons are cyan (theme primaryColor): dark text keeps them readable on a projector.
-st.html("<style>[data-testid='stBaseButton-primary'], [data-testid='stBaseButton-primaryFormSubmit'] "
-        "{ color: #111111 !important; } [data-testid='stBaseButton-primary'] p, "
-        "[data-testid='stBaseButton-primaryFormSubmit'] p { color: #111111 !important; }</style>")
+ui.styles()
 
 if navigation.url_path != welcome.url_path and not (
         st.session_state.get("astronaut") and st.session_state.get("environment")):
@@ -50,20 +50,20 @@ if navigation.url_path != welcome.url_path and not (
     st.switch_page(welcome)
 
 if navigation.url_path == welcome.url_path:
-    # Full-viewport Welcome (docs/FRONTEND_MASCOT_LAYOUT.md 2): no Streamlit header or top padding.
+    # Full-viewport Welcome (docs/FRONTEND_MASCOT_LAYOUT.md 2), conversation centred.
     st.html("""<style>
-      [data-testid="stHeader"], [data-testid="stToolbar"] { display: none; }
-      [data-testid="stMainBlockContainer"], .block-container { padding-top: 1rem; padding-bottom: 1rem; }
-      .st-key-welcome_screen { min-height: calc(100vh - 2rem); display: flex; flex-direction: column;
+      .st-key-welcome_screen { min-height: calc(100vh - 2.5rem); display: flex; flex-direction: column;
                                justify-content: center; max-width: 56rem; margin: 0 auto; }
     </style>""")
 else:
     st.session_state.pop("welcome_step", None)   # arriving at Welcome always starts at step 1
-
-if navigation.url_path == menu.url_path:
-    if st.button("← Back"):
-        st.switch_page(welcome)
-elif navigation.url_path != welcome.url_path:
-    if st.button("← Main Menu"):
-        st.switch_page(menu)
+    # Top row: back (Main Menu goes back to Welcome, every other screen to Main Menu) and the
+    # mission status bar. No page titles (docs/UI_STYLE.md).
+    back_col, status_col = st.columns([1, 4], vertical_alignment="center")
+    on_menu = navigation.url_path == menu.url_path
+    if back_col.button("Change astronaut" if on_menu else "Main Menu", icon=":material/arrow_back:",
+                       type="tertiary", key="app_back"):
+        st.switch_page(welcome if on_menu else menu)
+    with status_col:
+        ui.status_bar(st.session_state["astronaut"], st.session_state["environment"])
 navigation.run()
