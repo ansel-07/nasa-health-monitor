@@ -333,7 +333,7 @@ def main() -> None:
 
     if opened:
         label = "Problem state" if "symptoms" in problems[opened["problem"]] else "Alert severity"
-        st.write(f"{label}: {opened['severity']}")
+        st.write(f"{label}: {opened['severity'].replace('_', ' ').capitalize()}")
         if opened.get("symptoms"):
             with st.expander("Symptoms at last detection"):
                 symptom_config = problems[opened["problem"]].get("symptoms", {})
