@@ -67,3 +67,56 @@ def test_saving_an_alarm_in_check_in_shows_the_urgent_action(monkeypatch, alarm_
     assert not app.exception
     assert saved == [[alarm_id]]
     assert any("Urgent symptom reported" in e.value and issues()[alarm_id]["action"] in e.value for e in app.error)
+
+
+@pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
+@pytest.mark.parametrize("context", ["list", "manual_detail", "waiting_repeat"])
+@pytest.mark.parametrize("alarm_id", [f"ALM_0{i}" for i in range(1, 6)])
+def test_alarm_action_is_available_without_waiting_for_confirmation(
+        tmp_path, monkeypatch, environment, context, alarm_id):
+    from core import data, mascot, mission, models
+
+    monkeypatch.setattr(models, "SESSION_DATA", True)
+    monkeypatch.setattr(models, "SESSIONS_DIR", tmp_path / "sessions")
+    monkeypatch.setattr(models, "_session_id", lambda: "alarm-before-confirmation")
+    monkeypatch.setattr(mascot, "say", lambda *args, **kwargs: None)
+    if context == "waiting_repeat":
+        mission.advance_and_detect(hours=24, environment=environment)
+        episode = data.get_open_episode("a1")
+        assert episode is not None and episode["status"] == "pending_confirmation"
+        indicator = episode["trigger"]["indicator"]
+    else:
+        indicator = next(iter(config.load_checkins().values()))["indicators"][0]
+    checkin_id = next(key for key, item in config.load_checkins().items()
+                      if indicator in item["indicators"])
+    app = AppTest.from_file("../pages/1_Check_in.py", default_timeout=30)
+    app.session_state["astronaut"] = "a1"
+    app.session_state["environment"] = environment
+    app.session_state[f"check_in_selected:a1:{environment}"] = (
+        None if context == "list" else checkin_id)
+    app.run()
+    assert not app.exception
+    if context == "waiting_repeat":
+        confirm = next(b for b in app.button if b.label == "Confirm repeat measurement")
+        assert confirm.disabled  # The alarm form remains usable during this wait.
+    before_episodes = data.load_episodes()
+    before_pending = data.load_pending()
+    before_measurements = data.load_measurements().copy()
+    before_clock = mission.now()
+    urgent = next(box for box in app.multiselect if box.label == "Urgent symptoms you have now")
+    urgent.select(alarm_id)
+    next(b for b in app.button if b.label == "Save issues").click().run()
+    assert not app.exception
+    assert any(issues()[alarm_id]["action"] in item.value for item in app.error)
+    assert any(item["issue"] == alarm_id for item in activity.active_issues("a1"))
+    assert mission.now() == before_clock
+    assert data.load_episodes() == before_episodes
+    assert data.load_pending() == before_pending
+    assert data.load_measurements().equals(before_measurements)
+    # A fresh page render reads the persisted alarm; reporting does not merely flash it.
+    menu = AppTest.from_file("../pages/5_Menu.py", default_timeout=30)
+    menu.session_state["astronaut"] = "a1"
+    menu.session_state["environment"] = environment
+    menu.run()
+    assert not menu.exception
+    assert any(issues()[alarm_id]["action"] in item.value for item in menu.error)
