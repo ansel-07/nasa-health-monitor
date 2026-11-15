@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and Codex; human review pending.
+# AI-assisted: generated with Claude Code and Codex, reviewed by Javi.
 """Protocol: run the active episode step by step. Owner: Javi."""
 from datetime import datetime
 

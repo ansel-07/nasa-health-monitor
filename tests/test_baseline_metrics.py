@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Synthetic boundary cases supplied by Edu in #48; these are not normal ranges."""
 from copy import deepcopy
 

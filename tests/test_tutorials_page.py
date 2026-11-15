@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and reviewed by Javi (review pending).
+# AI-assisted: generated with Claude Code and reviewed by Javi.
 """Tutorials page (#97): gate at 80 / 70, a practice run saves nothing but the tutorial bar."""
 from datetime import datetime
 

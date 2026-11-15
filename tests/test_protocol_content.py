@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex; human review by Edu pending.
+# AI-assisted: generated with Codex and reviewed by Edu.
 """Execute the #137 medical-content branches with the real protocol engine."""
 from copy import deepcopy
 from pathlib import Path

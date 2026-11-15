@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Condition language tests using synthetic values, not medical thresholds."""
 from copy import deepcopy
 from math import nextafter

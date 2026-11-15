@@ -1,5 +1,5 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
-# AI-assisted: baseline metrics generated with Codex; human review pending.
+# AI-assisted: baseline metrics generated with Codex and reviewed by Juan Carlos.
 """Shared condition evaluator for triggers and protocol decisions. Owner: Juan Carlos.
 
 Condition language: AGENTS.md, section 6.

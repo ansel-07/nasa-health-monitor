@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Trigger integration tests with synthetic rules, not medical thresholds."""
 from copy import deepcopy
 

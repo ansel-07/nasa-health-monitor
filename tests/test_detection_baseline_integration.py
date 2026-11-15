@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Detection integration with real CSV/JSON storage and personal baseline math.
 
 All values, rules and protocols here are synthetic test fixtures, not health

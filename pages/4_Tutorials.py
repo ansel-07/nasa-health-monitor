@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and reviewed by Javi (review pending).
+# AI-assisted: generated with Claude Code and reviewed by Javi.
 """Tutorials: one practice tutorial per protocol, each with its bar. Owner: Javi.
 
 docs/ASTRONAUT_HEALTH_APP_SPEC.md screen 5 and AGENTS.md 5.6 / 16.4: a tutorial runs the real

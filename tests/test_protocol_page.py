@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex; human review pending.
+# AI-assisted: generated with Codex and reviewed by Javi.
 """Exercise Protocol controls with Streamlit's AppTest and isolated core APIs."""
 from copy import deepcopy
 from datetime import datetime

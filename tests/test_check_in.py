@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Check-in interaction tests against core contracts, using synthetic content."""
 from copy import deepcopy
 from datetime import datetime, timedelta

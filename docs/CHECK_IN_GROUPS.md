@@ -1,4 +1,4 @@
-<!-- AI-assisted: generated with Codex; human review by Edu pending. -->
+<!-- AI-assisted: generated with Codex and reviewed by Edu. -->
 
 # Check-in grouping review (#98)
 
