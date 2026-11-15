@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from core import conditions, data, models
+from core import conditions, data, models, triggers
 
 
 @pytest.mark.parametrize("selector", ["indicator", "var"])
@@ -111,3 +111,65 @@ def test_inclusive_z_boundaries_distinguish_both_sides(monkeypatch, threshold, o
         expected = offset >= 0 if operator == "at_least" else offset <= 0
         assert conditions.check({"indicator": "left", "metric": "z_score", operator: threshold},
             {"astronaut": "a1", "latest": {"left": value}}) is expected
+
+
+@pytest.mark.parametrize("selector", ["indicator", "var"])
+@pytest.mark.parametrize("metric,mean,std,value,boundary", [
+    ("baseline_fraction", .1, .01, .3, 3),
+    ("baseline_delta", .2, .1, .7, .5),
+    ("z_score", 0, .1, .3, 3),
+    ("abs_z_score", 0, .1, -.3, 3),
+])
+@pytest.mark.parametrize("operator,expected", [
+    ("above", False), ("below", False), ("at_least", True), ("at_most", True),
+])
+def test_derived_roundoff_preserves_boundary_operators(
+        monkeypatch, selector, metric, mean, std, value, boundary, operator, expected):
+    monkeypatch.setattr(data, "get_baseline", lambda *args: {"mean": mean, "std": std, "n": 3})
+    ctx = {"astronaut": "a1", "latest": {"left": value}, "vars": {"after": value},
+           "var_indicators": {"after": "left"}}
+    assert conditions.check({selector: "left" if selector == "indicator" else "after",
+                             "metric": metric, operator: boundary}, ctx) is expected
+
+
+@pytest.mark.parametrize("selector", ["indicator", "var"])
+@pytest.mark.parametrize("operator,sign", [("z_above", 1), ("z_below", -1)])
+def test_legacy_z_roundoff_keeps_strict_boundary(monkeypatch, selector, operator, sign):
+    monkeypatch.setattr(data, "z_score", lambda *args: sign * 3.0000000000000004)
+    ctx = {"astronaut": "a1", "latest": {"left": .3}, "vars": {"after": .3},
+           "var_indicators": {"after": "left"}}
+    cond = {selector: "left" if selector == "indicator" else "after", operator: sign * 3}
+    assert not conditions.check(cond, ctx)
+    monkeypatch.setattr(data, "z_score", lambda *args: sign * 3.000001)
+    assert conditions.check(cond, ctx)
+
+
+@pytest.mark.parametrize("metric", [None, "raw"])
+def test_raw_values_are_not_rounded(metric):
+    cond = {"indicator": "left", "above": .5}
+    if metric:
+        cond["metric"] = metric
+    assert conditions.check(cond, {"latest": {"left": .5000000001}})
+
+
+@pytest.mark.parametrize("indicator,preflight,value,expected", [
+    ("visual_acuity_left", (-.1, 0, .1), .3, "concern"),
+    ("visual_acuity_left", (-.1, 0, .1), .299999, "watch"),
+    ("visual_acuity_left", (-.1, 0, .1), .2, "watch"),
+    ("visual_acuity_left", (-.1, 0, .1), .199999, "not_present"),
+    ("refraction_left", (-.2, -.1, 0), .4, "not_present"),
+    ("refraction_left", (-.2, -.1, 0), .400001, "watch"),
+    ("refraction_left", (-.2, -.1, 0), .399999, "not_present"),
+])
+def test_configured_vision_boundaries_with_real_csv_rows(
+        tmp_path, monkeypatch, indicator, preflight, value, expected):
+    monkeypatch.setattr(models, "MEASUREMENTS_FILE", tmp_path / "measurements.csv")
+    for day, reading in enumerate(preflight, start=1):
+        data.add_measurement({"timestamp": f"2027-03-{day:02d}T08:00:00", "astronaut": "a1",
+            "indicator": indicator, "value": reading, "unit": "logMAR" if "acuity" in indicator else "D",
+            "phase": "preflight", "source": "simulated"})
+    data.add_measurement({"timestamp": "2027-04-01T08:00:00", "astronaut": "a1",
+        "indicator": indicator, "value": value, "unit": "logMAR" if "acuity" in indicator else "D",
+        "phase": "mission", "source": "manual"})
+    assert triggers.symptom_levels("sans", "a1", "iss")[indicator] == expected
+    assert data.latest_values("a1")[indicator] == value
