@@ -36,6 +36,10 @@ SEVERITY_COLORS = {
 # Drawing order of the bands, least serious first (more serious bands are drawn on top).
 BAND_RANK = {"watch": 1, "mild": 1, "concern": 2, "moderate": 2, "severe": 3}
 BAND_OPACITY = 0.12
+# More serious bands are more opaque, so Watch (amber) and Concern (orange) are told apart on
+# the dark theme (#218); each band also gets a thin line in its colour at its threshold.
+BAND_OPACITIES = {1: 0.10, 2: 0.24, 3: 0.32}
+BAND_EDGE_WIDTH = 1.5
 
 # Condition keys that give a band: key -> (direction, is a z-score).
 LOWER_KEYS, UPPER_KEYS = ("above", "at_least"), ("below", "at_most")  # bounds on the metric
@@ -262,12 +266,18 @@ def indicator_chart(astronaut: str, indicator: str, compact: bool = False,
         y0 = y_low if band["low"] is None else band["low"]
         y1 = y_high if band["high"] is None else band["high"]
         # A label only in the full chart. Never pass a position without a text: Plotly would
-        # then draw its default label "new text" (#125).
+        # then draw its default label "new text" (#125). Labels sit on the left: the right edge
+        # holds the latest values, the alert marks, "Launch" and "Now" (#218).
         label = {} if compact else dict(
             annotation_text=band["label"], annotation_font_size=font_size,
-            annotation_position="bottom right" if band["direction"] == "below" else "top right")
-        fig.add_hrect(y0=y0, y1=y1, fillcolor=SEVERITY_COLORS[band["severity"]],
-                      opacity=BAND_OPACITY, line_width=0, layer="below", **label)
+            annotation_position="bottom left" if band["direction"] == "below" else "top left")
+        color = SEVERITY_COLORS[band["severity"]]
+        fig.add_hrect(y0=y0, y1=y1, fillcolor=color,
+                      opacity=BAND_OPACITIES.get(BAND_RANK[band["severity"]], BAND_OPACITY),
+                      line_width=0, layer="below", **label)
+        for edge in (band["low"], band["high"]):
+            if edge is not None:
+                fig.add_hline(y=edge, line=dict(color=color, width=BAND_EDGE_WIDTH), layer="below")
 
     if baseline is not None:
         fig.add_hrect(y0=baseline["mean"] - baseline["std"], y1=baseline["mean"] + baseline["std"],
