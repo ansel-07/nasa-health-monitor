@@ -97,6 +97,64 @@ def _subjective_issues(astronaut: str, source: str, report) -> None:
                 report("error", "Urgent symptom reported. " + " ".join(
                     f"{item['label']}: {item['action']}" for item in urgent))
             report("success", "Subjective issues updated." if previous or selected else "No subjective issues selected.")
+        if active:
+            _issue_details(astronaut, source, active, definitions, report)
+
+
+# Labels for the optional details of docs/sintomas_subjetivos_atrofia_SANS.md section 4 (Edu).
+_DETAIL_LABELS = {
+    "sudden": "Sudden", "gradual": "Gradual",
+    "improving": "Improving", "stable": "Stable", "worsening": "Worsening",
+    "none": "No effect", "no_task_change": "Noticed, tasks unchanged",
+    "task_adapted": "Had to adapt a task", "task_not_completed": "Could not complete a task",
+    "right_eye": "Right eye", "left_eye": "Left eye", "both_eyes": "Both eyes", "not_identified": "Not identified",
+}
+
+
+def _issue_details(astronaut: str, source: str, active: list, definitions: dict, report) -> None:
+    """Optional details of an issue reported today; the latest save of the day wins."""
+    st.markdown("**Details (optional)**: describe an issue you reported, so the crew medical officer has the context.")
+    ids = [item["issue"] for item in active]
+    issue_id = st.selectbox("Issue", ids, format_func=lambda key: definitions[key]["label"],
+                            key=f"{source}:details_issue:{astronaut}")
+    saved = next((item.get("details") or {} for item in active if item["issue"] == issue_id), {})
+    choices = activity.ISSUE_DETAIL_CHOICES
+
+    def pick(label, key, options):
+        value = saved.get(key)
+        return st.radio(label, options, index=options.index(value) if value in options else None,
+                        format_func=_DETAIL_LABELS.get, horizontal=True, key=f"{form_key}:{key}")
+
+    form_key = f"{source}:details:{astronaut}:{issue_id}"
+    with st.form(form_key):
+        onset = pick("Onset", "onset", choices["onset"])
+        trend = pick("Trend", "trend", choices["trend"])
+        if issue_id.startswith("VIS_"):
+            location = pick("Location", "location", activity.EYE_LOCATIONS)
+        else:
+            location = st.text_input("Location (muscle and side)", value=saved.get("location", ""),
+                                     key=f"{form_key}:location")
+        impact = pick("Effect on your tasks", "impact", choices["impact"])
+        intensity = st.number_input("Intensity 0-10 (optional)", min_value=0, max_value=10, step=1,
+                                    value=saved.get("intensity"), key=f"{form_key}:intensity",
+                                    help="Your own rating. It is not a physiological measurement or an urgency threshold.")
+        context = st.text_input("Context", value=saved.get("context", ""), key=f"{form_key}:context",
+                                placeholder="Exercise, rest, suit, glasses, lighting, mission phase, gravity")
+        notes = st.text_area("Notes", value=saved.get("notes", ""), key=f"{form_key}:notes",
+                             placeholder="In your own words")
+        submitted = st.form_submit_button("Save details", width="stretch")
+    if submitted:
+        details = {"onset": onset, "trend": trend, "location": location, "impact": impact,
+                   "intensity": intensity, "context": context, "notes": notes}
+        try:
+            activity.add_issue_details(astronaut, issue_id, details)
+        except (ValueError, KeyError, OSError) as error:
+            report("error", f"Details could not be saved. {error}")
+        if activity.needs_safety_assessment(details):
+            # docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3.
+            report("error", "A task you could not complete needs an immediate safety assessment, "
+                            "even if the intensity is low.")
+        report("success", "Details saved.")
 
 
 def main() -> None:
