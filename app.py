@@ -22,6 +22,10 @@ PAGES = [
     st.Page("pages/4_Tutorials.py", title="Tutorials"),
 ]
 navigation = st.navigation(PAGES, position="hidden")
+# Primary buttons are cyan (theme primaryColor): dark text keeps them readable on a projector.
+st.html("<style>[data-testid='stBaseButton-primary'], [data-testid='stBaseButton-primaryFormSubmit'] "
+        "{ color: #111111 !important; } [data-testid='stBaseButton-primary'] p, "
+        "[data-testid='stBaseButton-primaryFormSubmit'] p { color: #111111 !important; }</style>")
 
 if navigation.url_path == welcome.url_path:
     # Full-viewport Welcome (docs/FRONTEND_MASCOT_LAYOUT.md 2): no Streamlit header or top padding.

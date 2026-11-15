@@ -87,7 +87,7 @@ Only decisions that are important for the team to make (see section 1); one line
 
 ## 9. Night log
 
-**Summary:** Advance mission 24 h is ~2x faster (0.7 → 0.3 s locally, under 2 s live; identical results). Check-in shows active urgent symptoms. Task 3 (mascot-first layout) is done in four PRs: mascot core, Welcome + Menu, Check-in, Tutorials. Live demo path was verified after #164 only; check it after the later merges. P1 tasks 4-8 not started.
+**Summary:** Advance mission 24 h is ~2x faster (0.7 → 0.3 s locally, under 2 s live; identical results). Check-in shows active urgent symptoms. Task 3 (mascot-first layout) is done in four PRs: mascot core, Welcome + Menu, Check-in, Tutorials. Live demo path verified on the deployed app after #168.
 
 What the agent merged tonight (one line per PR: number, what, tests) and the minor decisions it took on its own (what and why).
 
@@ -104,5 +104,6 @@ What the agent merged tonight (one line per PR: number, what, tests) and the min
   - Decided: environment buttons are secondary like the astronaut ones: white text on the cyan primary colour was hard to read.
 - #167 Task 3, PR 3/4 (Check-in): list view with the big centred mascot, alarms below it, check-in cards in a 3-column grid; detail view without the Indicator selectbox: one compact chart per indicator of the check-in, stacked (only the repeated one in repeat mode); guidance check over every indicator of the form. Tests in `tests/test_check_in.py` updated, 1 new.
   - Decided: each stacked chart gets its indicator name as a caption (left/right eye charts were indistinguishable), and the detail mascot line is "Record the measurements of this check-in." (the old line asked to choose an indicator, which no longer exists).
-- Task 3, PR 4/4 (Tutorials; Protocols unchanged): no mascot or Voice toggle on Tutorials; intro as a paragraph, cards in a 3-column grid; practice step as `st.subheader` over a full-width flowchart; completed step as `st.success`. Protocols already matched section 5 (titles kept: the big mascot fits at 720 px). 1 new test in `tests/test_tutorials_page.py`. Not checked in a browser (usage limit).
-- **Stopped here (usage limit).** Not done: live-app check after #165-#167 and this PR (run the demo of section 4 on the deployed app); P1 tasks 4-8. For Ansel to check by eye: animation and word-by-word subtitles in Chrome, Edge, Firefox, and the voice.
+- #168 Task 3, PR 4/4 (Tutorials; Protocols unchanged): no mascot or Voice toggle on Tutorials; intro as a paragraph, cards in a 3-column grid; practice step as `st.subheader` over a full-width flowchart; completed step as `st.success`. Protocols already matched section 5 (titles kept: the big mascot fits at 720 px). 1 new test in `tests/test_tutorials_page.py`. Not checked in a browser (usage limit).
+- Paused 00:50-01:10 (usage limit), resumed until 06:00 as Ansel asked. Live check after #168 (deployed app): Welcome buttons → Menu → Reset → Advance (alert) → Check-in repeat (Simulate wait, 360, Confirm) → Protocols → No → crew medical officer step: all fine; Tutorials without mascot. For Ansel to check by eye: animation and word-by-word subtitles in Chrome, Edge, Firefox, and the voice.
+- Primary buttons readable: dark text on the cyan primary colour, app-wide (`app.py`). Found in the live check: the Main Menu "Protocols" card was white on cyan.
