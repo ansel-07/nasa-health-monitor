@@ -156,6 +156,42 @@ def test_older_pending_evidence_cannot_replace_newer(state):
     assert data.load_pending() == original
 
 
+@pytest.mark.parametrize("source", ["manual", "protocol", "simulated"])
+def test_same_time_pending_uses_newer_evidence_without_replay_rollback(state, source):
+    clock, problems = state
+    problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [rule(), rule("severe", above=30)]}
+    first = measurement(clock, source=source)
+    episodes.on_new_measurement(first, "mars")
+    newer = measurement(clock, source=source, value=40)
+    if source == "simulated":
+        data.add_measurement(newer)  # simulated rows are stored before detection
+    episodes.on_new_measurement(newer, "mars")
+    pending = episodes.get_pending("a1")
+    assert [(p["value"], p["severity"]) for p in pending] == [(40, "severe")]
+    episodes.on_new_measurement(first, "mars")
+    assert episodes.get_pending("a1") == pending
+    newest = measurement(clock, source=source, value=25)
+    episodes.on_new_measurement(newest, "mars")
+    pending = episodes.get_pending("a1")
+    assert [(p["value"], p["severity"]) for p in pending] == [(25, "mild")]
+    episodes.on_new_measurement(newer, "mars")
+    assert episodes.get_pending("a1") == pending
+    assert len(data.load_measurements()) == 3
+
+
+def test_same_time_pending_can_move_between_indicators(state):
+    clock, problems = state
+    open_episode(state)
+    problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [rule(indicator="x"), rule(indicator="y")]}
+    old = measurement(clock, value=12)
+    episodes.on_new_measurement(old, "mars")
+    episodes.on_new_measurement(measurement(clock, indicator="y", value=30), "mars")
+    pending = episodes.get_pending("a1")
+    assert pending[0]["indicator"] == "y" and pending[0]["value"] == 30
+    episodes.on_new_measurement(old, "mars")
+    assert episodes.get_pending("a1") == pending
+
+
 def test_astronauts_have_independent_open_episodes_and_unique_ids(state):
     clock, _ = state
     first = open_episode(state)
