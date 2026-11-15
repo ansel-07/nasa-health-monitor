@@ -149,7 +149,8 @@ def _issue_details(astronaut: str, source: str, active: list, definitions: dict,
         details = {"onset": onset, "trend": trend, "location": location, "impact": impact,
                    "intensity": intensity, "context": context, "notes": notes}
         # docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3.
-        safety_text = ("Couldn't complete a task? It needs an immediate safety assessment, even at low intensity.") if activity.needs_safety_assessment(details) else ""
+        safety_text = ("A critical task you could not complete needs an immediate safety assessment, "
+                       "even if the intensity is low.") if activity.needs_safety_assessment(details) else ""
         try:
             activity.add_issue_details(astronaut, issue_id, details)
         except (ValueError, KeyError, OSError) as error:

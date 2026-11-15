@@ -844,5 +844,6 @@ def test_approved_symptom_detail_wording_preserves_stored_ids(screen, monkeypatc
     button(app, "Save details").click().run()
     assert not app.exception
     assert saved[0]["onset"] == "gradual" and saved[0]["impact"] == "task_not_completed"
-    assert any(item.value == "Couldn't complete a task? It needs an immediate safety assessment, even at low intensity." for item in app.error)
+    assert any(item.value == "A critical task you could not complete needs an immediate safety assessment, "
+                              "even if the intensity is low." for item in app.error)
     assert state["calls"] == []
