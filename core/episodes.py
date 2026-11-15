@@ -291,6 +291,12 @@ def confirm(episode_id: str, measurement: dict) -> dict:
             updated["symptoms"] = deepcopy(match["symptoms"])
     else:
         updated.update(status="dismissed", closed_at=now.isoformat())
+        if "symptoms" in problem:
+            latest = dict(data.latest_values(m["astronaut"]))
+            latest[m["indicator"]] = m["value"]
+            updated["symptoms"] = triggers._symptom_levels(problem, {
+                "astronaut": m["astronaut"], "environment": episode["environment"], "latest": latest,
+            })
     pending = data.load_pending()
     new_pending = _pending_items(pending, matches, m, episode["problem"])
     _save_measurement_once(m)
