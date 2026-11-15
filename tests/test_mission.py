@@ -28,6 +28,22 @@ def test_clock_starts_at_mission_start(tmp_files):
     assert mission.now() == START
 
 
+def test_fractional_clock_and_mixed_precision_rows_keep_their_identity(tmp_files, monkeypatch):
+    monkeypatch.setattr(models, "EPISODES_FILE", tmp_files / "episodes.json")
+    monkeypatch.setattr(models, "ASTRONAUTS_FILE", tmp_files / "astronauts.csv")
+    for timestamp, value, phase in (("2027-03-30T08:00:00", 60, "preflight"),
+                                    ("2027-04-01T00:00:00.123456", 62, "mission")):
+        data.add_measurement({"timestamp": timestamp, "astronaut": "a1", "indicator": "_example_indicator",
+                              "value": value, "unit": "units", "phase": phase, "source": "simulated"})
+    result = mission.advance_and_detect(hours=.0001, environment="iss")
+    assert mission.now() == datetime(2027, 4, 1, 0, 0, 0, 360000)
+    assert result["revealed"] == 1
+    rows = data.load_measurements()
+    assert len(rows) == 2  # Detection must not append a truncated duplicate.
+    assert rows.iloc[-1]["timestamp"] == datetime(2027, 4, 1, 0, 0, 0, 123456)
+    assert "unprocessed" not in stored_state(tmp_files)
+
+
 def test_advance_moves_and_stores_the_clock(tmp_files):
     mission.advance()
     assert mission.now() == datetime(2027, 4, 2)

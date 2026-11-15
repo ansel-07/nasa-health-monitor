@@ -53,6 +53,24 @@ def test_add_then_load_roundtrip(tmp_data):
     assert list(df["value"]) == [62.0, 64.5]
 
 
+def test_iso_timestamps_with_mixed_precision_roundtrip(tmp_data):
+    data.add_measurement(make("2027-04-10T08:00:00", 62))
+    data.add_measurement(make("2027-04-10T08:00:00.123456", 63))
+    data.add_measurement(make(datetime(2027, 4, 10, 8, 0, 0, 654321), 64))
+    rows = data.load_measurements()
+    assert list(rows["timestamp"].dt.microsecond) == [0, 123456, 654321]
+    assert data.latest_values("a1") == {"_example_indicator": 64}
+
+
+@pytest.mark.parametrize("timestamp", [None, "not-a-time", "NaT", "2027-04-10T08:00:00+01:00"])
+def test_bad_timestamp_is_rejected_without_poisoning_existing_csv(tmp_data, timestamp):
+    data.add_measurement(make("2027-04-10T08:00:00", 62))
+    before = (tmp_data / "measurements.csv").read_bytes()
+    with pytest.raises(ValueError, match="timestamp"):
+        data.add_measurement(make(timestamp, 63))
+    assert (tmp_data / "measurements.csv").read_bytes() == before
+
+
 def test_load_measurements_filters_and_sorts(tmp_data):
     data.add_measurement(make("2027-04-10T10:00:00", 70))
     data.add_measurement(make("2027-04-10T08:00:00", 60))

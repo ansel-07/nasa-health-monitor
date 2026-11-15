@@ -50,7 +50,7 @@ def _unprocessed() -> list[dict]:
 
 def _save(moment: datetime, unprocessed: list[dict] | None = None) -> None:
     """Write the clock (and any unprocessed rows) safely: temporary file, then replace."""
-    state = {"now": moment.isoformat(timespec="seconds")}
+    state = {"now": moment.isoformat()}
     if unprocessed:
         state["unprocessed"] = unprocessed
     path = models.data_file(models.MISSION_STATE_FILE)
@@ -85,11 +85,11 @@ def _revealed(before: datetime, after: datetime) -> list[dict]:
                                   "phase": str, "source": str})
     if df.empty:
         return []
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"], format="ISO8601")
     rows = df[(df["source"] == "simulated") & (df["timestamp"] > before) & (df["timestamp"] <= after)]
     items = []
     for row in rows.sort_values("timestamp", kind="stable").to_dict("records"):
-        row["timestamp"] = row["timestamp"].isoformat(timespec="seconds")
+        row["timestamp"] = row["timestamp"].isoformat()
         row["value"] = float(row["value"])
         items.append({key: row[key] for key in MEASUREMENT_COLUMNS})
     return items

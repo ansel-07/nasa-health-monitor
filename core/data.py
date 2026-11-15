@@ -13,6 +13,7 @@ import os
 import shutil
 import tempfile
 import threading
+from datetime import datetime
 
 import pandas as pd
 
@@ -53,7 +54,7 @@ def _parse_measurements(raw: bytes) -> pd.DataFrame:
                                              "phase": str, "source": str})
     if df.empty:
         return _empty_measurements()
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"], format="ISO8601")
     df["value"] = df["value"].astype(float)
     return df
 
@@ -157,8 +158,13 @@ def add_measurement(m: dict) -> None:
 
     row = dict(m, value=value)
     timestamp = row["timestamp"]
-    if hasattr(timestamp, "isoformat"):
-        row["timestamp"] = timestamp.isoformat(timespec="seconds")
+    try:
+        timestamp = datetime.fromisoformat(timestamp) if isinstance(timestamp, str) else timestamp
+    except ValueError:
+        raise ValueError("Measurement timestamp must be an ISO 8601 mission time without a timezone.") from None
+    if not isinstance(timestamp, datetime) or pd.isna(timestamp) or timestamp.tzinfo is not None:
+        raise ValueError("Measurement timestamp must be an ISO 8601 mission time without a timezone.")
+    row["timestamp"] = timestamp.isoformat()
 
     path = models.data_file(models.MEASUREMENTS_FILE)
     write_header = not path.exists() or path.stat().st_size == 0
