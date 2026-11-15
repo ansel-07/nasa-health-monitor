@@ -386,8 +386,8 @@ def test_issue_details_are_saved_and_a_task_not_completed_asks_for_safety(missio
     app.run()
     assert not app.exception
     radios = {item.label: item for item in app.radio}
-    assert set(radios) == {"Onset", "Trend", "Location", "Effect on your tasks"}
-    radios["Onset"].set_value("sudden")
+    assert set(radios) == {"How it began", "Trend", "Location", "Effect on your tasks"}
+    radios["How it began"].set_value("sudden")
     radios["Location"].set_value("left_eye")
     radios["Effect on your tasks"].set_value("task_not_completed")
     next(f for f in app.get("form_submit_button") if f.label == "Save details").click().run()
