@@ -98,7 +98,7 @@ For each astronaut and indicator: mean and standard deviation of the `preflight`
 ### 5.3 Config files (in `config/`)
 
 - `mission.json`: mission name, start time, default environment, astronauts.
-- `indicators.json`: `{indicator_id: {name, unit, how_to_measure, why_it_matters, source}}`.
+- `indicators.json`: `{indicator_id: {name, unit, how_to_measure, why_it_matters, source, valid?}}`. `valid` (optional, Edu's values, #236): `{min?, max?, integer?}`, the **measurement domain** (a thickness cannot be negative, a grade is a whole number), never a clinical threshold. `config.measurement_errors(m)` checks indicator, unit, finiteness and domain; every entry point (Check-in, confirmation, protocol `measure`) rejects an invalid measurement **without saving it or changing any episode**.
 - `environments.json`: `{env_id: {name, gravity_g, comm_delay_min, source}}`. `comm_delay_min` is one-way.
 - `problems.json`: `{problem_id: {name, description, hrp_risk, confirm_wait_min, protocol, symptoms, states, source}}`. A problem is a set of **symptoms**; each symptom has a **level**, and the levels decide the **state** of the problem:
   - `symptoms`: `{symptom_id: {name, levels}}`. `levels` is a list of `{level, when, environments?}` with `level` in `SYMPTOM_LEVELS` (`watch`, `concern`). `when` is a condition on **indicators only** (section 6), evaluated with the **latest value** of each indicator. If `environments` is present, the rule only applies there. **The first matching rule wins**, so write them from most to least serious; no match = `not_present`.
@@ -201,6 +201,7 @@ load_protocol(problem_id: str) -> dict
 load_checkins(include_examples: bool = False) -> dict
 load_subjective_issues(include_examples: bool = False) -> dict
 validate_all(strict: bool = False) -> list[str]   # error messages; empty if OK
+measurement_errors(m: dict, indicators: dict | None = None) -> list[str]   # why a measurement is invalid (#236); empty if OK
 
 # core/mascot.py  (Ansel)
 say(text: str, mood: str = "neutral", size: str = "large") -> None
