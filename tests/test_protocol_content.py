@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Edu.
+# AI-assisted: generated with Codex and Claude Code, reviewed by Edu and Javi.
 """Execute the #137 medical-content branches with the real protocol engine."""
 from copy import deepcopy
 from pathlib import Path
