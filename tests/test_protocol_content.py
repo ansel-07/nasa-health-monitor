@@ -172,7 +172,8 @@ def test_sans_correction_escalation_uses_explicit_clinician_answer(run_context, 
 @pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
 def test_previous_protocol_node_ids_remain_available(pid):
     nodes = config.load_protocol(pid)["nodes"]
-    legacy = {"u_support", "u_help", "u_mars_send", "u_handover"}
+    # u_mars_send was merged into the identical ISS contact (Javi, protocol structure).
+    legacy = {"u_support", "u_help", "u_handover"}
     legacy |= {"u_orbit", "u_moon"} if pid == "muscle_atrophy" else {"u_ground"}
     assert legacy <= set(nodes)
 
@@ -237,3 +238,59 @@ def test_unavailable_handover_page_shows_guidance_without_closing(
     next(b for b in app.button if b.label == "Done").click().run()
     assert not app.exception
     assert data.load_episodes()[0]["status"] == "handed_over"
+
+
+# Structural guards (Javi owns protocol structure, AGENTS.md 4): no branch that only looks like a choice.
+def _same_step(nodes, a, b):
+    """Two steps the astronaut cannot tell apart: same kind, addressee, text and next steps."""
+    keys = ("type", "target", "text", "outcome", "severity")
+    return (all(nodes[a].get(k) == nodes[b].get(k) for k in keys)
+            and sorted(config._node_targets(nodes[a])) == sorted(config._node_targets(nodes[b])))
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+def test_no_branch_leads_to_identical_steps(pid):
+    nodes = config.load_protocol(pid)["nodes"]
+    for nid, node in nodes.items():
+        targets = sorted(set(config._node_targets(node)) - {nid})
+        assert len(targets) == len(set(targets))
+        for i, a in enumerate(targets):
+            for b in targets[i + 1:]:
+                assert not _same_step(nodes, a, b), f"{nid}: '{a}' and '{b}' are the same step"
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+def test_every_i_cant_changes_the_step_and_every_step_can_finish(pid):
+    protocol = config.load_protocol(pid)
+    nodes = protocol["nodes"]
+    for nid, node in nodes.items():
+        assert node.get("next_if_cannot") != nid, f"{nid}: 'I can't' returns to the same step"
+    ends = {nid for nid, node in nodes.items() if node["type"] == "end"}
+
+    def reach(start):
+        seen, todo = set(), [start]
+        while todo:
+            current = todo.pop()
+            if current not in seen:
+                seen.add(current)
+                todo.extend(config._node_targets(nodes[current]))
+        return seen
+
+    for nid in reach(protocol["start"]):
+        assert reach(nid) & ends, f"{nid} cannot reach an end"
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+@pytest.mark.parametrize("environment", ["iss", "mars"])
+def test_urgent_iss_and_mars_share_one_flight_surgeon_step(run_context, pid, environment):
+    episode = run_context(pid, environment, severity="medical_urgency")
+    contacts = []
+    for _ in range(10):
+        step = protocol_engine.current_step(episode)
+        if step["id"] == "u_handover":
+            break
+        if step["type"] == "contact":
+            contacts.append((step["id"], step["target"], "response_delay_min" in step))
+        episode = protocol_engine.submit(episode, {"action": "done" if step["type"] == "action" else "continue"})
+    expected = "u_orbit" if pid == "muscle_atrophy" else "u_ground"
+    assert contacts[-1] == (expected, "flight_surgeon", True)

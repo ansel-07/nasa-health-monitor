@@ -76,25 +76,10 @@
             ]
           },
           "next": "u_support"
-        },
-        {
-          "if": {
-            "environment_in": [
-              "mars"
-            ]
-          },
-          "next": "u_mars_send"
         }
       ],
       "default": "u_ground",
       "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule."
-    },
-    "u_mars_send": {
-      "type": "contact",
-      "target": "flight_surgeon",
-      "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
-      "next": "u_handover"
     },
     "u_ground": {
       "type": "contact",

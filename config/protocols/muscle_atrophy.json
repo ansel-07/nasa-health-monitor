@@ -79,14 +79,6 @@
             ]
           },
           "next": "u_support"
-        },
-        {
-          "if": {
-            "environment_in": [
-              "mars"
-            ]
-          },
-          "next": "u_mars_send"
         }
       ],
       "default": "u_orbit",
@@ -96,20 +88,13 @@
       "type": "contact",
       "target": "flight_surgeon",
       "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3] Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3]; NASA, Hazard: Distance From Earth [7] (moved from the merged Mars contact). Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_moon": {
       "type": "info",
       "text": "Continue local care in the habitat. The clinician decides any transfer according to clinical need, vehicle and resources.",
       "source": "Edu-approved lunar routing for #191: local care continues when Earth support is not requested; no automatic transfer.",
-      "next": "u_handover"
-    },
-    "u_mars_send": {
-      "type": "contact",
-      "target": "flight_surgeon",
-      "text": "Send the case summary to the flight surgeons (mission doctors); this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, Hazard: Distance From Earth [7] Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_end": {
