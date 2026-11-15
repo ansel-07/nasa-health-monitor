@@ -40,20 +40,17 @@ def _measurement(astronaut: str, indicator: str, unit: str, value: float) -> dic
             "phase": "mission", "source": "manual"}
 
 
-def _subjective_issues(astronaut: str, source: str, report) -> None:
+def _subjective_issues(astronaut: str, source: str, report, definitions: dict, active: list | None) -> None:
     title = "Subjective issues" if source == "check_in_list" else "Report another issue (optional)"
     with st.expander(title):
-        definitions = config.load_subjective_issues().get("issues", {})
+        if active is None:
+            st.caption("Subjective-issue reporting is unavailable until the history can be loaded.")
+            return
         if not definitions:
             st.info("Subjective issues are not configured yet.")
             return
         if any(_unfinished(item.get("label")) for item in definitions.values()):
             st.warning("Subjective-issue labels are unfinished. Reporting is unavailable.")
-            return
-        try:
-            active = [item for item in activity.active_issues(astronaut) if item["issue"] in definitions]
-        except (ValueError, KeyError, OSError) as error:
-            st.error(f"Subjective issues could not be loaded. {error}")
             return
         previous = {item["issue"] for item in active}
         st.caption("Select issues present today. To mark one as resolved, deselect it and save. "
@@ -238,25 +235,34 @@ def main() -> None:
         st.switch_page("pages/2_Protocol.py")
         st.stop()
 
-    if selected not in checkins:
-        # Urgent subjective symptoms prevail, as in the Main Menu (AGENTS.md 5.6): they stay
-        # visible until the astronaut marks them resolved below.
+    definitions, active, history_error = {}, None, None
+    try:
         definitions = config.load_subjective_issues().get("issues", {})
-        try:
-            alarms = [definitions[item["issue"]] for item in activity.active_issues(astronaut)
-                      if definitions.get(item["issue"], {}).get("alarm")]
-        except (ValueError, KeyError, OSError):
-            alarms = []
-        # The mascot says the open alert or an error that is on screen; otherwise it invites a check-in.
-        speaks_message = opened or (feedback and feedback["level"] == "error")
-        list_text, list_mood = (message, mood) if speaks_message else ("Pick a check-in. Let's record your measurements.", mood)
-        if alarms:
-            list_text, list_mood = ("You've reported an urgent symptom. Stop the risky task and contact the crew medical officer now.", "serious")
-        # Compact mascot line, cards below it (docs/UI_STYLE.md).
-        mascot.say(list_text, list_mood, size="medium")
+        active = [item for item in activity.active_issues(astronaut) if item["issue"] in definitions]
+    except (ValueError, KeyError, OSError) as error:
+        history_error = f"Subjective issues could not be loaded. {error}"
+        st.error(history_error)
+    alarms = [definitions[item["issue"]] for item in active or [] if definitions[item["issue"]].get("alarm")]
+    # Reuse the Main Menu's approved narration; full actions come from configuration.
+    alarm_text = "You've reported an urgent symptom. Stop the risky task and contact the crew medical officer now."
+
+    def alarm_banners() -> None:
         for alarm in alarms:
             st.error(f"Urgent symptom: {alarm['label']}. {alarm['action']} "
                      "When it is no longer present, mark it as resolved in Subjective issues below.")
+
+    if history_error and (not feedback or feedback["level"] != "error"):
+        message, mood = history_error, "worried"
+
+    if selected not in checkins:
+        # The mascot says the open alert or an error that is on screen; otherwise it invites a check-in.
+        speaks_message = opened or blocked or history_error or (feedback and feedback["level"] == "error")
+        list_text, list_mood = (message, mood) if speaks_message else ("Pick a check-in. Let's record your measurements.", mood)
+        if alarms:
+            list_text, list_mood = alarm_text, "serious"
+        # Compact mascot line, cards below it (docs/UI_STYLE.md).
+        mascot.say(list_text, list_mood, size="medium")
+        alarm_banners()
         st.caption("Bars show time since completion, not health status. You can measure at any time.")
         if not checkins:
             st.info("No check-ins are configured yet.")
@@ -268,13 +274,14 @@ def main() -> None:
             with grid[index % 3]:
                 # One card per check-in (core/ui.py): the whole card opens it; the bar is time
                 # since completion, never a health status.
-                level = activity.bar_level(astronaut, "check_in", checkin_id)
+                level = None if history_error else activity.bar_level(astronaut, "check_in", checkin_id)
                 count = len(checkin["indicators"])
+                recency = "recency unavailable" if level is None else f"recency {level}%"
                 if ui.card(f"check_in_card:{checkin_id}", checkin["name"], "assignment",
-                           f"{count} measurement{'s' if count != 1 else ''} · recency {level}%", level):
+                           f"{count} measurement{'s' if count != 1 else ''} · {recency}", level):
                     st.session_state[selection_key] = checkin_id
                     st.rerun()
-        _subjective_issues(astronaut, "check_in_list", report)
+        _subjective_issues(astronaut, "check_in_list", report, definitions, active)
         if opened and opened["status"] == "pending_confirmation":
             if st.button("Continue repeat measurement", width="stretch", type="primary"):
                 select_for(opened["trigger"]["indicator"])
@@ -321,6 +328,10 @@ def main() -> None:
     if any(_unfinished(indicators[key].get(field)) for key in field_ids
            for field in ("name", "unit", "how_to_measure", "why_it_matters")):
         message, mood = "Measurement guidance isn't ready yet. We can't submit this check-in.", "serious"
+    if alarms:
+        message, mood = alarm_text, "serious"
+    elif history_error and (not feedback or feedback["level"] != "error"):
+        message, mood = history_error, "worried"
     with mascot.beside(message, mood):
         for key in field_ids:
             if len(field_ids) > 1:
@@ -332,6 +343,7 @@ def main() -> None:
             unit = indicators[key].get("unit", "")
             ui.indicator_tiles(astronaut, key, "" if _unfinished(unit) else unit, assessment_environment)
 
+    alarm_banners()
     if opened:
         label = "Problem state" if "symptoms" in problems[opened["problem"]] else "Alert severity"
         st.write(f"{label}: {opened['severity'].replace('_', ' ').capitalize()}")
@@ -473,7 +485,7 @@ def main() -> None:
         report("warning" if issues else "success", text)
 
     waiting_alerts()
-    _subjective_issues(astronaut, "check_in_detail", report)
+    _subjective_issues(astronaut, "check_in_detail", report, definitions, active)
 
 
 def _waiting_alerts(astronaut, environment, opened, problems, indicators, blocked, report, select_for):

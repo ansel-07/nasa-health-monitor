@@ -32,12 +32,11 @@ The astronaut chooses who they are and where the mission is (ISS, Moon or Mars).
 
 ## Meet the mascot
 
-A simple face, drawn in code (SVG, no images): two cyan eyes and a smile on the dark background. It narrates every astronaut screen so the app can be followed at a glance, even mid-task:
+**Lumi**, a glowing LED alien head drawn in code (SVG, no images). Its colour and shape show the astronaut's state at a glance: blue when everything is nominal, amber while a symptom or an alert is being followed up, red for an urgent alarm. It narrates every astronaut screen so the app can be followed at a glance, even mid-task:
 
-- **Alone on the screen** it is big and centred, with its subtitles under it and the buttons below.
+- **On the Welcome** it is big and centred; on the other screens it is a compact assistant line above the cards and buttons.
 - **Next to a chart or a protocol flowchart** it slides to the left and shrinks, so the visual takes the right side.
-- **Subtitles** appear word by word while its mouth moves; with **Voice** on (top-right toggle) it reads them aloud with the browser's own speech synthesis, in sync. It only speaks a new line, never the same one twice.
-- **Moods** (happy, neutral, thinking, worried, serious) change its eyes and mouth to match the situation.
+- **Subtitles** appear word by word while its LED mouth talks; with **Voice** on (top-right toggle) it reads them aloud with the browser's own speech synthesis, in sync. It only speaks a new line, never the same one twice.
 - It never invents health content: it reads the alert, question or protocol step the screen would otherwise show.
 
 It is not shown on Trends or Tutorials, where the charts and the practice flowchart need the space. Its name is still to be chosen by the team.

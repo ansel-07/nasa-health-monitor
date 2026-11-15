@@ -1,7 +1,7 @@
 {
   "sans": {
-    "name": "Spaceflight Associated Neuro-ocular Syndrome (SANS)",
-    "description": "Monitor changes in ocular structure and visual function against each eye's personal pre-flight baseline. Findings request review; this app does not diagnose SANS. New visual loss, visual field defects or central distortion require medical assessment without waiting for a repeat measurement.",
+    "name": "Spaceflight eye changes (SANS)",
+    "description": "Spaceflight-associated neuro-ocular syndrome (SANS) involves changes inside the eye and in vision. Compare each eye with its own pre-flight reference; findings request review, not a diagnosis. New vision loss, gaps or central distortion need medical assessment without waiting for a repeat measurement.",
     "hrp_risk": "Risk of Spaceflight Associated Neuro-ocular Syndrome (SANS)",
     "confirm_wait_min": 10,
     "tutorial_bar_full_days": 7,

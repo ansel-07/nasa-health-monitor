@@ -373,6 +373,52 @@ def test_active_alarm_takes_over_the_check_in_list(mission_workspace, monkeypatc
     assert any("Synthetic alarm. Synthetic action." in item.value for item in app.error)
 
 
+def test_alarm_remains_visible_through_navigation_and_recording_until_resolved(mission_workspace):
+    (config.CONFIG_DIR / 'subjective_issues.json').write_text(json.dumps({
+        'settings': {'persistence_days': 3, 'speed_multiplier': 2},
+        'issues': {'alarm_a': {'label': 'Synthetic alarm', 'alarm': True,
+                               'action': 'Synthetic action.', 'check_ins': []}},
+    }), encoding='utf-8')
+    activity.report_issues('a1', ['alarm_a'], source='check_in_list')
+    app = screen()
+    assert any('Synthetic action.' in item.value for item in app.error)
+    button(app, 'Back to check-ins').click().run()
+    assert not app.exception
+    assert any('Synthetic action.' in item.value for item in app.error)
+    button(app, 'Check x').click().run()
+    app.number_input[0].set_value(0)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert any('Synthetic action.' in item.value for item in app.error)
+    assert activity.active_issues('a1')[0]['issue'] == 'alarm_a'
+    assert data.load_episodes() == []
+    urgent = next(item for item in app.multiselect if item.label == 'Urgent symptoms you have now')
+    urgent.set_value([])
+    button(app, 'Save issues').click().run()
+    assert not app.exception and not app.error
+    assert activity.active_issues('a1') == []
+    assert data.load_episodes() == []
+
+
+@pytest.mark.parametrize('detail', [False, True])
+def test_corrupt_activity_history_keeps_the_page_usable_without_false_recency(mission_workspace, detail):
+    models.ACTIVITY_FILE.write_text('{invalid activity', encoding='utf-8')
+    app = AppTest.from_file(str(PAGE))
+    app.session_state['astronaut'] = 'a1'
+    app.session_state['environment'] = 'mars'
+    app.session_state['check_in_selected:a1:mars'] = 'x' if detail else None
+    app.run()
+    assert not app.exception
+    assert any('Subjective issues could not be loaded' in item.value for item in app.error)
+    assert not any(item.label == 'Save issues' for item in app.button)
+    if detail:
+        assert not button(app, 'Record measurement').disabled
+    else:
+        assert not button(app, 'Check x').disabled and not app.get('progress')
+    assert models.ACTIVITY_FILE.read_text(encoding='utf-8') == '{invalid activity'
+    assert data.load_episodes() == []
+
+
 def test_issue_details_are_saved_and_a_task_not_completed_asks_for_safety(mission_workspace):
     """Handoff task 4 (docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3)."""
     (config.CONFIG_DIR / 'subjective_issues.json').write_text(json.dumps({

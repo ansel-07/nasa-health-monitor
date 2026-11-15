@@ -20,11 +20,11 @@ The app **guides, it does not diagnose**.
 | Person | Role | Owns |
 |---|---|---|
 | Gonzalo | Product, coordination and testing (does not code) | User stories, UI texts, demo story, test issues |
-| Edu | Science and health | Every health value, rule, protocol and source in `config/` |
+| Edu | Science and health | Every health value, rule and source in `config/`, and the medical content of protocols (step texts, sources, thresholds, what escalates) |
 | Ansel | Architecture, integration and mascot | Repo, contracts, reviews and merges, `app.py`, `pages/0_Home.py`, `core/models.py`, `core/config.py`, `core/mascot.py` |
 | Fran | Data and trends | `core/data.py`, `core/mission.py`, `core/charts.py`, `pages/3_Trends.py`, data generator |
 | Juan Carlos | Detection | `core/conditions.py`, `core/triggers.py`, `core/episodes.py`, `pages/1_Check_in.py` |
-| Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py` |
+| Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py`, protocol structure in `config/protocols/*.json` and `tests/test_protocol_content.py` |
 
 ## 3. Stack
 
@@ -62,7 +62,8 @@ core/triggers.py            Juan Carlos  Evaluate a new measurement against the 
 core/episodes.py            Juan Carlos  Open, confirm, dismiss, pending list, one-at-a-time rule
 core/protocol_engine.py     Javi         Current step and advance with the astronaut's input
 config/*.json               Edu          Health content (format owned by Ansel)
-config/protocols/*.json     Edu          Protocol flowcharts (format owned by Ansel)
+config/protocols/*.json     Javi         Protocol flowcharts: structure (nodes, branches, routes); medical content is Edu's and he reviews every change (format owned by Ansel)
+tests/test_protocol_content.py Javi       Protocol content tests
 .streamlit/config.toml      Ansel        Theme (colours of the spec)
 data/                       Fran         data/seed/ = demo starting point, copied into every new browser session (5.5); data/*.csv|json = used by scripts only
 scripts/generate_data.py    Fran         Generates pre-flight and simulated mission data
@@ -278,7 +279,7 @@ Streamlit session state (created by the Welcome, `pages/0_Home.py`): `st.session
 Layout decided by Ansel; details in `docs/FRONTEND_MASCOT_LAYOUT.md` (it wins over the spec here):
 
 - **Where it appears:** Welcome, Main Menu, Check-in and Protocols. **Not** on Trends or Tutorials.
-- **Look:** the spec face (cyan eyes and smile, no frame) with **subtitles below it** (no speech bubble).
+- **Look:** **Lumi** (`core/lumi.py`, Ansel's design): a glowing LED alien head, no frame, with **subtitles below it** (no speech bubble). Its colour and shape follow the astronaut's health state (`mascot.health_state()`): **alarm** (red) for an urgent symptom or an episode in medical urgency, **symptom** (amber) for a routine symptom, a pending alert or an open episode, **nominal** (blue) otherwise.
 - **Alone on the screen:** on the Welcome `mascot.say(text, mood, size="large")`, big (35 % of the browser height) and centred; on every other screen `size="medium"`, a compact assistant line (face at most 112 px left of its subtitles, in a panel; Ansel, `docs/UI_STYLE.md`). Cards and buttons are **not** a visual: they go below the subtitles (Welcome, Main Menu, Check-in list, every Protocols state without a step).
 - **Only with a chart or a flowchart** (Check-in detail, an active protocol step): `mascot.beside()`; the mascot slides to the left and shrinks (a 600 ms entry animation, once), the visual takes the right. **Buttons always go below**, full width.
 
@@ -292,7 +293,7 @@ Layout decided by Ansel; details in `docs/FRONTEND_MASCOT_LAYOUT.md` (it wins ov
 - **What it says:** the text the screen would otherwise show (alerts, confirmation requests, protocol steps). Pages pass the text; the mascot never invents health content. Keep it short: it is read aloud (section 15).
 - **Mood:** one of `MOODS` in `core/models.py`. Which mood goes with which situation is still to be decided by the team.
 - **Voice:** the browser's own speech synthesis, in English, no AI service. Muted until the astronaut turns it on with the **Voice toggle, fixed in the top-right corner** (browsers block audio before a user action); turning it on speaks the current line at once.
-- **Name:** still to be decided by the team. Design it ourselves; do not copy existing characters, code or artwork.
+- **Name:** Lumi (`MASCOT_NAME`). Designed by the team; do not copy existing characters, code or artwork.
 - Pages call only `mascot.say()`, `mascot.beside()` and `mascot.voice_toggle()`, at most one mascot per screen run; never write mascot HTML in a page.
 
 ## 9. Protocol flowcharts (`config/protocols/<problem_id>.json`)
@@ -422,7 +423,7 @@ The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **ab
 
 **The app for the judges:**
 - It must be **complete**: both problems, every protocol path, Trends, all environments.
-- It must be **self-explanatory**: the Welcome says in a few lines what the app does and how to try it in one minute, and the README explains what it does, what it does not do (it guides, it does not diagnose) and where every health value comes from.
+- It must be **self-explanatory**: the Welcome is conversational (mascot and buttons) and offers "Try it in 1 minute" (Ansel's design: no explanatory text), and the README explains what it does, what it does not do (it guides, it does not diagnose) and where every health value comes from.
 - Each judge has their own data (section 5.5); a refresh starts again from the demo starting point.
 
 ## 16. Product specification (Gonzalo) and its overrides
