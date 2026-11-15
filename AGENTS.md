@@ -423,7 +423,7 @@ The pitch is **3 minutes** with **at most 7 slides**; the demo inside it is **ab
 
 **The app for the judges:**
 - It must be **complete**: both problems, every protocol path, Trends, all environments.
-- It must be **self-explanatory**: the Welcome says in a few lines what the app does and how to try it in one minute, and the README explains what it does, what it does not do (it guides, it does not diagnose) and where every health value comes from.
+- It must be **self-explanatory**: the Welcome is conversational (mascot and buttons) and offers "Try it in 1 minute" (Ansel's design: no explanatory text), and the README explains what it does, what it does not do (it guides, it does not diagnose) and where every health value comes from.
 - Each judge has their own data (section 5.5); a refresh starts again from the demo starting point.
 
 ## 16. Product specification (Gonzalo) and its overrides
