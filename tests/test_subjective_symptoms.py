@@ -1,5 +1,7 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
 """Edu's subjective symptoms (docs/sintomas_subjetivos_atrofia_SANS.md) in config and screens."""
+import pytest
+
 from streamlit.testing.v1 import AppTest
 
 from core import activity, config
@@ -9,11 +11,11 @@ def issues():
     return config.load_subjective_issues()["issues"]
 
 
-def test_twelve_routine_symptoms_linked_and_four_alarms_with_actions():
+def test_twelve_routine_symptoms_linked_and_five_alarms_with_actions():
     routine = {k: v for k, v in issues().items() if not v.get("alarm")}
     alarms = {k: v for k, v in issues().items() if v.get("alarm")}
     assert sorted(routine) == [f"MUS_0{i}" for i in range(1, 7)] + [f"VIS_0{i}" for i in range(1, 7)]
-    assert sorted(alarms) == [f"ALM_0{i}" for i in range(1, 5)]
+    assert sorted(alarms) == [f"ALM_0{i}" for i in range(1, 6)]
     checkins = config.load_checkins()
     assert all(v["check_ins"] and set(v["check_ins"]) <= set(checkins) for v in routine.values())
     assert all(v["action"] and not v["check_ins"] for v in alarms.values())
@@ -36,10 +38,12 @@ def _menu(monkeypatch, active):
     return app.run()
 
 
-def test_menu_keeps_an_active_alarm_visible(monkeypatch):
-    app = _menu(monkeypatch, [{"issue": "ALM_02", "since": "2027-04-01T08:00:00", "persistent": False}])
+@pytest.mark.parametrize("alarm_id", [f"ALM_0{i}" for i in range(1, 6)])
+def test_menu_keeps_an_active_alarm_visible(monkeypatch, alarm_id):
+    app = _menu(monkeypatch, [{"issue": alarm_id, "since": "2027-04-01T08:00:00", "persistent": False}])
     assert not app.exception
-    assert any("Urgent symptom: New distortion in the centre of vision" in e.value for e in app.error)
+    assert any(issues()[alarm_id]["label"] in e.value and issues()[alarm_id]["action"] in e.value
+               for e in app.error)
 
 
 def test_menu_has_no_alarm_banner_for_routine_symptoms(monkeypatch):
@@ -48,7 +52,8 @@ def test_menu_has_no_alarm_banner_for_routine_symptoms(monkeypatch):
     assert not app.error
 
 
-def test_saving_an_alarm_in_check_in_shows_the_urgent_action(monkeypatch):
+@pytest.mark.parametrize("alarm_id", [f"ALM_0{i}" for i in range(1, 6)])
+def test_saving_an_alarm_in_check_in_shows_the_urgent_action(monkeypatch, alarm_id):
     saved = []
     monkeypatch.setattr(activity, "active_issues", lambda astronaut: [])
     monkeypatch.setattr(activity, "report_issues", lambda astronaut, ids, source: saved.append(ids))
@@ -57,8 +62,8 @@ def test_saving_an_alarm_in_check_in_shows_the_urgent_action(monkeypatch):
     app.session_state["environment"] = "iss"
     app.run()
     urgent = next(box for box in app.multiselect if box.label == "Urgent symptoms you have now")
-    urgent.select("ALM_01")
+    urgent.select(alarm_id)
     next(b for b in app.button if b.label == "Save issues").click().run()
     assert not app.exception
-    assert saved == [["ALM_01"]]
-    assert any("Urgent symptom reported" in e.value and "crew medical officer" in e.value for e in app.error)
+    assert saved == [[alarm_id]]
+    assert any("Urgent symptom reported" in e.value and issues()[alarm_id]["action"] in e.value for e in app.error)
