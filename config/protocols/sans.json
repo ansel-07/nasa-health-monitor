@@ -49,7 +49,7 @@
     },
     "w_correction": {
       "type": "action",
-      "text": "Use only prescribed correction; follow sleep and habitat procedures. Clearer focus does not prove swelling resolved; LBNP, thigh cuffs, supplements and acetazolamide are research/clinician-only options.",
+      "text": "Use only prescribed correction; follow sleep and habitat procedures. Clearer focus cannot prove swelling resolved; LBNP, thigh cuffs, supplements and acetazolamide are research/clinician-only options.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; SANS consensus, 2026 [6]",
       "next": "w_end"
     },

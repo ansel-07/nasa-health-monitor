@@ -19,7 +19,7 @@
     },
     "w_red_flags": {
       "type": "question",
-      "text": "Sudden/rapidly worsening weakness, unsafe movement or new egress inability, new intense muscle pain, breathing difficulty or loss of consciousness? The last two mean a general emergency, not proof of atrophy.",
+      "text": "Sudden/rapidly worsening weakness, unsafe movement/new egress inability, new intense muscle pain, breathing difficulty or loss of consciousness? The last two: general emergency, not proof of atrophy.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency [P]",
       "save_as": "red_flags",
       "options": {
@@ -59,7 +59,7 @@
     "w_end": {
       "type": "end",
       "outcome": "monitoring",
-      "text": "Log symptoms and training daily; repeat comparable strength tests as directed; follow prescribed post-return rehab. No training through pain, catch-up overload, supplements or drugs without medical advice.",
+      "text": "Log symptoms and training daily; repeat comparable strength tests as directed; follow prescribed rehab on return. No training through pain, catch-up loads, supplements or drugs without medical advice.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, The Real Story About Astronaut Health Care in Space [3]; Canadian Space Agency, Return and Reconditioning [4]"
     },
     "u_stop": {

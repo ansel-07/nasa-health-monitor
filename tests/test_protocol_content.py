@@ -130,3 +130,28 @@ def test_regenerated_diagrams_match_executable_nodes_and_edges(pid, diagram_inde
                 continue
             visit(target, ancestors | {nid})
     visit(protocol["start"], set())
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+def test_iss_no_red_flags_page_displays_the_configured_narration(run_context, monkeypatch, pid):
+    import streamlit as st
+    from streamlit.testing.v1 import AppTest
+    from core import episodes, mascot
+
+    run_context(pid, "iss")
+    monkeypatch.setattr(data, "get_open_episode", lambda _: data.load_episodes()[0])
+    monkeypatch.setattr(episodes, "get_pending", lambda _: [])
+    monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: st.info(text))
+    app = AppTest.from_file("../pages/2_Protocol.py", default_timeout=30)
+    app.session_state["astronaut"] = "a1"
+    app.session_state["environment"] = "iss"
+    app.run()
+    assert not app.exception
+    expected = config.load_protocol(pid)["nodes"]["w_red_flags"]["text"]
+    assert any(item.value == expected for item in app.info)
+    next(button for button in app.button if button.label == "No").click().run()
+    assert not app.exception
+    current = data.load_episodes()[0]["current_node"]
+    assert current == ("w_notify" if pid == "sans" else "w_limits")
+    assert any(item.value == config.load_protocol(pid)["nodes"][current]["text"]
+               for item in app.info)
