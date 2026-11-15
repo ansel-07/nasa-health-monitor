@@ -403,10 +403,10 @@ def test_flowchart_highlights_current_and_marks_visited_route(episode):
     episode.update(current_node="symptoms", log=[{"at": "t", "node": "route", "input": None},
                                                 {"at": "t", "node": "intro_mars", "input": "continue"}])
     dot = engine.flowchart_dot(episode, whole=True)
-    assert 'fillcolor="#fef3c7"' in node_line(dot, "symptoms") and "penwidth=2.5" in node_line(dot, "symptoms")
+    assert f'fillcolor="{engine._CURRENT[0]}"' in node_line(dot, "symptoms") and "penwidth=2.5" in node_line(dot, "symptoms")
     for visited in ("route", "intro_mars"):
-        assert 'fillcolor="#dcfce7"' in node_line(dot, visited)
-    assert 'fillcolor="#f1f5f9"' in node_line(dot, "intro")
+        assert f'fillcolor="{engine._VISITED[0]}"' in node_line(dot, visited)
+    assert f'fillcolor="{engine._AHEAD[0]}"' in node_line(dot, "intro")
     assert "penwidth=2.5" in edge_line(dot, "route", "intro_mars")
     assert "penwidth=2.5" in edge_line(dot, "intro_mars", "symptoms")
     assert "penwidth=1" in edge_line(dot, "route", "intro")
@@ -415,7 +415,7 @@ def test_flowchart_highlights_current_and_marks_visited_route(episode):
 def test_flowchart_starts_at_the_start_node_and_draws_the_whole_protocol(episode):
     protocol = engine.load_protocol("_example")
     dot = engine.flowchart_dot(episode, whole=True)
-    assert 'fillcolor="#fef3c7"' in node_line(dot, protocol["start"])
+    assert f'fillcolor="{engine._CURRENT[0]}"' in node_line(dot, protocol["start"])
     for node_id in protocol["nodes"]:
         node_line(dot, node_id)
     assert dot.count(" -> ") == sum(len(engine._edges(node)) for node in protocol["nodes"].values())
@@ -446,7 +446,7 @@ def test_flowchart_ignores_wait_entries_and_marks_a_finished_protocol(episode):
     dot = engine.flowchart_dot(episode)
     assert '"do_action" -> "do_action"' not in dot
     assert "penwidth=2.5" in edge_line(dot, "do_action", "contact_crew")
-    assert 'fillcolor="#fef3c7"' in node_line(dot, "handed_over")
+    assert f'fillcolor="{engine._CURRENT[0]}"' in node_line(dot, "handed_over")
 
 
 def drawn_nodes(dot: str) -> set[str]:

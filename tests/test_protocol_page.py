@@ -207,7 +207,7 @@ def test_save_error_keeps_current_step(context, monkeypatch):
 def current_in_chart(app) -> str:
     charts = app.get("graphviz_chart")
     assert len(charts) == 1
-    return next(line.split('"')[1] for line in charts[0].proto.spec.splitlines() if 'fillcolor="#fef3c7"' in line)
+    return next(line.split('"')[1] for line in charts[0].proto.spec.splitlines() if f'fillcolor="{protocol_engine._CURRENT[0]}"' in line)
 
 
 def test_flowchart_beside_mascot_follows_the_current_step(context):

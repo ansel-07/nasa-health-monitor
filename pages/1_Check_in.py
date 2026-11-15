@@ -274,11 +274,11 @@ def main() -> None:
                     st.rerun()
         _subjective_issues(astronaut, "check_in_list", report)
         if opened and opened["status"] == "pending_confirmation":
-            if st.button("Continue repeat measurement", width="stretch"):
+            if st.button("Continue repeat measurement", width="stretch", type="primary"):
                 select_for(opened["trigger"]["indicator"])
                 st.rerun()
         elif opened and opened["status"] == "active":
-            if st.button("Open Protocol", width="stretch"):
+            if st.button("Open Protocol", width="stretch", type="primary"):
                 open_protocol()
         waiting_alerts()
         return
@@ -345,10 +345,10 @@ def main() -> None:
                 original_environment = opened["environment"]
             st.info(f"This episode keeps its original environment: {original_environment}.")
     if opened and opened["status"] == "active":
-        if st.button("Open Protocol", width="stretch"):
+        if st.button("Open Protocol", width="stretch", type="primary"):
             open_protocol()
     elif opened and not confirmation and draft_key not in st.session_state:
-        if st.button("Continue repeat measurement", width="stretch"):
+        if st.button("Continue repeat measurement", width="stretch", type="primary"):
             select_for(opened["trigger"]["indicator"])
             st.rerun()
 
@@ -427,6 +427,7 @@ def main() -> None:
         submitted = st.form_submit_button(
             "Confirm repeat measurement" if confirmation else "Record measurement",
             disabled=blocked or not guidance_ready or not ready or completion_pending, width="stretch",
+            type="primary",
         )
     if submitted:
         if any(value is None or not isfinite(value) for value in values.values()) and not draft:
