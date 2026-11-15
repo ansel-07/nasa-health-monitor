@@ -22,7 +22,7 @@ if step == 2 and st.session_state.get("astronaut") not in names:
 with st.container(key="welcome_screen"):
     mascot.voice_toggle()
     if step == 1:
-        mascot.say("Hello! Who are you?", "happy", size="large")
+        mascot.say("Hey! Who's joining?", "happy", size="large")
         for column, astronaut_id in zip(st.columns(len(names) or 1), names):
             if column.button(names[astronaut_id], key=f"welcome_astronaut_{astronaut_id}",
                              use_container_width=True):
@@ -30,7 +30,7 @@ with st.container(key="welcome_screen"):
                 st.session_state["welcome_step"] = 2
                 st.rerun()
     else:
-        mascot.say(f"Hi {names[st.session_state['astronaut']]}! Where is the mission?", "happy", size="large")
+        mascot.say(f"Hey {names[st.session_state['astronaut']]}! Where's our mission?", "happy", size="large")
         for column, env_id in zip(st.columns(len(environments) or 1), environments):
             if column.button(environments[env_id]["name"], key=f"welcome_environment_{env_id}",
                              use_container_width=True):

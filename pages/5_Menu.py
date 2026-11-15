@@ -31,17 +31,17 @@ try:
 except (ValueError, KeyError, OSError):
     alarms = []
 
-# Placeholder lines: final wording and moods are still to be decided by the team.
+# Dialogue copy supplied by Gonzalo; existing mood assignments are retained.
 if alarms:
-    text, mood = "You reported an urgent symptom. Stop the risky task and contact the crew medical officer now.", "serious"
+    text, mood = "You've reported an urgent symptom. Stop the risky task and contact the crew medical officer now.", "serious"
 elif open_episode and open_episode["status"] == "active":
-    text, mood = f"{names[astronaut]}, you have a protocol to follow.", "worried"
+    text, mood = f"You've got a protocol to follow, {names[astronaut]}.", "worried"
 elif open_episode:
-    text, mood = f"{names[astronaut]}, an alert needs a repeat measurement in Check-in.", "worried"
+    text, mood = f"{names[astronaut]}, an alert needs another measurement in Check-in.", "worried"
 elif pending:
-    text, mood = f"{names[astronaut]}, {len(pending)} alert(s) are waiting for you.", "thinking"
+    text, mood = f"Hey {names[astronaut]}, {len(pending)} alert(s) need your attention.", "thinking"
 else:
-    text, mood = f"Hi {names[astronaut]}! What would you like to do?", "happy"
+    text, mood = f"Alright, {names[astronaut]}. What's the plan?", "happy"
 
 mascot.say(text, mood, size="medium")
 

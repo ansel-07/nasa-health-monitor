@@ -89,16 +89,16 @@ def main() -> None:
     mascot.voice_toggle()
     astronaut = st.session_state.get("astronaut")
     if not astronaut:
-        mascot.say("Choose an astronaut on the Home page first.", "neutral", size="medium")
+        mascot.say("Choose your astronaut on Home first.", "neutral", size="medium")
         st.page_link("pages/0_Home.py", label="Go to Home")
         return
 
     episode = data.get_open_episode(astronaut)
     if episode and episode["problem"].startswith("_"):
-        mascot.say("No astronaut protocol is available for this issue.", "neutral", size="medium")
+        mascot.say("No astronaut protocol for this issue. Let's not guess.", "neutral", size="medium")
         return
     if episode and episode["status"] == "pending_confirmation":
-        mascot.say("This issue needs a repeat measurement before a protocol can start. Go to Check-in to complete confirmation.", "neutral", size="medium")
+        mascot.say("We need a repeat measurement before this protocol can start. Head to Check-in to confirm the issue.", "neutral", size="medium")
         st.page_link("pages/1_Check_in.py", label="Go to Check-in")
         return
 
@@ -110,7 +110,7 @@ def main() -> None:
         if completed:
             episode = max(completed, key=lambda item: item.get("closed_at") or "")
         else:
-            mascot.say("You have no active protocol.", "neutral", size="medium")
+            mascot.say("No active protocols right now.", "neutral", size="medium")
             show_pending(astronaut)
             st.page_link("pages/1_Check_in.py", label="Open Check-in")
             return
@@ -122,7 +122,7 @@ def main() -> None:
             episode = protocol_engine.submit(episode, None)
         step = protocol_engine.current_step(episode)
     except (ValueError, KeyError, OSError):
-        mascot.say("This protocol is unavailable because required information is missing or invalid. Please ask the mission team for help.", "neutral", size="medium")
+        mascot.say("I can't start this protocol: required information is missing or invalid. Please ask the mission team for help.", "neutral", size="medium")
         st.error("The protocol cannot continue until the missing information is available.")
         return
 

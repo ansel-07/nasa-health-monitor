@@ -187,7 +187,7 @@ def test_empty_submission_is_not_sent_to_core(screen):
     button(app, "Record measurement").click().run()
     assert not app.exception
     assert state["calls"] == []
-    assert "Enter a finite" in app.error[0].value
+    assert "enter a finite" in app.error[0].value
 
 
 def test_selecting_indicator_changes_chart_and_submitted_unit(screen):
@@ -310,7 +310,7 @@ def test_core_error_is_displayed_without_success(screen, monkeypatch):
     assert state["speech"][-1][0] == app.error[0].value
     app.run()
     assert not app.error
-    assert state["speech"][-1][0] == "Record the measurements of this check-in."
+    assert state["speech"][-1][0] == "Let's record this check-in's measurements."
 
 
 def test_simulate_wait_advances_real_clock_and_processes_revealed_measurements(screen, monkeypatch):
@@ -353,7 +353,7 @@ def test_simulate_wait_reports_shared_detection_failure_without_confirming(scree
     assert not app.exception
     assert calls == [(1, "mars")]
     assert "Synthetic storage failure" in app.error[0].value
-    assert ("Mission time advanced, but detection could not finish" in app.error[0].value) is clock_moved
+    assert ("Mission time moved forward, but detection didn't finish" in app.error[0].value) is clock_moved
     assert not app.success
     assert state["open"] == initial
     assert state["calls"] == []
@@ -540,13 +540,13 @@ def test_incomplete_assessments_have_focused_warnings_and_brief_mascot_guidance(
     assert "Cannot evaluate x: no valid pre-flight baseline" in app.warning[0].value
     assert app.warning[1].value == "3 other indicators have incomplete assessments."
     narration = state["speech"][-1][0]
-    assert "incomplete" in narration
+    assert ("missing some assessments" if status is None else "incomplete") in narration
     assert "standard deviation" not in narration
     assert "unmeasured_" not in narration
     if status == "active":
-        assert "open Protocol" in narration
+        assert "Open Protocol" in narration
     elif status == "pending_confirmation":
-        assert "Repeat" in narration
+        assert "repeat" in narration
     else:
         app.number_input[0].set_value(20)
         button(app, "Record measurement").click().run()
@@ -610,7 +610,7 @@ def test_group_requires_all_values_before_recording_any(screen):
     button(app, 'Record measurement').click().run()
     assert not app.exception
     assert state['calls'] == state['completions'] == []
-    assert 'every indicator' in app.error[0].value
+    assert 'each indicator' in app.error[0].value
 
 
 def test_group_saves_independent_values_and_completes_once(screen):
@@ -772,7 +772,7 @@ def test_subjective_report_failure_preserves_existing_issue(screen, monkeypatch)
     app.multiselect[0].set_value(['issue_b'])
     button(app, 'Save issues').click().run()
     assert not app.exception
-    assert any('could not be fully saved' in item.value for item in app.error)
+    assert any("didn't save" in item.value for item in app.error)
     assert state['issue_calls'] == []
     assert state['issue_records']['a1'][0]['issue'] == 'issue_a'
 
@@ -806,7 +806,7 @@ def test_urgent_action_survives_issue_storage_failure(screen, monkeypatch, failu
     app.multiselect[1].set_value(["alarm"])
     button(app, "Save issues").click().run()
     assert not app.exception
-    assert any("Synthetic configured action." in item.value and "could not be fully saved" in item.value
+    assert any("Synthetic configured action." in item.value and "didn't save" in item.value
                for item in app.error)
     assert not app.success
     assert state["calls"] == []
@@ -825,7 +825,7 @@ def test_task_safety_message_survives_details_storage_failure(screen, monkeypatc
     next(item for item in app.radio if item.label == "Effect on your tasks").set_value("task_not_completed")
     button(app, "Save details").click().run()
     assert not app.exception
-    assert any("immediate safety assessment" in item.value and "Details could not be saved" in item.value
+    assert any("immediate safety assessment" in item.value and "Couldn't save the details" in item.value
                for item in app.error)
     assert not app.success
     assert state["calls"] == []
@@ -845,7 +845,7 @@ def test_approved_symptom_detail_wording_preserves_stored_ids(screen, monkeypatc
     assert not app.exception
     assert saved[0]["onset"] == "gradual" and saved[0]["impact"] == "task_not_completed"
     assert any(item.value == "A critical task you could not complete needs an immediate safety assessment, "
-               "even if the intensity is low." for item in app.error)
+                              "even if the intensity is low." for item in app.error)
     assert state["calls"] == []
 
 

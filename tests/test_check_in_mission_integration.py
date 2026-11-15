@@ -254,7 +254,7 @@ def test_new_mission_alert_replaces_previous_no_alert_feedback(mission_workspace
 
     assert not app.exception
     assert not app.success
-    assert "needs a repeat measurement" in speech[-1]
+    assert "needs another measurement" in speech[-1]
     button(app, "Continue repeat measurement").click().run()
     assert button(app, "Confirm repeat measurement").disabled
     assert data.get_open_episode("a1")["problem"] == "synthetic_b"
@@ -266,11 +266,11 @@ def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_wor
     speech = []
     monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))
     app, _ = record_and_wait()
-    assert "needs a repeat measurement" in speech[-1]
+    assert "needs another measurement" in speech[-1]
     app.number_input[0].set_value(16)
     button(app, "Confirm repeat measurement").click().run()
     assert not app.success
-    assert speech[-1] == "Your alert is confirmed. Open Protocol to continue with the guided steps."
+    assert speech[-1] == "Your alert's confirmed. Open Protocol for the guided steps."
 
     if finish == "protocol":
         result = protocol_engine.submit(data.get_open_episode("a1"), {"action": "continue"})
@@ -289,7 +289,7 @@ def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_wor
     assert data.get_open_episode("a1") is None
     assert not app.success
     assert all(item.label != "Open Protocol" for item in app.button)
-    assert speech[-1] == "Choose a check-in to record your measurements."
+    assert speech[-1] == "Pick a check-in. Let's record your measurements."
     assert disk_snapshot() == before
 
 
@@ -365,7 +365,7 @@ def test_active_alarm_takes_over_the_check_in_list(mission_workspace, monkeypatc
     app.session_state["astronaut"] = "a1"
     app.session_state["environment"] = "mars"
     app.run()
-    assert speech[-1] == "Choose a check-in to record your measurements."
+    assert speech[-1] == "Pick a check-in. Let's record your measurements."
     activity.report_issues('a1', ['alarm_a'], source='check_in_list')
     app.run()
     assert not app.exception
