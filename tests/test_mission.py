@@ -37,7 +37,7 @@ def test_advance_moves_and_stores_the_clock(tmp_files):
     assert stored == {"now": "2027-04-02T03:00:00"}
 
 
-@pytest.mark.parametrize("hours", [0, -5, "24", True, None])
+@pytest.mark.parametrize("hours", [0, -5, "24", True, None, float("inf"), float("nan"), 1e300])
 def test_advance_rejects_bad_hours(tmp_files, hours):
     with pytest.raises(ValueError):
         mission.advance(hours)

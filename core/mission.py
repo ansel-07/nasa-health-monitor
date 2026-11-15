@@ -17,6 +17,7 @@ import json
 import os
 import tempfile
 from datetime import datetime, timedelta
+from math import isfinite
 from numbers import Real
 
 import pandas as pd
@@ -68,7 +69,11 @@ def _save(moment: datetime, unprocessed: list[dict] | None = None) -> None:
 
 
 def _check_hours(hours) -> None:
-    if not isinstance(hours, Real) or isinstance(hours, bool) or not hours > 0:
+    try:
+        valid = isinstance(hours, Real) and not isinstance(hours, bool) and isfinite(hours) and hours > 0
+    except OverflowError:
+        valid = False
+    if not valid:
         raise ValueError(f"hours must be a positive number, got {hours!r}")
 
 
@@ -106,7 +111,10 @@ def advance(hours: int = 24) -> list[dict]:
     """
     _check_hours(hours)
     before = now()
-    after = before + timedelta(hours=hours)
+    try:
+        after = before + timedelta(hours=float(hours))
+    except OverflowError:
+        raise ValueError("Mission advance exceeds the supported time range.") from None
     revealed = _revealed(before, after)
     _save(after, _unprocessed() + revealed)
     return revealed

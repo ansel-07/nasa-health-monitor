@@ -243,7 +243,14 @@ def _contains_todo(value) -> bool:
 def _positive_or_todo(value) -> bool:
     if isinstance(value, str):
         return value.startswith(TODO_MARK)
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+    return _finite_number(value) and value > 0
+
+
+def _finite_number(value) -> bool:
+    try:
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def validate_activities(indicators: dict, problems: dict) -> list:
@@ -306,8 +313,8 @@ def validate_indicator_domains(indicators: dict) -> list:
             errors.append(f"{where}: must be an object with only 'min', 'max', 'integer'")
             continue
         for bound in ("min", "max"):
-            if bound in valid and (isinstance(valid[bound], bool) or not isinstance(valid[bound], (int, float))):
-                errors.append(f"{where}.{bound}: must be a number")
+            if bound in valid and not _finite_number(valid[bound]):
+                errors.append(f"{where}.{bound}: must be a number (finite)")
         if "integer" in valid and not isinstance(valid["integer"], bool):
             errors.append(f"{where}.integer: must be true or false")
         if all(isinstance(valid.get(b), (int, float)) for b in ("min", "max")) and valid["min"] > valid["max"]:
@@ -331,8 +338,10 @@ def measurement_errors(m: dict, indicators: dict | None = None) -> list:
     errors = []
     if m.get("unit") != unit:
         errors.append(f"{name} must be entered in {unit}, not {m.get('unit')}.")
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    if not _finite_number(value):
         return errors + [f"{name} needs a finite number."]
+    if domain_errors := validate_indicator_domains({m["indicator"]: definition}):
+        return errors + domain_errors
     valid = definition.get("valid") or {}
     if "min" in valid and value < valid["min"]:
         errors.append(f"{name} cannot be below {valid['min']:g} {unit}.")

@@ -2,8 +2,15 @@
 """Config files are valid and the example protocol covers every node type."""
 from copy import deepcopy
 
+import pytest
+
 from core import config
 from core.models import NODE_TYPES
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_activity_intervals_must_be_finite(value):
+    assert not config._positive_or_todo(value)
 
 
 def test_all_config_is_valid():

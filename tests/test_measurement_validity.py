@@ -52,3 +52,15 @@ def test_domain_format_is_validated(valid, fragment):
 
 def test_real_config_domains_are_well_formed():
     assert config.validate_indicator_domains(config.load_indicators()) == []
+
+
+@pytest.mark.parametrize("bound", ["min", "max"])
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_nonfinite_domain_bounds_are_rejected(bound, value):
+    assert config.validate_indicator_domains({"x": {"valid": {bound: value}}})
+
+
+@pytest.mark.parametrize("domain", [{"min": math.nan}, {"max": math.inf}, {"min": "0"}, [0],
+                                   {"integer": "yes"}, {"min": 5, "max": 1}])
+def test_runtime_measurement_validation_rejects_invalid_domains(domain):
+    assert config.measurement_errors(m("x", 2, "u"), {"x": {"unit": "u", "valid": domain}})
