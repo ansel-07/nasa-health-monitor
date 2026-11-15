@@ -48,6 +48,9 @@ def _measurement(measurement: dict, now: datetime) -> dict:
             raise ValueError(f"Measurement {key} is missing or still TODO.")
     if m["phase"] != "mission" or m["source"] not in SOURCES or not _finite(m["value"]):
         raise ValueError("Expected a finite new mission measurement with a supported source.")
+    errors = config.measurement_errors(m)
+    if errors:
+        raise ValueError(" ".join(errors))
     at = _at(m["timestamp"])
     if at > now:
         raise ValueError("Measurement cannot be later than the mission clock.")
