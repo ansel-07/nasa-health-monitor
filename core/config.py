@@ -5,6 +5,7 @@ Run `python -m core.config` to validate everything and print the errors.
 Files are read on every call (no cache) so edits show up when Streamlit reruns.
 """
 import json
+import math
 import sys
 
 from core.models import (
@@ -293,6 +294,55 @@ def validate_activities(indicators: dict, problems: dict) -> list:
     return errors
 
 
+def validate_indicator_domains(indicators: dict) -> list:
+    """Format of the optional "valid" key of each indicator (#236): {"min"?, "max"?, "integer"?}."""
+    errors = []
+    for ind, definition in indicators.items():
+        valid = definition.get("valid")
+        if valid is None:
+            continue
+        where = f"indicators.json[{ind}].valid"
+        if not isinstance(valid, dict) or set(valid) - {"min", "max", "integer"}:
+            errors.append(f"{where}: must be an object with only 'min', 'max', 'integer'")
+            continue
+        for bound in ("min", "max"):
+            if bound in valid and (isinstance(valid[bound], bool) or not isinstance(valid[bound], (int, float))):
+                errors.append(f"{where}.{bound}: must be a number")
+        if "integer" in valid and not isinstance(valid["integer"], bool):
+            errors.append(f"{where}.integer: must be true or false")
+        if all(isinstance(valid.get(b), (int, float)) for b in ("min", "max")) and valid["min"] > valid["max"]:
+            errors.append(f"{where}: 'min' is greater than 'max'")
+    return errors
+
+
+def measurement_errors(m: dict, indicators: dict | None = None) -> list:
+    """Why a measurement cannot be stored or used (#236); empty list = valid.
+
+    Checks the indicator exists, the unit is the configured one, the value is a finite number and
+    it lies in the indicator's "valid" domain (Edu's values in indicators.json). Domains are
+    measurement limits (a thickness cannot be negative, a grade is a whole number), never clinical
+    thresholds. Callers must reject the measurement without saving it or changing any episode.
+    """
+    indicators = load_indicators() if indicators is None else indicators
+    definition = indicators.get(m.get("indicator"))
+    if definition is None:
+        return [f"Unknown indicator '{m.get('indicator')}'."]
+    name, unit, value = definition.get("name", m["indicator"]), definition.get("unit"), m.get("value")
+    errors = []
+    if m.get("unit") != unit:
+        errors.append(f"{name} must be entered in {unit}, not {m.get('unit')}.")
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return errors + [f"{name} needs a finite number."]
+    valid = definition.get("valid") or {}
+    if "min" in valid and value < valid["min"]:
+        errors.append(f"{name} cannot be below {valid['min']:g} {unit}.")
+    if "max" in valid and value > valid["max"]:
+        errors.append(f"{name} cannot be above {valid['max']:g} {unit}.")
+    if valid.get("integer") and value != int(value):
+        errors.append(f"{name} must be a whole number.")
+    return errors
+
+
 def validate_all(strict: bool = False) -> list:
     """Check every config file. Returns a list of error messages (empty = OK).
 
@@ -346,6 +396,7 @@ def validate_all(strict: bool = False) -> list:
                 errors.append(f"{problem['protocol']}: still has TODO values")
 
     errors.extend(validate_activities(indicators, problems))
+    errors.extend(validate_indicator_domains(indicators))
 
     if strict:
         for name, content in (("indicators.json", indicators), ("environments.json", environments)):
