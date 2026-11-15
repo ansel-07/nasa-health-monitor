@@ -58,8 +58,9 @@ def _measurement(measurement: dict, now: datetime) -> dict:
 
 def _save_measurement_once(m: dict) -> None:
     rows = data.load_measurements(astronaut=m["astronaut"], indicator=m["indicator"])
+    rows = rows[rows["timestamp"] == _at(m["timestamp"])]
     for row in rows.to_dict("records"):
-        if _at(row["timestamp"]) == _at(m["timestamp"]) and all(
+        if all(
             row[key] == m[key] for key in MEASUREMENT_COLUMNS if key != "timestamp"
         ):
             return
