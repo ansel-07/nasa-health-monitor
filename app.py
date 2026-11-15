@@ -7,7 +7,23 @@ back button: Main Menu goes back to Welcome; every other screen goes back to Mai
 On Welcome it hides Streamlit's header so the conversation fills the viewport.
 A new page must be added to PAGES.
 """
+import sys
+from pathlib import Path
+
 import streamlit as st
+
+# After a redeploy, Streamlit re-reads app.py and the pages but can keep the core.* modules it
+# had imported, so a page could call a function that its old core module does not have (#174).
+# When any core/*.py file changed since the last run (or no run has recorded it yet), drop every
+# cached core module: the pages' `from core import ...` then loads the new code. Process-wide
+# stamp, compared on every run; on a fresh process nothing is cached, so the first drop is free.
+_CORE_STAMP = tuple(sorted((p.name, p.stat().st_mtime_ns, p.stat().st_size)
+                           for p in (Path(__file__).parent / "core").glob("*.py")))
+# Not under pytest: tests patch the imported core modules, and AppTest runs this file in their process.
+if "pytest" not in sys.modules and getattr(sys, "_spacedoc_core_stamp", None) != _CORE_STAMP:
+    for _name in [name for name in sys.modules if name == "core" or name.startswith("core.")]:
+        del sys.modules[_name]
+sys._spacedoc_core_stamp = _CORE_STAMP
 
 st.set_page_config(page_title="Astronaut Health Monitor", page_icon="🩺", layout="wide")
 
