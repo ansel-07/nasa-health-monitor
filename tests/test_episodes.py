@@ -65,6 +65,41 @@ def test_normal_measurement_is_saved_without_episode(state):
     assert len(data.load_measurements()) == 1
 
 
+@pytest.mark.parametrize("failed_write", ["save_pending", "save_episode"])
+@pytest.mark.parametrize("value,status", [(20, "active"), (0, "dismissed")])
+def test_confirmation_storage_failure_can_retry_without_losing_other_alerts(state, monkeypatch, failed_write, value, status):
+    clock, problems = state
+    initial = open_episode(state)
+    problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [{
+        "severity": "mild", "when": {"indicator": "x", "above" if value else "below": 10},
+    }]}
+    other = {"astronaut": "a2", "problem": "problem_b", "severity": "mild", "indicator": "x",
+             "value": 20, "z": None, "measured_at": clock[0].isoformat()}
+    data.save_pending([other])
+    clock[0] += timedelta(minutes=5)
+    m = measurement(clock, value=value)
+    original_write = getattr(data, failed_write)
+
+    def fail(*args):
+        raise OSError("Synthetic confirmation storage failure")
+
+    with monkeypatch.context() as failure:
+        failure.setattr(data, failed_write, fail)
+        with pytest.raises(OSError, match="Synthetic confirmation"):
+            episodes.confirm(initial["id"], m)
+    assert data.get_open_episode("a1") == initial
+    assert len(data.load_measurements()) == 2
+    assert other in data.load_pending()
+    assert getattr(data, failed_write) is original_write
+    result = episodes.confirm(initial["id"], m)
+    assert result["status"] == status
+    assert len(data.load_measurements()) == 2
+    assert data.load_episodes() == [result]
+    assert len(data.load_pending("a1")) == 1
+    assert data.load_pending("a1")[0]["problem"] == "problem_b"
+    assert data.load_pending("a2") == [other]
+
+
 def test_highest_severity_opens_and_ties_follow_configuration(state):
     clock, problems = state
     problems["problem_b"] = {"confirm_wait_min": 5, "triggers": [rule("severe")]}
