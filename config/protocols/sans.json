@@ -19,7 +19,7 @@
     },
     "w_red_flags": {
       "type": "question",
-      "text": "In either eye: new field gap, central distortion, correction needed but unavailable, sudden vision loss, severe eye pain, or severe headache with neurological signs?",
+      "text": "Let's check the warning signs first. In either eye, is there a new visual-field gap, central distortion, a need for correction beyond what is available, sudden vision loss, severe eye pain, or a severe headache with neurological signs?",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; SANS consensus, 2026 [6]; Team triage guide [P]",
       "save_as": "red_flags",
       "options": {
@@ -36,32 +36,32 @@
     "w_notify": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Notify the crew medical officer. Together, agree on your check-ups and who is responsible for them.",
+      "text": "Time to bring in the crew medical officer. Notify them, then agree together on your check-ups and who's responsible for each one.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS, watch: initial action [P]",
       "next": "w_acuity"
     },
     "w_acuity": {
       "type": "action",
-      "text": "With your clinician, review corrected acuity and baseline per eye in Check-in, plus OCT and visual fields when available. Missing or invalid tests are not normal results.",
+      "text": "Let's put the pieces together. With your clinician, review corrected acuity and your personal baseline for each eye using Check-in results. Review OCT and visual fields when available. And remember, missing or invalid tests must never be treated as normal.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS, watch: initial action [P]",
       "next": "w_correction",
       "next_if_cannot": "w_missing_data"
     },
     "w_correction": {
       "type": "action",
-      "text": "Use only prescribed correction; follow sleep and habitat procedures. Clearer focus cannot prove swelling resolved; LBNP, thigh cuffs, supplements and acetazolamide are research/clinician-only options.",
+      "text": "Stick to prescribed optical correction only, and follow the sleep and habitat procedures. Clearer focus doesn't mean the swelling has resolved. LBNP, thigh cuffs, supplements, and acetazolamide are research or clinician-only options, not automatic SANS treatments.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; SANS consensus, 2026 [6]",
       "next": "w_end"
     },
     "w_end": {
       "type": "end",
       "outcome": "monitoring",
-      "text": "Keep the follow-up plan agreed with your clinician; no drug has established SANS rescue efficacy. Do not start medicines, pressure manipulation or invasive eye procedures from this app.",
+      "text": "Keep following the plan you've agreed on with your clinician. No drug has established rescue efficacy for SANS. Don't start medicines, pressure manipulation, or invasive eye procedures based on this app.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; NASA OCHMO-MTB-001, SANS, 2024 [5]; Team triage guide [P] Pharmaceutical limits: PDF p. 2, sources [5,6]; NASA OCHMO-MTB-001, printed pp. 12-13."
     },
     "u_stop": {
       "type": "action",
-      "text": "Stop risky tasks and EVA, and alert the crew medical officer immediately. Record when symptoms began and which eye is affected; do not wait for OCT.",
+      "text": "Stop risky tasks and EVA now, and alert the crew medical officer immediately. Record when the symptoms began and which eye is affected. Don't wait for OCT.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS, medical urgency: initial action [P]",
       "next": "u_local",
       "next_if_cannot": "u_help"
@@ -84,27 +84,27 @@
     "u_mars_send": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Transmit the requested case summary to Earth and continue local care under the pre-authorized protocol. The communication delay must not delay local assessment.",
+      "text": "Transmit the requested case summary to Earth and keep local care going under the pre-authorized protocol. Communication takes time out here, but it must never delay local assessment.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
       "next": "u_handover"
     },
     "u_ground": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the requested case summary to the flight surgeons while local medical care continues. This app does not send a message or authorize transfer.",
+      "text": "Send the requested case summary to the flight surgeons while local medical care continues. Just to be clear, this app doesn't send messages or authorize transfers.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; stop/medical-assessment response [P]; communication context: https://www.nasa.gov/wp-content/uploads/2024/01/mars-communications-disruption-and-delay.pdf . No SANS evacuation rule is inferred. Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
       "next": "u_handover"
     },
     "u_end": {
       "type": "end",
       "outcome": "handed_over",
-      "text": "Clinical review and accepted handover are recorded; continue medical restrictions and follow-up. This is not a cure or EVA clearance; any transfer is a clinical and mission decision.",
+      "text": "The clinical review and accepted handover are recorded. Keep following medical restrictions and your follow-up plan. This doesn't mean you're cured or cleared for EVA. Any transfer remains a decision for the clinical and mission teams.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; Team triage guide, SANS: implementation and closing rules [P]"
     },
     "u_help": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Request immediate assistance from the crew medical officer. Do not continue the risky task.",
+      "text": "You need help now. Request immediate assistance from the crew medical officer, and don't continue the risky task.",
       "next": "u_support",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; clinical-priority response [P]."
     },
@@ -157,14 +157,14 @@
     "w_priority_review": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Ask the crew medical officer for priority medical review of the concerning finding. A concerning number alone does not establish a medical urgency.",
+      "text": "This finding deserves a closer look. Ask the crew medical officer for a priority medical review. Remember, a concerning number alone doesn't establish medical urgency.",
       "next": "w_acuity",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; prototype review routing [P]."
     },
     "w_missing_data": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Tell the crew medical officer which eye results are unavailable or invalid. Arrange appropriate assessment; missing OCT means structural surveillance is incomplete.",
+      "text": "We shouldn't guess about missing results. Tell the crew medical officer which eye results are unavailable or invalid, and arrange an appropriate assessment. If OCT is missing, structural surveillance is incomplete.",
       "next": "w_correction",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
     },
@@ -172,12 +172,12 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "next": "u_support",
-      "text": "Activate the on-board medical lead for immediate ocular and neurological assessment. Do not assume every acute visual problem is SANS; the clinician decides care and restrictions.",
+      "text": "Activate the on-board medical lead for an immediate ocular and neurological assessment. Don't assume every acute visual problem is SANS—the clinician decides the appropriate care and restrictions.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."
     },
     "u_support": {
       "type": "question",
-      "text": "Has the local clinician requested Earth support while local care continues?",
+      "text": "One thing to confirm: has the local clinician requested support from Earth while local care continues?",
       "save_as": "earth_support_requested",
       "options": {
         "yes": "u_env",
@@ -187,7 +187,7 @@
     },
     "u_handover": {
       "type": "action",
-      "text": "Confirm that a clinician has reviewed this episode and accepted responsibility for ongoing care. Select Done only then; otherwise keep this task active and stay assisted.",
+      "text": "Before we mark this step as done, make sure a clinician has reviewed this episode and accepted responsibility for your ongoing care. Select Done only once that's confirmed. Otherwise, keep this task active and stay assisted.",
       "next": "u_end",
       "next_if_cannot": "u_handover",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 2; prototype triage/workflow [P]."

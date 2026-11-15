@@ -66,4 +66,28 @@ def test_saving_an_alarm_in_check_in_shows_the_urgent_action(monkeypatch, alarm_
     next(b for b in app.button if b.label == "Save issues").click().run()
     assert not app.exception
     assert saved == [[alarm_id]]
-    assert any("Urgent symptom reported" in e.value and issues()[alarm_id]["action"] in e.value for e in app.error)
+    expected = (f"This needs urgent attention. You've reported {issues()[alarm_id]['label']}. "
+                f"Here's what to do: {issues()[alarm_id]['action']}")
+    assert [e.value for e in app.error] == [expected]
+
+
+def test_multiple_alarms_keep_each_symptom_and_action_in_dialogue_23(monkeypatch):
+    """The supplied single-symptom template must retain every selected urgent action."""
+    saved = []
+    monkeypatch.setattr(activity, "active_issues", lambda astronaut: [])
+    monkeypatch.setattr(activity, "report_issues", lambda astronaut, ids, source: saved.append(ids))
+    app = AppTest.from_file("../pages/1_Check_in.py", default_timeout=30)
+    app.session_state["astronaut"] = "a1"
+    app.session_state["environment"] = "iss"
+    app.run()
+    selected = ["ALM_01", "ALM_03"]
+    urgent = next(box for box in app.multiselect if box.label == "Urgent symptoms you have now")
+    urgent.set_value(selected)
+    next(button for button in app.button if button.label == "Save issues").click().run()
+    assert not app.exception
+    assert saved == [selected]
+    assert len(app.error) == 1
+    for issue_id in selected:
+        assert issues()[issue_id]["label"] in app.error[0].value
+        assert issues()[issue_id]["action"] in app.error[0].value
+    assert app.error[0].value.count("This needs urgent attention.") == len(selected)

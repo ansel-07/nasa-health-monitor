@@ -89,13 +89,13 @@ def _subjective_issues(astronaut: str, source: str, report) -> None:
                 for issue_id in previous - set(selected):
                     activity.resolve_issue(astronaut, issue_id)
             except (ValueError, KeyError, OSError) as error:
-                report("error", f"Issue changes could not be fully saved. Review your selection and retry. {error}")
+                report("error", f"Some of your issue changes didn't save properly. Check your selection and give it another try. {error}")
             st.session_state[version_key] = version + 1
             urgent = [definitions[key] for key in picked_alarms]
             if urgent:
                 # docs/sintomas_subjetivos_atrofia_SANS.md section 3: an alarm prevails; act now.
-                report("error", "Urgent symptom reported. " + " ".join(
-                    f"{item['label']}: {item['action']}" for item in urgent))
+                report("error", " ".join(
+                    f"This needs urgent attention. You've reported {item['label']}. Here's what to do: {item['action']}" for item in urgent))
             report("success", "Subjective issues updated." if previous or selected else "No subjective issues selected.")
         if active:
             _issue_details(astronaut, source, active, definitions, report)
@@ -149,18 +149,17 @@ def _issue_details(astronaut: str, source: str, active: list, definitions: dict,
         try:
             activity.add_issue_details(astronaut, issue_id, details)
         except (ValueError, KeyError, OSError) as error:
-            report("error", f"Details could not be saved. {error}")
+            report("error", f"Looks like something got in the way of saving your details. {error}")
         if activity.needs_safety_assessment(details):
             # docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3.
-            report("error", "A task you could not complete needs an immediate safety assessment, "
-                            "even if the intensity is low.")
+            report("error", "If you couldn't complete a task, we need an immediate safety assessment—even if the intensity was low. Let's take that seriously.")
         report("success", "Details saved.")
 
 
 def main() -> None:
     mascot.voice_toggle()
     if not st.session_state.get("astronaut") or not st.session_state.get("environment"):
-        text = "Choose an astronaut and environment on the Home page first."
+        text = "Hold on, we haven't set up your mission yet! Head back to Home and choose your astronaut and environment first."
         st.warning(text)
         mascot.say(text, "neutral", size="medium")
         return
@@ -172,12 +171,12 @@ def main() -> None:
     environments = config.load_environments()
     if environment not in environments or not indicators:
         st.error("The selected environment or measurement indicators are unavailable.")
-        mascot.say("Check-in is unavailable with the current selection.", "serious")
+        mascot.say("Looks like Check-in isn't available with your current selection.", "serious")
         return
     opened = data.get_open_episode(astronaut)
     if opened and (opened["problem"] not in problems or opened["trigger"]["indicator"] not in indicators):
-        st.error("This episode is not available for Check-in.")
-        mascot.say("This episode is not available for Check-in.", "serious")
+        st.error("Hmm, this episode isn't available for Check-in. Can't open this one here.")
+        mascot.say("Hmm, this episode isn't available for Check-in. Can't open this one here.", "serious")
         return
     now = mission.now()
     blocked = not problems or any(
@@ -192,17 +191,17 @@ def main() -> None:
 
     feedback_key = f"check_in_feedback:{astronaut}:{environment}"
     feedback = st.session_state.pop(feedback_key, None)
-    message, mood = "Record the measurements of this check-in.", "neutral"
+    message, mood = "Alright, time for some numbers! Enter the measurements for this check-in.", "neutral"
     if opened:
         problem_name = problems[opened["problem"]]["name"]
         if _unfinished(problem_name):
             problem_name = "The current alert"
         if opened["status"] == "pending_confirmation":
-            message, mood = f"{problem_name} needs a repeat measurement before it can be confirmed.", "worried"
+            message, mood = f"Hmm, {problem_name} needs a second measurement before we can confirm it. Let's double-check.", "worried"
         else:
-            message, mood = "Your alert is confirmed. Open Protocol to continue with the guided steps.", "serious"
+            message, mood = "Alright, your alert is confirmed. Open Protocol, and I'll guide you through the next steps.", "serious"
     if blocked:
-        message, mood = "Check-in submissions are unavailable until the measurement configuration is complete.", "serious"
+        message, mood = "We're not quite ready for takeoff. Check-in submissions aren't available until the measurement configuration is complete.", "serious"
     if feedback:
         getattr(st, feedback["level"])(feedback["text"])
         if feedback["level"] == "error":
@@ -246,10 +245,9 @@ def main() -> None:
             alarms = []
         # The mascot says the open alert or an error that is on screen; otherwise it invites a check-in.
         speaks_message = opened or (feedback and feedback["level"] == "error")
-        list_text, list_mood = (message, mood) if speaks_message else ("Choose a check-in to record your measurements.", mood)
+        list_text, list_mood = (message, mood) if speaks_message else ("Let's see how things are looking. Pick a check-in to record your measurements.", mood)
         if alarms:
-            list_text, list_mood = ("You reported an urgent symptom. Stop the risky task and contact "
-                                    "the crew medical officer now.", "serious")
+            list_text, list_mood = ("This is urgent. You've reported an urgent symptom. Stop the risky task and contact the crew medical officer now.", "serious")
         # Compact mascot line, cards below it (docs/UI_STYLE.md).
         mascot.say(list_text, list_mood, size="medium")
         for alarm in alarms:
@@ -311,15 +309,14 @@ def main() -> None:
         for issue in issues:
             st.warning(issue)
         if not feedback or feedback["level"] != "error":
-            message = "Some assessments are incomplete. See the warnings below."
+            message = "Looks like we're missing a few pieces of the puzzle. Some assessments are incomplete, so check the warnings below."
             if opened:
-                next_step = ("Repeat the indicated measurement to confirm the alert." if confirmation
-                             else "Your alert is confirmed; open Protocol to continue.")
-                message = next_step + " Some assessments are incomplete; see the warnings below."
+                message = ("Let's double-check before confirming anything. Repeat the indicated measurement, and take a look at the warnings below—some assessments are still incomplete." if confirmation
+                           else "Your alert is confirmed. Open Protocol to continue. We've also got some incomplete assessments, so check the warnings below.")
             mood = "worried"
     if any(_unfinished(indicators[key].get(field)) for key in field_ids
            for field in ("name", "unit", "how_to_measure", "why_it_matters")):
-        message, mood = "Measurement guidance is not available yet. This check-in cannot be submitted.", "serious"
+        message, mood = "Looks like the measurement instructions aren't available yet. We can't submit this check-in until they are.", "serious"
     with mascot.beside(message, mood):
         for key in field_ids:
             if len(field_ids) > 1:
@@ -359,7 +356,7 @@ def main() -> None:
         try:
             activity.complete(astronaut, "check_in", selected)
         except (ValueError, KeyError, OSError) as error:
-            report("error", f"Measurements recorded, but completion could not be saved. Use Finish check-in to retry. {error}")
+            report("error", f"Your measurements were recorded, but I couldn't save the check-in as complete. Try hitting Finish check-in again. {error}")
         del st.session_state[completion_key]
         if completion["redirect"]:
             open_protocol()
@@ -404,7 +401,7 @@ def main() -> None:
                     except (ValueError, KeyError, OSError) as error:
                         text = str(error)
                         if mission.now() > now:
-                            text = "Mission time advanced, but detection could not finish. " + text
+                            text = f"Mission time moved forward, but the detection process couldn't finish. {error}"
                         report("error", text)
                     report("info", "Mission time advanced. Check the remaining wait before repeating the measurement.")
 
@@ -435,7 +432,7 @@ def main() -> None:
         )
     if submitted:
         if any(value is None or not isfinite(value) for value in values.values()) and not draft:
-            report("error", "Enter a finite measured value for every indicator before submitting.")
+            report("error", "Something's off with the numbers. Every indicator needs a valid, finite measured value before you can submit.")
         try:
             if confirmation:
                 m = _measurement(astronaut, repeat_id, indicators[repeat_id]["unit"], values[repeat_id])

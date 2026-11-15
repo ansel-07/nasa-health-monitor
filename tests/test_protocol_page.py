@@ -54,7 +54,7 @@ def button(app, label):
 
 def test_requires_astronaut(context):
     app = page(None)
-    assert any("Choose an astronaut" in item.value for item in app.info)
+    assert any("Choose your astronaut" in item.value for item in app.info)
     assert not app.button
 
 
@@ -62,7 +62,7 @@ def test_no_episode_and_pending(context):
     context["episode"] = None
     context["pending"] = [{"problem": "test_issue", "severity": "severe"}]
     app = page()
-    assert any("no active protocol" in item.value for item in app.info)
+    assert any("No active protocols" in item.value for item in app.info)
     assert any("Next: Test issue (Severe)" in item.value for item in app.info)
 
 
@@ -191,7 +191,7 @@ def test_examples_are_never_executed(context):
 
 def test_other_astronaut_cannot_see_episode(context):
     app = page("a2")
-    assert any("no active protocol" in item.value for item in app.info)
+    assert any("No active protocols" in item.value for item in app.info)
     assert not app.success
 
 

@@ -19,7 +19,7 @@
     },
     "w_red_flags": {
       "type": "question",
-      "text": "Sudden/rapidly worsening weakness, unsafe movement/new egress inability, new intense muscle pain, breathing difficulty or loss of consciousness? The last two: general emergency, not proof of atrophy.",
+      "text": "Safety check first. Have you noticed sudden or rapidly worsening weakness, a new inability to move safely or complete egress, new intense muscle pain, breathing difficulty, or loss of consciousness? Remember, breathing difficulty or unconsciousness is a general emergency, not proof of muscle atrophy.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency [P]",
       "save_as": "red_flags",
       "options": {
@@ -36,13 +36,13 @@
     "w_report": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Tell the crew medical officer. Review together your symptoms, any pain, your real exercise load and your strength trend.",
+      "text": "Let's bring the crew medical officer up to speed. Tell them what's going on, and review your symptoms, any pain, your actual exercise load, and your strength trend together.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: initial action [P]",
       "next": "w_exercise"
     },
     "w_limits": {
       "type": "question",
-      "text": "Is the worsening unexpected, or does it stop you from completing a task?",
+      "text": "Let's get a clearer picture. Is this worsening unexpected, or is it stopping you from completing a task?",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, watch: initial action [P]",
       "save_as": "limits_task",
       "options": {
@@ -52,19 +52,19 @@
     },
     "w_exercise": {
       "type": "action",
-      "text": "Review resistive and aerobic load, technique and recovery with your exercise specialist rather than increasing load yourself. Review energy and protein intake with the approved nutrition plan.",
+      "text": "Let's take a look at your training and recovery. Review your resistive and aerobic exercise load, technique, and recovery with your exercise specialist instead of increasing the load yourself. Also, review your energy and protein intake against your approved nutrition plan.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, Exercise Overview [1]; Team triage guide [P] Management: NASA Exercise Overview [1] and NASA Human Adaptation to Spaceflight: The Role of Nutrition [2], as cited on PDF p. 2.",
       "next": "w_end"
     },
     "w_end": {
       "type": "end",
       "outcome": "monitoring",
-      "text": "Log symptoms and training daily; repeat comparable strength tests as directed; follow prescribed rehab on return. No training through pain, catch-up loads, supplements or drugs without medical advice.",
+      "text": "Keep logging your symptoms and training every day. Repeat comparable strength tests only as directed, and follow prescribed rehabilitation after return. Don't train through pain, add catch-up overload, or start supplements or medicines without medical advice. Steady and safe is the goal.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; NASA, The Real Story About Astronaut Health Care in Space [3]; Canadian Space Agency, Return and Reconditioning [4]"
     },
     "u_stop": {
       "type": "action",
-      "text": "Stop exercise and risky tasks, get to a safe position and alert the crew medical officer immediately. Do not repeat maximal tests or wait for another sensor reading.",
+      "text": "Stop exercising and any risky tasks immediately. Get into a safe position and alert the crew medical officer now. Don't repeat maximal tests or wait for another sensor reading.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: initial action [P]",
       "next": "u_local",
       "next_if_cannot": "u_help"
@@ -103,34 +103,34 @@
     "u_orbit": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the clinician-requested summary to the flight surgeons while local care continues. Return decisions belong to the medical and mission team if care is insufficient.",
+      "text": "Send the summary requested by the clinician to the flight surgeons while local care continues. If the available care isn't sufficient, any decision about returning belongs to the medical and mission teams.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3] Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
       "next": "u_handover"
     },
     "u_moon": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the clinician-requested summary to the flight surgeons while care continues in the habitat. Transfer depends on the vehicle, resources and clinical decision.",
+      "text": "Send the clinician-requested summary to the flight surgeons while care continues in the habitat. Any transfer will depend on the available vehicle, resources, and clinical decision.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P] Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
       "next": "u_handover"
     },
     "u_mars_send": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Transmit the requested case summary to Earth and follow the pre-authorized local protocol. Do not wait for an immediate Earth reply.",
+      "text": "Transmit the requested case summary to Earth and keep following the pre-authorized local protocol. Don't wait for an immediate reply from Earth. Local care comes first.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, Hazard: Distance From Earth [7] Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
       "next": "u_handover"
     },
     "u_end": {
       "type": "end",
       "outcome": "handed_over",
-      "text": "Clinical review and handover accepted; follow medical restrictions and diagnosis-specific rehab. Return or transfer depends on clinical need, vehicle and resources, not just a sensor value.",
+      "text": "The clinical review and accepted handover are recorded. Keep following medical restrictions and diagnosis-specific rehabilitation. Any return or transfer depends on clinical need, the available vehicle, and resources—not on a sensor value alone.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, muscle atrophy, medical urgency: follow-up [P]"
     },
     "u_help": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Request immediate assistance from the crew medical officer. Do not continue the risky task.",
+      "text": "You need help now. Request immediate assistance from the crew medical officer, and don't continue the risky task.",
       "next": "u_support",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; clinical-priority response [P]."
     },
@@ -175,7 +175,7 @@
     "w_priority_review": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "text": "Ask the crew medical officer for priority review of the concerning finding or unexpected task limitation. A concerning number alone does not establish medical urgency.",
+      "text": "This deserves a closer look. Ask the crew medical officer for a priority review of the concerning finding or unexpected task limitation. Remember, a concerning number alone doesn't establish medical urgency.",
       "next": "w_exercise",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; prototype review routing [P]."
     },
@@ -183,12 +183,12 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "next": "u_support",
-      "text": "Activate the on-board medical lead for immediate assessment and stabilization; investigate injury or another acute cause. Follow the local emergency protocol without waiting for Earth.",
+      "text": "Activate the on-board medical lead for immediate assessment and stabilization. The team needs to investigate possible injury or another acute cause. Follow the local emergency protocol without waiting for Earth.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]."
     },
     "u_support": {
       "type": "question",
-      "text": "Has the local clinician requested Earth support while local care continues?",
+      "text": "One thing to confirm: has the local clinician requested support from Earth while local care continues?",
       "save_as": "earth_support_requested",
       "options": {
         "yes": "u_env",
@@ -198,7 +198,7 @@
     },
     "u_handover": {
       "type": "action",
-      "text": "Confirm that a clinician has reviewed this episode and accepted responsibility for ongoing care. Select Done only then; otherwise keep this task active and stay assisted.",
+      "text": "Before we mark this step as done, make sure a clinician has reviewed this episode and accepted responsibility for your ongoing care. Select Done only once that's confirmed. Otherwise, keep this task active and stay assisted.",
       "next": "u_end",
       "next_if_cannot": "u_handover",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]."
