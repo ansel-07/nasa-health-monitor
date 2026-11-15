@@ -125,7 +125,7 @@ AI-generated code is marked with an `AI-assisted` header comment in each file. W
 - **Fran (data and trends):** Claude Code for code and tests of the data layer, mission clock, charts, Trends page, activity bars and data generator, and for drafting GitHub issues; every change was reviewed and run by Fran before merging.
 - **Javi (protocol execution):** Claude Code and Codex for code and tests of the protocol engine, the Protocols and Tutorials screens, the flowchart and the protocol test sandbox, and for drafting GitHub issues and pull requests; every change was reviewed and run by Javi before merging.
 - **Juan Carlos (detection):** Codex assisted with the condition evaluator, trigger evaluation, episode lifecycle, Check-in UI, automated tests, and GitHub issue and pull-request drafts; Juan Carlos personally reviewed the generated code and tests, with integration review through the repository's pull-request workflow.
-- **Gonzalo (product, coordination and testing):** Codex to record his product decisions, demo story and timing confirmations as GitHub issue comments (#34, #39, #99); he decided their content.
+- **Gonzalo (product, coordination and testing):** Codex assisted with issue coordination, product copy and tagline proposals, recording product decisions and the demo story, browser-based testing with Playwright, and bug investigation and audit documentation. ChatGPT Plus supported product decision-making. Gonzalo reviewed and approved the product decisions and selected copy.
 
 ## Run locally
 
