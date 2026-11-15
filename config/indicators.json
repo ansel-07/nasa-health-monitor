@@ -93,9 +93,9 @@
   "optic_disc_edema_grade_left": {
     "name": "Optic disc edema (Frisen grade) (left eye)",
     "unit": "grade",
-    "how_to_measure": "Have a trained eye-care clinician assess optic-disc images of your left eye using the Fris?n grading scale. Enter the clinician-reported grade for this eye only; do not infer it from OCT thickness.",
+    "how_to_measure": "Have a trained eye-care clinician assess optic-disc images of your left eye using the Frisén grading scale. Enter the clinician-reported grade for this eye only; do not infer it from OCT thickness.",
     "why_it_matters": "Records expert assessment of optic disc edema as an ordinal grade, not a z-score; each eye is assessed separately.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Fris?n grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Frisén grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
   },
   "refraction_left": {
     "name": "Refraction (left eye)",
@@ -121,9 +121,9 @@
   "optic_disc_edema_grade_right": {
     "name": "Optic disc edema (Frisen grade) (right eye)",
     "unit": "grade",
-    "how_to_measure": "Have a trained eye-care clinician assess optic-disc images of your right eye using the Fris?n grading scale. Enter the clinician-reported grade for this eye only; do not infer it from OCT thickness.",
+    "how_to_measure": "Have a trained eye-care clinician assess optic-disc images of your right eye using the Frisén grading scale. Enter the clinician-reported grade for this eye only; do not infer it from OCT thickness.",
     "why_it_matters": "Records expert assessment of optic disc edema as an ordinal grade, not a z-score; each eye is assessed separately.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Fris?n grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Frisén grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
   },
   "refraction_right": {
     "name": "Refraction (right eye)",
