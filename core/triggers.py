@@ -3,6 +3,7 @@
 
 Rules: AGENTS.md, sections 5.3, 7 and 10.
 """
+from functools import cache
 from math import isfinite
 from numbers import Real
 
@@ -205,6 +206,8 @@ def evaluate(measurement: dict, environment: str) -> list[dict]:
     ctx = {
         "astronaut": astronaut, "environment": environment, "severity": None,
         "vars": {}, "answers": {}, "latest": latest,
+        # Private, lazy memoization for this evaluation only; later calls reread data.
+        "_baseline_lookup": cache(data.get_baseline),
     }
     results = []
     for problem_id, problem in config.load_problems().items():

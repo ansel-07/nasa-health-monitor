@@ -131,7 +131,8 @@ def _metric_value(cond: dict, ctx: dict):
         return value
     astronaut = ctx.get("astronaut")
     indicator = name if selector == "indicator" else ctx.get("var_indicators", {}).get(name)
-    baseline = data.get_baseline(astronaut, indicator) if astronaut and indicator else None
+    lookup = ctx.get("_baseline_lookup", data.get_baseline)
+    baseline = lookup(astronaut, indicator) if astronaut and indicator else None
     if not isinstance(baseline, dict) or not all(_is_number(baseline.get(k)) for k in ("mean", "std", "n")):
         return None
     mean, std, n = baseline["mean"], baseline["std"], baseline["n"]
