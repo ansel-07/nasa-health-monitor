@@ -520,7 +520,8 @@ def test_focused_labels_show_more_text_on_short_lines_but_whole_view_stays_short
     assert len(lines) <= engine._FOCUS_LINES and all(len(line) <= engine._FOCUS_WRAP + 1 for line in lines)
     shown = " ".join(lines).rstrip("…")
     assert text.startswith(shown) and (label.endswith("…") or shown == text.rstrip("."))
-    assert node_line(engine.flowchart_dot(episode, whole=True), "do_action").count("\\n") <= 1
+    whole = node_line(engine.flowchart_dot(episode, whole=True), "do_action").split('label="')[1].split('", shape')[0]
+    assert all(len(line) <= engine._WHOLE_WRAP + 1 for line in whole.split("\\n")[:engine._FOCUS_LINES])
 
 
 @pytest.mark.parametrize("cond,label", [
@@ -530,3 +531,52 @@ def test_focused_labels_show_more_text_on_short_lines_but_whole_view_stays_short
     ({"any": [{"symptom": "a", "level_is": "concern"}, {"environment_in": ["mars"]}]}, "Condition met")])
 def test_symptom_group_branches_get_short_labels(cond, label):
     assert engine._condition_label(cond) == label
+
+
+# #247: protocol measure steps reject impossible values (config.measurement_errors, #236).
+def _with_domain(monkeypatch, valid):
+    indicators = deepcopy(engine.load_indicators())
+    indicators["_example_indicator"]["valid"] = valid
+    monkeypatch.setattr(engine, "load_indicators", lambda: indicators)
+
+
+@pytest.mark.parametrize("value", [-1, 2.5])
+@pytest.mark.parametrize("practice", [False, True])
+def test_out_of_domain_measurement_is_rejected_and_nothing_changes(episode, monkeypatch, dependencies, value, practice):
+    saved, measured = dependencies
+    _with_domain(monkeypatch, {"min": 0, "integer": True})
+    episode.update(current_node="remeasure", practice=practice)
+    before = deepcopy(episode)
+    with pytest.raises(engine.InvalidMeasurement) as error:
+        engine.submit(episode, {"value": value})
+    assert ("cannot be below 0" if value < 0 else "must be a whole number") in str(error.value)
+    measured.assert_not_called()          # no new measurement row, no detection
+    saved.assert_not_called()             # the stored episode stays on the same step
+    assert episode == before
+    assert engine.current_step(episode)["id"] == "remeasure"
+
+
+def test_in_domain_measurement_is_still_accepted(episode, monkeypatch, dependencies):
+    saved, measured = dependencies
+    _with_domain(monkeypatch, {"min": 0, "integer": True})
+    episode.update(current_node="remeasure")
+    updated = engine.submit(episode, {"value": 8})
+    measured.assert_called_once()
+    assert updated["vars"]["value_after"] == 8 and updated["current_node"] != "remeasure"
+
+
+def test_invalid_measurement_is_a_value_error_for_existing_callers():
+    assert issubclass(engine.InvalidMeasurement, ValueError)
+
+
+
+def test_whole_protocol_is_drawn_top_to_bottom_and_focused_view_left_to_right(episode):
+    """The whole diagram fits the dialog's width with readable text; the dialog scrolls (#240 follow-up)."""
+    import re, shutil, subprocess
+    episode.update(current_node="symptoms")
+    whole, focused = engine.flowchart_dot(episode, whole=True), engine.flowchart_dot(episode)
+    assert "rankdir=TB" in whole and "rankdir=LR" in focused
+    assert f"fontsize={engine._WHOLE_FONT}" in whole
+    if shutil.which("dot"):
+        svg = subprocess.run(["dot", "-Tsvg"], input=whole, capture_output=True, text=True, check=True).stdout
+        assert float(re.search(r'width="([\d.]+)pt"', svg).group(1)) * 4 / 3 <= 1200   # the large dialog

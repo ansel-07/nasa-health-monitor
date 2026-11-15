@@ -6,9 +6,17 @@ from datetime import datetime
 from math import isfinite
 
 from core import conditions, data, episodes, mission, triggers
-from core.config import load_environments, load_indicators, load_problems, load_protocol
+from core.config import load_environments, load_indicators, load_problems, load_protocol, measurement_errors
 from core.models import NODE_TYPES, OUTCOMES, PROBLEM_STATES, SEVERITIES, TODO_MARK
 
+
+
+class InvalidMeasurement(ValueError):
+    """A measure-step value outside its indicator's unit or measurement domain (#236, #247).
+
+    Raised before anything is saved: no measurement row, no detection, no episode change.
+    The message says why, so pages can show it to the astronaut.
+    """
 
 def _require_complete(value, path: str = "protocol") -> None:
     """Reject placeholders anywhere in a protocol before any execution effects."""
@@ -202,20 +210,24 @@ def submit(episode: dict, user_input: dict | None) -> dict:
                 value = user_input.get("value")
                 if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value):
                     raise ValueError("Measurement must be a finite number.")
-                indicator = load_indicators()[node["indicator"]]
-                unit = indicator["unit"]
+                indicators = load_indicators()
+                unit = indicators[node["indicator"]]["unit"]
                 if unit.startswith("TODO"):
                     raise ValueError("Measurement unit is still TODO in config/indicators.json.")
+                measurement = {"timestamp": timestamp, "astronaut": updated["astronaut"],
+                               "indicator": node["indicator"], "value": value, "unit": unit,
+                               "phase": "mission", "source": "protocol"}
+                # #247: an impossible value (outside the indicator's domain) is rejected before
+                # anything is saved, so the step stays and no alert or episode can change.
+                if errors := measurement_errors(measurement, indicators):
+                    raise InvalidMeasurement(" ".join(errors))
                 if not practice:
                     # Detection suppresses the problem of the astronaut's open episode, so
                     # that stored episode must be this one; otherwise it could reopen it.
                     stored_open = data.get_open_episode(updated["astronaut"])
                     if not stored_open or stored_open["id"] != updated["id"]:
                         raise ValueError("This episode is not the astronaut's open episode in storage.")
-                    episodes.on_new_measurement({
-                        "timestamp": timestamp, "astronaut": updated["astronaut"],
-                        "indicator": node["indicator"], "value": value, "unit": unit,
-                        "phase": "mission", "source": "protocol"}, updated["environment"])
+                    episodes.on_new_measurement(measurement, updated["environment"])
                 updated["vars"][node["save_as"]] = value
                 latest[node["indicator"]] = value
                 recorded_input = value
@@ -288,6 +300,9 @@ def _wrap(text: str, width: int = 18, max_lines: int | None = None) -> str:
 # Focused view (#188, #233): step labels on up to three lines that end at a whole word, instead of
 # being cut at 34 characters, so the current step can be read on a projector.
 _FOCUS_LABEL, _FOCUS_WRAP, _FOCUS_LINES = 200, 18, 3
+# Whole protocol (in the full-width dialog): drawn top to bottom so it fits the dialog's width and the
+# text keeps a readable size; the dialog scrolls instead of shrinking the diagram (#240 follow-up).
+_WHOLE_FONT, _WHOLE_WRAP = 12, 20
 
 
 def _node_label(node: dict, indicators: dict, limit: int = 34) -> str:
@@ -416,9 +431,9 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
                 shown.append(target)
             arrows.append((current, target, label))
 
-    font, edge_font = (11, 9) if whole else (20, 11)
+    font, edge_font = (_WHOLE_FONT, _WHOLE_FONT - 2) if whole else (20, 11)
     lines = ["digraph protocol {",
-             'graph [rankdir=LR, bgcolor="transparent", nodesep=0.3, ranksep=0.45];',
+             f'graph [rankdir={"TB" if whole else "LR"}, bgcolor="transparent", nodesep=0.3, ranksep=0.45];',
              f'node [shape=box, style="rounded,filled", fontname="IBM Plex Sans", fontcolor="{_NODE_TEXT}", '
              f'fontsize={font}, margin="0.14,0.08"];',
              f'edge [fontname="IBM Plex Sans", fontsize={edge_font}, arrowsize=0.7];']
@@ -431,7 +446,7 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
         fill, border = _CURRENT if node_id == current else _VISITED if node_id in visited else _AHEAD
         width = 2.5 if node_id == current else 1
         shape = "diamond" if node["type"] == "decision" else "box"
-        label = (_wrap(_node_label(node, indicators)) if whole
+        label = (_wrap(_node_label(node, indicators, _FOCUS_LABEL), _WHOLE_WRAP, _FOCUS_LINES) if whole
                  else _wrap(_node_label(node, indicators, _FOCUS_LABEL), _FOCUS_WRAP, _FOCUS_LINES))
         lines.append(f"{quote(node_id)} [label={quote(label)}, shape={shape}, "
                      f'fillcolor="{fill}", color="{border}", penwidth={width}];')

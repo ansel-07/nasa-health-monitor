@@ -7,6 +7,21 @@ import pytest
 from core import charts, config, data, episodes, mission, models, protocol_engine, triggers
 
 
+@pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
+def test_sans_protocol_includes_existing_double_vision_alarm(environment):
+    """Edu's ALM_05 alarm also belongs in the protocol's urgent-symptom check."""
+    alarm = config.load_subjective_issues()["issues"]["ALM_05"]
+    assert alarm["alarm"] and "new double vision" in alarm["question"].lower()
+    episode = protocol_engine.practice_episode("a1", "sans", environment)
+    episode = protocol_engine.submit(episode, None)
+    step = protocol_engine.current_step(episode)
+    assert step["id"] == "w_red_flags"
+    assert "new double vision" in step["text"].lower()
+    episode = protocol_engine.submit(episode, {"answer": "yes"})
+    assert episode["severity"] == "medical_urgency"
+    assert episode["current_node"] == "u_stop"
+
+
 @pytest.mark.parametrize("eye", ["left", "right"])
 def test_trt_chart_uses_absolute_units_for_configured_delta(monkeypatch, eye):
     monkeypatch.setattr(data, "get_baseline", lambda *args: {"mean": 300, "std": 5, "n": 14})

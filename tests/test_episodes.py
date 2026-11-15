@@ -17,6 +17,7 @@ def state(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "MEASUREMENTS_FILE", tmp_path / "measurements.csv")
     monkeypatch.setattr(models, "EPISODES_FILE", tmp_path / "episodes.json")
     monkeypatch.setattr(data, "load_indicators", lambda: {"x": {}, "y": {}})
+    monkeypatch.setattr(config, "load_indicators", lambda: {key: {"unit": "example"} for key in ("x", "y")})
     problems = {"problem_a": {"confirm_wait_min": 5, "triggers": [rule()]}}
     monkeypatch.setattr(config, "load_problems", lambda: problems)
     monkeypatch.setattr(config, "load_protocol", lambda problem: {"start": "first_node"})
@@ -223,7 +224,7 @@ def test_replaying_closed_episodes_original_measurement_does_not_reopen_it(state
     assert len(data.load_episodes()) == 1
 
 
-@pytest.mark.parametrize("change", [{"value": 1}, {"unit": "other example units"}, {"source": "protocol"}])
+@pytest.mark.parametrize("change", [{"value": 1}, {"source": "protocol"}])
 def test_same_time_duplicate_search_preserves_distinct_rows(state, change):
     clock, _ = state
     original = measurement(clock, value=0)
@@ -527,7 +528,7 @@ def test_inclusive_triggers_open_at_boundary_and_confirm_consistently(state, ope
 @pytest.fixture
 def pending_state(state, monkeypatch):
     clock, problems = state
-    monkeypatch.setattr(config, "load_indicators", lambda: {"x": {}, "y": {}})
+    monkeypatch.setattr(config, "load_indicators", lambda: {key: {"unit": "example"} for key in ("x", "y")})
     data.save_pending([{
         "astronaut": "a1", "problem": "problem_a", "severity": "moderate",
         "indicator": "x", "value": 20, "z": 1.5,

@@ -57,7 +57,7 @@ def test_menu_cards_open_their_screens():
     app = _welcome(AppTest.from_file("../app.py").run())
     button(app, "Tutorials").click().run()
     assert not app.exception
-    assert any(item.label == "Start tutorial" for item in app.button)
+    assert any(str(item.key).startswith("tutorial_card:") for item in app.button)   # #233: tutorial cards
 
 
 def test_reset_demo_clears_check_in_session_state(monkeypatch):

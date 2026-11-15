@@ -9,6 +9,7 @@ A new page must be added to PAGES. Look: docs/UI_STYLE.md (theme in .streamlit/c
 shared styles and the mission status bar in core/ui.py).
 """
 import sys
+import threading
 from pathlib import Path
 
 import streamlit as st
@@ -21,14 +22,17 @@ import streamlit as st
 _CORE_STAMP = tuple(sorted((p.name, p.stat().st_mtime_ns, p.stat().st_size)
                            for p in (Path(__file__).parent / "core").glob("*.py")))
 # Not under pytest: tests patch the imported core modules, and AppTest runs this file in their process.
-if "pytest" not in sys.modules and getattr(sys, "_spacedoc_core_stamp", None) != _CORE_STAMP:
-    for _name in [name for name in sys.modules if name == "core" or name.startswith("core.")]:
-        del sys.modules[_name]
-sys._spacedoc_core_stamp = _CORE_STAMP
+# Sessions run this file in parallel threads: one process-wide lock keeps a purge from deleting the
+# core package while another session is importing it (an ImportError seen once during a redeploy).
+_CORE_LOCK = sys.__dict__.setdefault("_spacedoc_core_lock", threading.Lock())
+with _CORE_LOCK:
+    if "pytest" not in sys.modules and getattr(sys, "_spacedoc_core_stamp", None) != _CORE_STAMP:
+        for _name in [name for name in sys.modules if name == "core" or name.startswith("core.")]:
+            del sys.modules[_name]
+    sys._spacedoc_core_stamp = _CORE_STAMP
+    from core import ui  # noqa: E402  (after the core purge above, inside the lock)
 
 st.set_page_config(page_title="Astronaut Health Monitor", page_icon=":material/monitor_heart:", layout="wide")
-
-from core import ui  # noqa: E402  (after the core purge above)
 
 welcome = st.Page("pages/0_Home.py", title="Welcome", default=True)
 menu = st.Page("pages/5_Menu.py", title="Main Menu")

@@ -43,6 +43,9 @@ def advance(episode: dict, response: dict) -> None:
     """Delegate validation, measurements and persistence to the engine."""
     try:
         protocol_engine.submit(episode, response)
+    except protocol_engine.InvalidMeasurement as exc:   # #247: say why; nothing was saved
+        st.error(str(exc))
+        return
     except (ValueError, KeyError, OSError):
         st.error("The step could not be saved or completed. Check your response and try again. If this continues, ask the mission team for help.")
         return
@@ -52,8 +55,11 @@ def advance(episode: dict, response: dict) -> None:
 @st.dialog("Whole protocol", width="large")
 def show_whole_protocol(episode: dict) -> None:
     """The whole diagram in a large dialog (#233): the focused chart stays as it is."""
-    st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="stretch",
-                      alt="Whole protocol flowchart. The current step is highlighted; completed steps are green.")
+    # Natural size (top to bottom, readable text), centred; the dialog scrolls instead of stretching it.
+    with st.container(key="whole_protocol"):
+        st.html("<style>.st-key-whole_protocol { align-items: center; }</style>")
+        st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="content",
+                          alt="Whole protocol flowchart. The current step is highlighted; completed steps are green.")
 
 
 def readable(name: str) -> str:
