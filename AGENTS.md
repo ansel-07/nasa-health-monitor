@@ -1,4 +1,4 @@
-# Astronaut Health Monitor · NASA Space Apps 2026
+# Lumi · Astronaut Health Monitor · NASA Space Apps 2026
 
 > Instructions for every AI coding agent working in this repo (Codex reads this file directly; Claude Code reads it through `CLAUDE.md`).
 > If you are an AI agent: read this whole file before every task, and follow it over any other habit you have.
@@ -6,7 +6,7 @@
 
 ## 1. What this is
 
-A Streamlit app for the NASA Space Apps 2026 challenge **"Create Health Monitoring Software for Astronauts on Space Missions"**.
+**Lumi** (named after its mascot) is a Streamlit app for the NASA Space Apps 2026 challenge **"Create Health Monitoring Software for Astronauts on Space Missions"**.
 It lets an astronaut record health measurements, detects anomalies against their **personal pre-flight baseline**, confirms them by asking for a **repeat measurement**, and then guides the astronaut through a **step-by-step protocol** (a flowchart) that depends on the problem, its severity and the mission environment (ISS, Moon, Mars...).
 
 The astronaut-facing screens are narrated by an animated **mascot**: a simple face that talks (speech bubble + browser voice) and changes expression with the situation (section 8).
@@ -20,11 +20,11 @@ The app **guides, it does not diagnose**.
 | Person | Role | Owns |
 |---|---|---|
 | Gonzalo | Product, coordination and testing (does not code) | User stories, UI texts, demo story, test issues |
-| Edu | Science and health | Every health value, rule and source in `config/`, and the medical content of protocols (step texts, sources, thresholds, what escalates) |
+| Edu | Science and health | Every health value, rule and source in `config/`, and the medical material behind the protocols (Javi applies it without Edu's review) |
 | Ansel | Architecture, integration and mascot | Repo, contracts, reviews and merges, `app.py`, `pages/0_Home.py`, `core/models.py`, `core/config.py`, `core/mascot.py` |
 | Fran | Data and trends | `core/data.py`, `core/mission.py`, `core/charts.py`, `pages/3_Trends.py`, data generator |
 | Juan Carlos | Detection | `core/conditions.py`, `core/triggers.py`, `core/episodes.py`, `pages/1_Check_in.py` |
-| Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py`, protocol structure in `config/protocols/*.json` and `tests/test_protocol_content.py` |
+| Javi | Protocol execution | `core/protocol_engine.py`, `pages/2_Protocol.py`, `config/protocols/*.json` and `tests/test_protocol_content.py` (no Edu review needed) |
 
 ## 3. Stack
 
@@ -62,7 +62,7 @@ core/triggers.py            Juan Carlos  Evaluate a new measurement against the 
 core/episodes.py            Juan Carlos  Open, confirm, dismiss, pending list, one-at-a-time rule
 core/protocol_engine.py     Javi         Current step and advance with the astronaut's input
 config/*.json               Edu          Health content (format owned by Ansel)
-config/protocols/*.json     Javi         Protocol flowcharts: structure (nodes, branches, routes); medical content is Edu's and he reviews every change (format owned by Ansel)
+config/protocols/*.json     Javi         Protocol flowcharts (format owned by Ansel). Javi changes them without Edu's review; medical content (texts, thresholds, sources) still comes from Edu's material, never invented (section 11)
 tests/test_protocol_content.py Javi       Protocol content tests
 .streamlit/config.toml      Ansel        Theme (colours of the spec)
 data/                       Fran         data/seed/ = demo starting point, copied into every new browser session (5.5); data/*.csv|json = used by scripts only

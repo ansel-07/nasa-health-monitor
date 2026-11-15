@@ -1,4 +1,4 @@
-# SpaceDoc
+# Lumi
 
 > Your health, guided through every mission.
 
@@ -17,7 +17,7 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 On long missions astronauts are far from a hospital and, beyond low Earth orbit, from real-time help: a one-way signal between Mars and Earth takes from about 3 to 22 minutes ([NASA](https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/)). The crew has to notice early changes in their own health and respond in a safe, structured way, often before anyone on Earth can answer.
 
-SpaceDoc focuses on two risks studied by NASA's Human Research Program: [Spaceflight Associated Neuro-ocular Syndrome (SANS)](https://www.nasa.gov/directorates/esdmd/hhp/risk-of-spaceflight-associated-neuro-ocular-syndrome/), changes in the eyes and vision, and [reduced muscle size, strength and endurance](https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/). Both change gradually, so the useful question is not only "is this value normal?" but "has it changed from this astronaut's own pre-flight baseline, and what should they do next?"
+Lumi focuses on two risks studied by NASA's Human Research Program: [Spaceflight Associated Neuro-ocular Syndrome (SANS)](https://www.nasa.gov/directorates/esdmd/hhp/risk-of-spaceflight-associated-neuro-ocular-syndrome/), changes in the eyes and vision, and [reduced muscle size, strength and endurance](https://www.nasa.gov/directorates/esdmd/hhp/muscle-risk/). Both change gradually, so the useful question is not only "is this value normal?" but "has it changed from this astronaut's own pre-flight baseline, and what should they do next?"
 
 ## What it does
 
@@ -28,11 +28,11 @@ The astronaut chooses who they are and where the mission is (ISS, Moon or Mars).
 1. Click **Astronaut A**, then **International Space Station**. In Main Menu → *Demo controls*, press **Reset demo**. You will explore fictional, synthetic measurements.
 2. Press **Advance mission 24 h** to reveal an ocular measurement alert. Open **Check-in** to compare it with your personal pre-flight baseline.
 3. Use **Simulate wait** and repeat the flagged measurement with the demo value (**360** µm) to confirm the anomaly.
-4. Open **Protocols** and follow the guidance through to medical follow-up. SpaceDoc guides you; it does not diagnose.
+4. Open **Protocols** and follow the guidance through to medical follow-up. Lumi guides you; it does not diagnose.
 
-## Meet the mascot
+## Meet Lumi
 
-**Lumi**, a glowing LED alien head drawn in code (SVG, no images). Its colour and shape show the astronaut's state at a glance: blue when everything is nominal, amber while a symptom or an alert is being followed up, red for an urgent alarm. It narrates every astronaut screen so the app can be followed at a glance, even mid-task:
+The app is named after its mascot, **Lumi**: a glowing LED alien head drawn in code (SVG, no images). Its colour and shape show the astronaut's state at a glance: blue when everything is nominal, amber while a symptom or an alert is being followed up, red for an urgent alarm. It narrates every astronaut screen so the app can be followed at a glance, even mid-task:
 
 - **On the Welcome** it is big and centred; on the other screens it is a compact assistant line above the cards and buttons.
 - **Next to a chart or a protocol flowchart** it slides to the left and shrinks, so the visual takes the right side.
