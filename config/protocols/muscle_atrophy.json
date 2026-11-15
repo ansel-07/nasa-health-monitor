@@ -1,5 +1,5 @@
 {
-  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137; human review pending.",
+  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137; human review pending. Adapted with Codex for Edu decisions on #191; human review pending.",
   "_integration_status": "Activated for confirmed numerical findings. Immediate clinical-priority entry before measurement confirmation remains a separate owner integration; no numerical finding automatically establishes urgency.",
   "problem": "muscle_atrophy",
   "start": "route",
@@ -75,18 +75,10 @@
         {
           "if": {
             "environment_in": [
-              "iss"
-            ]
-          },
-          "next": "u_orbit"
-        },
-        {
-          "if": {
-            "environment_in": [
               "moon"
             ]
           },
-          "next": "u_moon"
+          "next": "u_support"
         },
         {
           "if": {
@@ -97,28 +89,27 @@
           "next": "u_mars_send"
         }
       ],
-      "default": "u_handover",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Prototype flow composition [P]."
+      "default": "u_orbit",
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule."
     },
     "u_orbit": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Send the clinician-requested summary to the flight surgeons while local care continues. Return decisions belong to the medical and mission team if care is insufficient.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3] Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
+      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, The Real Story About Astronaut Health Care in Space [3] Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_moon": {
-      "type": "contact",
-      "target": "flight_surgeon",
-      "text": "Send the clinician-requested summary to the flight surgeons while care continues in the habitat. Transfer depends on the vehicle, resources and clinical decision.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P] Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
+      "type": "info",
+      "text": "Continue local care in the habitat. The clinician decides any transfer according to clinical need, vehicle and resources.",
+      "source": "Edu-approved lunar routing for #191: local care continues when Earth support is not requested; no automatic transfer.",
       "next": "u_handover"
     },
     "u_mars_send": {
       "type": "contact",
       "target": "flight_surgeon",
-      "text": "Transmit the requested case summary to Earth and follow the pre-authorized local protocol. Do not wait for an immediate Earth reply.",
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, Hazard: Distance From Earth [7] Optional remote support follows local clinician request (Edu-approved workflow [P]); it does not replace immediate on-board care.",
+      "text": "Send the case summary to the flight surgeons; this app does not send it. Continue local care without waiting for Earth; the clinician decides any return or transfer.",
+      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; Team triage guide, by environment [P]; NASA, Hazard: Distance From Earth [7] Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
       "next": "u_handover"
     },
     "u_end": {
@@ -131,7 +122,7 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Request immediate assistance from the crew medical officer. Do not continue the risky task.",
-      "next": "u_support",
+      "next": "u_local",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; clinical-priority response [P]."
     },
     "w_concern": {
@@ -176,13 +167,13 @@
       "type": "contact",
       "target": "crew_medical_officer",
       "text": "Ask the crew medical officer for priority review of the concerning finding or unexpected task limitation. A concerning number alone does not establish medical urgency.",
-      "next": "w_exercise",
+      "next": "w_review_outcome",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), pp. 1-2; prototype review routing [P]."
     },
     "u_local": {
       "type": "contact",
       "target": "crew_medical_officer",
-      "next": "u_support",
+      "next": "u_env",
       "text": "Activate the on-board medical lead for immediate assessment and stabilization; investigate injury or another acute cause. Follow the local emergency protocol without waiting for Earth.",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]."
     },
@@ -191,10 +182,10 @@
       "text": "Has the local clinician requested Earth support while local care continues?",
       "save_as": "earth_support_requested",
       "options": {
-        "yes": "u_env",
-        "no": "u_handover"
+        "yes": "u_orbit",
+        "no": "u_moon"
       },
-      "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]. Optional Earth support in all environments is Edu-approved team workflow, not a universal treatment requirement from the PDF."
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule. Legacy node retained; now used for optional lunar Earth support."
     },
     "u_handover": {
       "type": "action",
@@ -202,6 +193,16 @@
       "next": "u_end",
       "next_if_cannot": "u_handover",
       "source": "guia_tratamientos_vigilancia_urgencia.pdf (2026-11-14), p. 1; prototype triage/workflow [P]."
+    },
+    "w_review_outcome": {
+      "type": "question",
+      "text": "Wait here until the clinician completes the priority review. Has the clinician declared a medical urgency?",
+      "source": "Edu-approved prototype workflow for #191 (2026-11-15): Earth contact required on ISS/Mars, optional on Moon; clinician-held urgency escalation and explicit insufficient-correction question. This is a team workflow decision, not a validated clinical rule.",
+      "save_as": "clinician_declared_urgency",
+      "options": {
+        "yes": "w_escalate",
+        "no": "w_exercise"
+      }
     }
   }
 }

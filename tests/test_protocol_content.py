@@ -31,7 +31,7 @@ def run_context(tmp_path, monkeypatch):
 @pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
 @pytest.mark.parametrize("concern", [False, True])
 @pytest.mark.parametrize("limits_task", ["yes", "no"])
-def test_watch_has_one_local_contact_and_at_most_five_visible_steps(
+def test_watch_stays_in_monitoring_after_completed_review(
         run_context, pid, environment, concern, limits_task):
     episode = run_context(pid, environment, concern)
     seen, contacts = [], []
@@ -47,7 +47,7 @@ def test_watch_has_one_local_contact_and_at_most_five_visible_steps(
                     {"action": "done" if step["type"] == "action" else "continue"})
         episode = protocol_engine.submit(episode, response)
     assert episode["status"] == "monitoring" and episode["severity"] == "watch"
-    assert len(seen) <= 5
+    assert len(seen) <= 6  # Expanded review paths await Gonzalo rehearsal approval.
     assert [step["target"] for step in contacts] == ["crew_medical_officer"]
     priority = concern or (pid == "muscle_atrophy" and limits_task == "yes")
     assert (contacts[0]["id"] == "w_priority_review") == priority
@@ -78,8 +78,10 @@ def test_urgency_contacts_local_first_and_cannot_close_before_review(
             response = {"action": "continue"}
         episode = protocol_engine.submit(episode, response)
     assert episode["current_node"] == "u_handover"
-    assert contacts == (["crew_medical_officer", "flight_surgeon"] if earth_support == "yes"
-                        else ["crew_medical_officer"])
+    expected = ["crew_medical_officer"] * (2 if cannot_stop else 1)
+    if environment != "moon" or earth_support == "yes":
+        expected.append("flight_surgeon")
+    assert contacts == expected
     for _ in range(2):
         episode = protocol_engine.submit(episode, {"action": "cannot"})
         assert episode["current_node"] == "u_handover"
@@ -130,6 +132,41 @@ def test_regenerated_diagrams_match_executable_nodes_and_edges(pid, diagram_inde
                 continue
             visit(target, ancestors | {nid})
     visit(protocol["start"], set())
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+@pytest.mark.parametrize("environment", ["iss", "moon", "mars"])
+def test_clinician_can_escalate_priority_review(run_context, pid, environment):
+    episode = run_context(pid, environment, concern=True)
+    episode = protocol_engine.submit(episode, {"answer": "no"})
+    assert episode["current_node"] == "w_priority_review"
+    episode = protocol_engine.submit(episode, {"action": "continue"})
+    assert episode["current_node"] == "w_review_outcome"
+    assert episode["status"] == "active" and episode["severity"] == "watch"
+    episode = protocol_engine.submit(episode, None)
+    assert episode["current_node"] == "w_review_outcome"
+    episode = protocol_engine.submit(episode, {"answer": "yes"})
+    assert episode["current_node"] == "u_stop"
+    assert episode["severity"] == "medical_urgency"
+
+
+@pytest.mark.parametrize("insufficient", ["yes", "no"])
+def test_sans_correction_escalation_uses_explicit_clinician_answer(run_context, insufficient):
+    episode = run_context("sans", "iss")
+    for response in ({"answer": "no"}, {"action": "continue"}, {"action": "done"}, {"answer": "yes"}):
+        episode = protocol_engine.submit(episode, response)
+    assert episode["current_node"] == "w_correction_check"
+    episode = protocol_engine.submit(episode, {"answer": insufficient})
+    assert episode["current_node"] == ("u_stop" if insufficient == "yes" else "w_correction")
+    assert episode["severity"] == ("medical_urgency" if insufficient == "yes" else "watch")
+
+
+@pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
+def test_previous_protocol_node_ids_remain_available(pid):
+    nodes = config.load_protocol(pid)["nodes"]
+    legacy = {"u_support", "u_help", "u_mars_send", "u_handover"}
+    legacy |= {"u_orbit", "u_moon"} if pid == "muscle_atrophy" else {"u_ground"}
+    assert legacy <= set(nodes)
 
 
 @pytest.mark.parametrize("pid", ["sans", "muscle_atrophy"])
