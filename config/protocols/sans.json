@@ -1,5 +1,5 @@
 {
-  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137 and #191; reviewed by Edu. Sources rewritten with Claude to cite the primary sources of the team treatment guide, checked against NASA OCHMO-MTB-001 and Gew et al. 2026; human review by Javi pending.",
+  "_ai_assisted": "AI-assisted: protocol structure regenerated with Codex under Edu decisions for #137 and #191; reviewed by Edu. Sources rewritten with Claude to cite the primary sources of the team treatment guide, checked against NASA OCHMO-MTB-001 and Gew et al. 2026; reviewed by Javi and Edu.",
   "_integration_status": "Activated for confirmed numerical findings. Immediate clinical-priority entry before measurement confirmation remains a separate owner integration; no numerical finding automatically establishes urgency.",
   "problem": "sans",
   "start": "route",
