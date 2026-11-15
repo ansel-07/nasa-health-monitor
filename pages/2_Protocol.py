@@ -49,6 +49,20 @@ def advance(episode: dict, response: dict) -> None:
     st.rerun()
 
 
+HOLD_NOTE = "Noted. This step stays open until you can select Done."
+
+
+def held(episode: dict, step: dict) -> bool:
+    """True right after "I can't" on a step whose "I can't" route leads back to itself.
+
+    Such a step (e.g. the handover hold) keeps the same text, so without this the
+    screen would look unchanged and the button would seem to do nothing.
+    """
+    log = episode.get("log", [])
+    return (step.get("next_if_cannot") == step["id"] and bool(log)
+            and log[-1].get("node") == step["id"] and log[-1].get("input") == "cannot")
+
+
 def readable(name: str) -> str:
     """Internal names as plain words for the astronaut: "medical_urgency" -> "Medical urgency"."""
     return str(name).replace("_", " ").capitalize()
@@ -160,6 +174,8 @@ def main() -> None:
                 st.rerun()
         # "I can't" only when the protocol has a route for it; never a dead button.
         can_refuse = "next_if_cannot" in step
+        if held(episode, step):
+            st.info(HOLD_NOTE)
         done_col, cannot_col = st.columns(2) if can_refuse else (st.container(), None)
         if done_col.button("Done", disabled=remaining > 0, key=f"{key}_done", type="primary",
                            use_container_width=True):

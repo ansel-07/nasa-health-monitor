@@ -270,3 +270,33 @@ def test_local_medical_officer_shows_no_earth_delay(context, monkeypatch, enviro
     captions = [item.value for item in app.caption]
     assert "On board: no Earth signal delay." in captions
     assert not any("Signal round trip" in text or "minutes" in text for text in captions)
+
+
+def test_cannot_on_a_step_that_loops_back_says_it_stays_open(context, monkeypatch):
+    # A self-looping "I can't" (like the handover hold) keeps the same step and text;
+    # the page must say so, or the button looks like it did nothing.
+    protocol = protocol_engine.load_protocol("_example")  # the fixture copy from context
+    protocol["nodes"]["do_action"].update(next_if_cannot="do_action")
+    protocol["nodes"]["do_action"].pop("wait_min", None)
+    monkeypatch.setattr(protocol_engine, "load_protocol", lambda _: deepcopy(protocol))
+    context["episode"]["current_node"] = "do_action"
+    note = "Noted. This step stays open until you can select Done."
+    app = page()
+    assert not any(item.value == note for item in app.info)
+    button(app, "I can't").click().run()
+    assert context["episode"]["current_node"] == "do_action"
+    assert any(item.value == note for item in app.info)
+    button(app, "Done").click().run()
+    assert context["episode"]["current_node"] != "do_action"
+    assert not any(item.value == note for item in app.info)
+
+
+def test_cannot_that_leads_elsewhere_shows_no_hold_note(context, monkeypatch):
+    protocol = protocol_engine.load_protocol("_example")
+    protocol["nodes"]["do_action"].pop("wait_min", None)
+    monkeypatch.setattr(protocol_engine, "load_protocol", lambda _: deepcopy(protocol))
+    context["episode"]["current_node"] = "do_action"
+    app = page()
+    button(app, "I can't").click().run()
+    assert context["episode"]["current_node"] == "contact_crew"
+    assert not any("stays open" in item.value for item in app.info)
