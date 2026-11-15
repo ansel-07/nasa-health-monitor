@@ -277,9 +277,10 @@ def confirm(episode_id: str, measurement: dict) -> dict:
     pending = data.load_pending()
     new_pending = _pending_items(pending, matches, m, episode["problem"])
     _save_measurement_once(m)
-    data.save_episode(updated)
+    # Keep confirmation retryable until its queue changes have been saved.
     if new_pending != pending:
         data.save_pending(new_pending)
+    data.save_episode(updated)
     return updated
 
 
