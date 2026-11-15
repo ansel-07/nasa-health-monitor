@@ -129,7 +129,7 @@ def _issue_details(astronaut: str, source: str, active: list, definitions: dict,
 
     form_key = f"{source}:details:{astronaut}:{issue_id}"
     with st.form(form_key):
-        onset = pick("Onset", "onset", choices["onset"])
+        onset = pick("How it began", "onset", choices["onset"])
         trend = pick("Trend", "trend", choices["trend"])
         if issue_id.startswith("VIS_"):
             location = pick("Location", "location", activity.EYE_LOCATIONS)
@@ -149,7 +149,7 @@ def _issue_details(astronaut: str, source: str, active: list, definitions: dict,
         details = {"onset": onset, "trend": trend, "location": location, "impact": impact,
                    "intensity": intensity, "context": context, "notes": notes}
         # docs/sintomas_subjetivos_atrofia_SANS.md section 4, triage rule 3.
-        safety_text = ("A task you could not complete needs an immediate safety assessment, "
+        safety_text = ("A critical task you could not complete needs an immediate safety assessment, "
                        "even if the intensity is low.") if activity.needs_safety_assessment(details) else ""
         try:
             activity.add_issue_details(astronaut, issue_id, details)

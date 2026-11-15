@@ -829,3 +829,21 @@ def test_task_safety_message_survives_details_storage_failure(screen, monkeypatc
                for item in app.error)
     assert not app.success
     assert state["calls"] == []
+
+
+def test_approved_symptom_detail_wording_preserves_stored_ids(screen, monkeypatch):
+    app, state = screen
+    subjective_fixture(state)
+    state["issue_records"]["a1"] = [{"issue": "issue_a", "since": "2027-04-10T08:00:00", "persistent": False}]
+    saved = []
+    monkeypatch.setattr(activity, "add_issue_details", lambda astronaut, issue, details: saved.append(details))
+    app.run()
+    next(item for item in app.radio if item.label == "How it began").set_value("gradual")
+    assert not any(item.label == "Onset" for item in app.radio)
+    next(item for item in app.radio if item.label == "Effect on your tasks").set_value("task_not_completed")
+    button(app, "Save details").click().run()
+    assert not app.exception
+    assert saved[0]["onset"] == "gradual" and saved[0]["impact"] == "task_not_completed"
+    assert any(item.value == "A critical task you could not complete needs an immediate safety assessment, "
+               "even if the intensity is low." for item in app.error)
+    assert state["calls"] == []
