@@ -246,7 +246,9 @@ def main() -> None:
                       if definitions.get(item["issue"], {}).get("alarm")]
         except (ValueError, KeyError, OSError):
             alarms = []
-        list_text, list_mood = (message, mood) if opened else ("Choose a check-in to record your measurements.", mood)
+        # The mascot says the open alert or an error that is on screen; otherwise it invites a check-in.
+        speaks_message = opened or (feedback and feedback["level"] == "error")
+        list_text, list_mood = (message, mood) if speaks_message else ("Choose a check-in to record your measurements.", mood)
         if alarms:
             list_text, list_mood = ("You reported an urgent symptom. Stop the risky task and contact "
                                     "the crew medical officer now.", "serious")
