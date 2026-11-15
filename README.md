@@ -78,7 +78,7 @@ The demo uses locally generated fictional observations, not downloaded astronaut
 
 ## Other data and references
 
-The following references support methods, context or research comparisons; they are not imported clinical datasets. The [synthetic-data handoff](docs/DEMO_DATA_HANDOFF.md) distinguishes integrated inputs, proposed inputs and empirical alternatives. The team's supplied guides are independently authored prototype material, not NASA publications; their public references and access limitations are catalogued in the [25-source extraction](docs/MEDICAL_SOURCE_REVIEW.md). [Protocol diagrams](docs/PROTOCOL_FLOWCHARTS.md) map that evidence to guidance; [subjective-issue provenance](Edu's team symptom guide) distinguishes symptoms from alarms.
+The following references support methods, context or research comparisons; they are not imported clinical datasets. The [synthetic-data handoff](docs/DEMO_DATA_HANDOFF.md) distinguishes integrated inputs, proposed inputs and empirical alternatives. The team's supplied guides are independently authored prototype material, not NASA publications; their public references and access limitations are catalogued in the [25-source extraction](docs/MEDICAL_SOURCE_REVIEW.md). [Protocol diagrams](docs/PROTOCOL_FLOWCHARTS.md) map that evidence to guidance; subjective issues come from Edu's team symptom guide, which distinguishes routine symptoms from alarms.
 
 - [Patel et al., 2018](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551): OCT region and observed cohort magnitudes, not personal daily SDs.
 - [Brunstetter et al., 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/): eye-specific case observations; grade 0 does not exclude OCT changes.
