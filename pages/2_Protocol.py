@@ -49,6 +49,13 @@ def advance(episode: dict, response: dict) -> None:
     st.rerun()
 
 
+@st.dialog("Whole protocol", width="large")
+def show_whole_protocol(episode: dict) -> None:
+    """The whole diagram in a large dialog (#233): the focused chart stays as it is."""
+    st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=True), width="stretch",
+                      alt="Whole protocol flowchart. The current step is highlighted; completed steps are green.")
+
+
 def readable(name: str) -> str:
     """Internal names as plain words for the astronaut: "medical_urgency" -> "Medical urgency"."""
     return str(name).replace("_", " ").capitalize()
@@ -132,9 +139,11 @@ def main() -> None:
 
     # Mascot small on the left, the whole protocol on the right, controls below (AGENTS.md 8).
     with mascot.beside(step["text"], "neutral"):
-        # Readable by default (around the current step); the whole protocol on request.
-        whole = st.toggle("Show whole protocol", key=f"protocol_whole_{astronaut}")
-        st.graphviz_chart(protocol_engine.flowchart_dot(episode, whole=whole), width="stretch",
+        # Readable by default (around the current step); the whole protocol opens in a dialog.
+        if st.button("Show whole protocol", icon=":material/open_in_full:", type="tertiary",
+                     key=f"protocol_whole_{astronaut}"):
+            show_whole_protocol(episode)
+        st.graphviz_chart(protocol_engine.flowchart_dot(episode), width="stretch",
                           alt="Protocol flowchart. The current step is highlighted; completed steps are green.")
     st.caption(f"Severity: {readable(episode['severity'])} · Environment: {environment_name(episode['environment'])}")
     # Log length distinguishes repeated visits to the same node, clearing old

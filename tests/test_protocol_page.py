@@ -231,11 +231,13 @@ def test_flowchart_is_focused_by_default_and_whole_on_request(context):
     app = page()
     focused = app.get("graphviz_chart")[0].proto.spec
     assert '"handed_over" [' not in focused  # far from the current step
-    app.toggle(key="protocol_whole_a1").set_value(True).run()
-    whole = app.get("graphviz_chart")[0].proto.spec
+    # #233: the whole protocol opens in a large dialog; the focused chart stays in the column.
+    next(b for b in app.button if b.key == "protocol_whole_a1").click().run()
+    assert not app.exception
+    specs = [chart.proto.spec for chart in app.get("graphviz_chart")]
+    assert len(specs) == 2 and specs[0] == focused
     for node_id in protocol_engine.load_protocol("_example")["nodes"]:
-        assert f'"{node_id}" [' in whole
-    assert current_in_chart(app) == "intro"
+        assert f'"{node_id}" [' in specs[1]
 
 
 def test_lists_active_protocol_and_all_pending_by_severity(context):

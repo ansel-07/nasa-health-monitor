@@ -76,3 +76,16 @@ def test_changing_the_environment_ends_the_practice_run(storage):
     button(app, "Start tutorial").click().run()
     assert app.session_state["tutorial_run"]["environment"] == "moon"
     assert not app.exception
+
+
+def test_whole_protocol_opens_in_a_dialog(storage):
+    """#233: "Show whole protocol" opens the whole diagram in a dialog; the focused chart stays."""
+    app = page()
+    button(app, "Start tutorial").click().run()
+    focused = app.get("graphviz_chart")[0].proto.spec
+    next(b for b in app.button if b.key == "tutorial_whole").click().run()
+    assert not app.exception
+    specs = [chart.proto.spec for chart in app.get("graphviz_chart")]
+    assert len(specs) == 2 and specs[0] == focused
+    for node_id in config.load_protocol("_example")["nodes"]:
+        assert f'"{node_id}" [' in specs[1]
