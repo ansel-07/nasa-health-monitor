@@ -59,7 +59,7 @@ else:
     st.session_state.pop("welcome_step", None)   # arriving at Welcome always starts at step 1
     # Top row: back (Main Menu goes back to Welcome, every other screen to Main Menu) and the
     # mission status bar. No page titles (docs/UI_STYLE.md).
-    back_col, status_col = st.columns([1, 4], vertical_alignment="center")
+    back_col, status_col = st.columns([1, 6], vertical_alignment="center")
     on_menu = navigation.url_path == menu.url_path
     if back_col.button("Change astronaut" if on_menu else "Main Menu", icon=":material/arrow_back:",
                        type="tertiary", key="app_back"):
