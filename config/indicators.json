@@ -4,140 +4,140 @@
     "unit": "bpm",
     "how_to_measure": "While resting calmly, place your index and middle fingers on the pulse inside your wrist. Count beats for 60 seconds and enter beats per minute.",
     "why_it_matters": "Tracks your resting heart rate over time for review of changes in cardiac activity.",
-    "source": "Measurement guidance (AI-assisted source review; human review pending): American Heart Association, All About Heart Rate, pulse measurement: https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse"
+    "source": "Measurement guidance (AI-assisted source review; reviewed by Edu): American Heart Association, All About Heart Rate, pulse measurement: https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse"
   },
   "bp_systolic": {
     "name": "Blood pressure (systolic)",
     "unit": "mmHg",
     "how_to_measure": "Rest quietly for five minutes, then use a correctly fitted upper-arm cuff on bare skin with your arm supported at heart level. Enter the upper (systolic) reading in mmHg.",
     "why_it_matters": "Records arterial pressure when your heart contracts, as part of your blood-pressure history.",
-    "source": "Measurement guidance (AI-assisted source review; human review pending): American Heart Association, Home Blood Pressure Monitoring, measurement technique: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings/monitoring-your-blood-pressure-at-home Blood-pressure terms: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings ."
+    "source": "Measurement guidance (AI-assisted source review; reviewed by Edu): American Heart Association, Home Blood Pressure Monitoring, measurement technique: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings/monitoring-your-blood-pressure-at-home Blood-pressure terms: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings ."
   },
   "bp_diastolic": {
     "name": "Blood pressure (diastolic)",
     "unit": "mmHg",
     "how_to_measure": "Rest quietly for five minutes, then use a correctly fitted upper-arm cuff on bare skin with your arm supported at heart level. Enter the lower (diastolic) reading in mmHg from the same blood-pressure measurement.",
     "why_it_matters": "Records arterial pressure while your heart rests between beats, as part of your blood-pressure history.",
-    "source": "Measurement guidance (AI-assisted source review; human review pending): American Heart Association, Home Blood Pressure Monitoring, measurement technique: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings/monitoring-your-blood-pressure-at-home Blood-pressure terms: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings ."
+    "source": "Measurement guidance (AI-assisted source review; reviewed by Edu): American Heart Association, Home Blood Pressure Monitoring, measurement technique: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings/monitoring-your-blood-pressure-at-home Blood-pressure terms: https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings ."
   },
   "glucose": {
     "name": "Blood glucose",
     "unit": "mg/dL",
     "how_to_measure": "Wash and dry your hands, then use the approved fingertip glucose meter and test strip according to its instructions. Enter the displayed result in mg/dL.",
     "why_it_matters": "Records blood glucose for review of changes by your healthcare team.",
-    "source": "Measurement guidance (AI-assisted source review; human review pending): CDC, Monitoring Your Blood Sugar, using a meter: https://www.cdc.gov/diabetes/diabetes-testing/monitoring-blood-sugar.html"
+    "source": "Measurement guidance (AI-assisted source review; reviewed by Edu): CDC, Monitoring Your Blood Sugar, using a meter: https://www.cdc.gov/diabetes/diabetes-testing/monitoring-blood-sugar.html"
   },
   "temperature": {
     "name": "Body temperature",
     "unit": "°C",
     "how_to_measure": "Use a clean digital oral thermometer under your tongue with your mouth closed until it signals completion. Enter the reading in degrees Celsius, using the same measurement site as your baseline.",
     "why_it_matters": "Tracks body temperature using a consistent measurement method.",
-    "source": "Measurement guidance (AI-assisted source review; human review pending): MedlinePlus, Temperature measurement, oral method: https://medlineplus.gov/ency/article/003400.htm"
+    "source": "Measurement guidance (AI-assisted source review; reviewed by Edu): MedlinePlus, Temperature measurement, oral method: https://medlineplus.gov/ency/article/003400.htm"
   },
   "sleep_hours": {
     "name": "Sleep",
     "unit": "h",
     "how_to_measure": "Use your sleep diary to estimate how long you actually slept during your main sleep period, excluding time awake. Enter the total in hours using the same recording convention as pre-flight.",
     "why_it_matters": "Tracks sleep duration to help review your sleep pattern and daytime sleepiness.",
-    "source": "Measurement guidance (AI-assisted source review; human review pending): NHLBI, Sleep Diary, quantity and quality of sleep: https://www.nhlbi.nih.gov/resources/sleep-diary"
+    "source": "Measurement guidance (AI-assisted source review; reviewed by Edu): NHLBI, Sleep Diary, quantity and quality of sleep: https://www.nhlbi.nih.gov/resources/sleep-diary"
   },
   "muscle_strength": {
     "name": "Muscle strength",
     "unit": "N",
     "how_to_measure": "With a trained operator, squeeze a hand dynamometer using your right hand and the same grip setting and posture as pre-flight. Enter the peak grip force in newtons, not the device reading in kilograms.",
     "why_it_matters": "Tracks muscle force against the personal pre-flight baseline, with priority given to the legs and trunk.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; [1] NASA-STD-3001, Vol. 1, Rev. C, section 4.6.2 (V1 4024). Measurement guidance (AI-assisted source review; human review pending): PhenX/NHANES muscle strength protocol, device, grip setting and consistent positioning: https://www.phenxtoolkit.org/protocols/view/150302 . Right-hand peak grip is the project measurement definition; the trained operator must provide force in N."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; [1] NASA-STD-3001, Vol. 1, Rev. C, section 4.6.2 (V1 4024). Measurement guidance (AI-assisted source review; reviewed by Edu): PhenX/NHANES muscle strength protocol, device, grip setting and consistent positioning: https://www.phenxtoolkit.org/protocols/view/150302 . Right-hand peak grip is the project measurement definition; the trained operator must provide force in N."
   },
   "muscle_area": {
     "name": "Muscle size (cross-section area)",
     "unit": "cm²",
     "how_to_measure": "Have a trained operator obtain a cross-section ultrasound image of your right lower-back muscle (lumbar multifidus) at the fifth lower-back vertebra (L5), using the same position and tracing method as pre-flight. Enter the traced cross-sectional area in cm2, without combining sides.",
     "why_it_matters": "Tracks changes in muscle size against the personal pre-flight baseline. No validated clinical danger interval is provided.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; human review pending): Hides et al., Spine Journal 2021, Methods and Figure 1, transverse multifidus ultrasound and area tracing: https://australian.physio/sites/default/files/RESEARCH%26PUBLICATIONS/PRF/PRF%3A%20Image%20library/2021_Hides%20Astronaut%20paper_The%20Spine%20Journal-main-min.pdf . Right-side-only entry is the project convention; study averages are not substituted for the personal baseline."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; reviewed by Edu): Hides et al., Spine Journal 2021, Methods and Figure 1, transverse multifidus ultrasound and area tracing: https://australian.physio/sites/default/files/RESEARCH%26PUBLICATIONS/PRF/PRF%3A%20Image%20library/2021_Hides%20Astronaut%20paper_The%20Spine%20Journal-main-min.pdf . Right-side-only entry is the project convention; study averages are not substituted for the personal baseline."
   },
   "muscle_power": {
     "name": "Muscle power",
     "unit": "W",
     "how_to_measure": "With a trained operator, perform the right-knee extension test on an isokinetic dynamometer using the same speed and setup as pre-flight. Enter the peak mechanical power in watts from the analysed test, not torque in newton-metres.",
     "why_it_matters": "Tracks muscle power during a comparable instrumented task. No validated danger threshold is provided.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; human review pending): Laughlin et al., NASA ISS isokinetic reliability, Methods and Table I, right limb, fixed speed and instrument: https://ntrs.nasa.gov/api/citations/20090019649/downloads/20090019649.pdf . Project power is derived from torque times angular speed in rad/s; the paper reports torque, not a direct power output series."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; reviewed by Edu): Laughlin et al., NASA ISS isokinetic reliability, Methods and Table I, right limb, fixed speed and instrument: https://ntrs.nasa.gov/api/citations/20090019649/downloads/20090019649.pdf . Project power is derived from torque times angular speed in rad/s; the paper reports torque, not a direct power output series."
   },
   "muscle_endurance": {
     "name": "Muscle endurance",
     "unit": "repetitions",
     "how_to_measure": "With a trained operator, perform the right-knee extension test using the fixed pre-flight load, range of motion and tempo. Enter the number of completed repetitions accepted by the operator.",
     "why_it_matters": "Tracks repetitions at a fixed load in a comparable task where fewer repetitions mean poorer endurance. No validated danger threshold is provided.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; human review pending): Hillen et al., Muscles 2026, Methods 2.3, standardised unilateral knee-extension repetitions, load and tempo: https://www.mdpi.com/2813-0413/5/2/26 . Keeping the absolute pre-flight load fixed is the project longitudinal convention; the short confirmation timer does not replace task-specific recovery."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; reviewed by Edu): Hillen et al., Muscles 2026, Methods 2.3, standardised unilateral knee-extension repetitions, load and tempo: https://www.mdpi.com/2813-0413/5/2/26 . Keeping the absolute pre-flight load fixed is the project longitudinal convention; the short confirmation timer does not replace task-specific recovery."
   },
   "muscle_tone": {
     "name": "Muscle tone",
     "unit": "Hz",
     "how_to_measure": "Relax your right thigh while a trained operator places the MyotonPRO probe perpendicular to the marked rectus femoris site, matching your pre-flight position. Enter the reported oscillation frequency in Hz.",
     "why_it_matters": "Complements muscle monitoring through mechanical properties; changes alone do not diagnose atrophy.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; [4] ESA, Tricorder / Myotones (2018). Measurement guidance (AI-assisted source review; human review pending): MyotonPRO manufacturer Quick Guide, pp. 5-6, marked site, perpendicular probe and results: https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf . Right rectus femoris at rest is the project measurement definition."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; [4] ESA, Tricorder / Myotones (2018). Measurement guidance (AI-assisted source review; reviewed by Edu): MyotonPRO manufacturer Quick Guide, pp. 5-6, marked site, perpendicular probe and results: https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf . Right rectus femoris at rest is the project measurement definition."
   },
   "muscle_stiffness": {
     "name": "Muscle stiffness",
     "unit": "N/m",
     "how_to_measure": "Relax your right thigh while a trained operator repeats the MyotonPRO measurement at the same marked rectus femoris site and position as pre-flight. Enter the reported stiffness in N/m, not the frequency in Hz.",
     "why_it_matters": "Complements muscle monitoring, assessed separately from tone; changes alone do not diagnose atrophy.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; [4] ESA, Tricorder / Myotones (2018). Measurement guidance (AI-assisted source review; human review pending): MyotonPRO manufacturer Quick Guide, pp. 5-6, marked site, probe positioning and results: https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf . Right rectus femoris at rest is the project measurement definition."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 1; [4] ESA, Tricorder / Myotones (2018). Measurement guidance (AI-assisted source review; reviewed by Edu): MyotonPRO manufacturer Quick Guide, pp. 5-6, marked site, probe positioning and results: https://myoton.com/wp-content/uploads/2025/01/Quick-Guide-A4.pdf . Right rectus femoris at rest is the project measurement definition."
   },
   "peripapillary_trt_left": {
     "name": "Retina thickness near the optic nerve (left eye)",
     "unit": "µm",
     "how_to_measure": "Have a trained operator perform an eye scan (optical coherence tomography) on your left eye using the same acquisition and analysis settings as pre-flight. Enter mean total thickness of the retina (the light-sensing layer) in micrometres for the ring from the Bruch membrane opening (the scan reference boundary) to 250 micrometres, without averaging eyes.",
     "why_it_matters": "Tracks thickening of the retina, the eye's light-sensing layer, against the same eye's pre-flight reference; do not average the eyes.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; human review pending): Patel et al., JAMA Ophthalmology 2018, Methods, BMO-referenced annular total retinal thickness: https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551 . This is TRT, not RNFL thickness or a different OCT region."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; reviewed by Edu): Patel et al., JAMA Ophthalmology 2018, Methods, BMO-referenced annular total retinal thickness: https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551 . This is TRT, not RNFL thickness or a different OCT region."
   },
   "optic_disc_edema_grade_left": {
     "name": "Optic nerve head swelling (left eye)",
     "unit": "grade",
     "how_to_measure": "Have a trained eye-care clinician assess images of the optic nerve head of your left eye using the Frisén grading scale. Enter the clinician-reported grade for this eye only; do not infer it from eye-scan thickness.",
     "why_it_matters": "Records the clinician's swelling grade for the optic nerve head, where the nerve meets the eye. It is an ordered grade, not a score based on distance from an average; assess each eye separately.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Frisén grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; reviewed by Edu): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Frisén grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
   },
   "refraction_left": {
     "name": "Eye focusing measurement (left eye)",
     "unit": "D",
     "how_to_measure": "Have an eye-care clinician measure your left eye using the same focusing test with the eye's focusing muscles relaxed by the clinician (cycloplegic refraction) as pre-flight. Enter the signed combined focusing result (spherical equivalent) in dioptres supplied by the clinician, without averaging eyes.",
     "why_it_matters": "Tracks a positive change toward long-sightedness against the same eye's pre-flight reference; the guide uses the 2026 criteria.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods, clinician cycloplegic refraction: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Spherical-equivalent scalar is the project convention; its definition is sphere plus half the signed cylinder: https://pmc.ncbi.nlm.nih.gov/articles/PMC3930272/ . This does not direct the user to self-administer cycloplegic medicines."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; reviewed by Edu): Brunstetter et al., JAMA Ophthalmology 2024, Methods, clinician cycloplegic refraction: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Spherical-equivalent scalar is the project convention; its definition is sphere plus half the signed cylinder: https://pmc.ncbi.nlm.nih.gov/articles/PMC3930272/ . This does not direct the user to self-administer cycloplegic medicines."
   },
   "visual_acuity_left": {
     "name": "Vision sharpness with prescribed lenses (left eye)",
     "unit": "logMAR",
     "how_to_measure": "Cover your right eye and follow the calibrated vision-sharpness test with your prescribed distance lenses. Enter the left-eye vision score (logMAR) with those lenses using the same test, distance and lighting as pre-flight.",
     "why_it_matters": "Tracks vision with prescribed lenses in each eye; a higher logMAR vision score means poorer vision. Statistical review bands are prototype proposals, not validated limits for spaceflight eye changes.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; Proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; human review pending): Bach, Freiburg vision test (FrACT), computer-estimated logMAR: https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/ . MedlinePlus, Visual acuity test, one eye at a time and testing with correction: https://medlineplus.gov/ency/article/003396.htm . Corrected monocular output is the project definition; do not substitute binocular or uncorrected results."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; Proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; reviewed by Edu): Bach, Freiburg vision test (FrACT), computer-estimated logMAR: https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/ . MedlinePlus, Visual acuity test, one eye at a time and testing with correction: https://medlineplus.gov/ency/article/003396.htm . Corrected monocular output is the project definition; do not substitute binocular or uncorrected results."
   },
   "peripapillary_trt_right": {
     "name": "Retina thickness near the optic nerve (right eye)",
     "unit": "µm",
     "how_to_measure": "Have a trained operator perform an eye scan (optical coherence tomography) on your right eye using the same acquisition and analysis settings as pre-flight. Enter mean total thickness of the retina (the light-sensing layer) in micrometres for the ring from the Bruch membrane opening (the scan reference boundary) to 250 micrometres, without averaging eyes.",
     "why_it_matters": "Tracks thickening of the retina, the eye's light-sensing layer, against the same eye's pre-flight reference; do not average the eyes.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; human review pending): Patel et al., JAMA Ophthalmology 2018, Methods, BMO-referenced annular total retinal thickness: https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551 . This is TRT, not RNFL thickness or a different OCT region."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; reviewed by Edu): Patel et al., JAMA Ophthalmology 2018, Methods, BMO-referenced annular total retinal thickness: https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2667551 . This is TRT, not RNFL thickness or a different OCT region."
   },
   "optic_disc_edema_grade_right": {
     "name": "Optic nerve head swelling (right eye)",
     "unit": "grade",
     "how_to_measure": "Have a trained eye-care clinician assess images of the optic nerve head of your right eye using the Frisén grading scale. Enter the clinician-reported grade for this eye only; do not infer it from eye-scan thickness.",
     "why_it_matters": "Records the clinician's swelling grade for the optic nerve head, where the nerve meets the eye. It is an ordered grade, not a score based on distance from an average; assess each eye separately.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Frisén grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [2] NASA, SANS: 2023 Clinical Update. Measurement guidance (AI-assisted source review; reviewed by Edu): Brunstetter et al., JAMA Ophthalmology 2024, Methods/Results/Discussion, retinal imaging and clinical Frisén grading: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Grade 0 does not exclude OCT changes."
   },
   "refraction_right": {
     "name": "Eye focusing measurement (right eye)",
     "unit": "D",
     "how_to_measure": "Have an eye-care clinician measure your right eye using the same focusing test with the eye's focusing muscles relaxed by the clinician (cycloplegic refraction) as pre-flight. Enter the signed combined focusing result (spherical equivalent) in dioptres supplied by the clinician, without averaging eyes.",
     "why_it_matters": "Tracks a positive change toward long-sightedness against the same eye's pre-flight reference; the guide uses the 2026 criteria.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; human review pending): Brunstetter et al., JAMA Ophthalmology 2024, Methods, clinician cycloplegic refraction: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Spherical-equivalent scalar is the project convention; its definition is sphere plus half the signed cylinder: https://pmc.ncbi.nlm.nih.gov/articles/PMC3930272/ . This does not direct the user to self-administer cycloplegic medicines."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; [3] Gew et al., SANS consensus (2026), Table 2. Measurement guidance (AI-assisted source review; reviewed by Edu): Brunstetter et al., JAMA Ophthalmology 2024, Methods, clinician cycloplegic refraction: https://pmc.ncbi.nlm.nih.gov/articles/PMC11273286/ . Spherical-equivalent scalar is the project convention; its definition is sphere plus half the signed cylinder: https://pmc.ncbi.nlm.nih.gov/articles/PMC3930272/ . This does not direct the user to self-administer cycloplegic medicines."
   },
   "visual_acuity_right": {
     "name": "Vision sharpness with prescribed lenses (right eye)",
     "unit": "logMAR",
     "how_to_measure": "Cover your left eye and follow the calibrated vision-sharpness test with your prescribed distance lenses. Enter the right-eye vision score (logMAR) with those lenses using the same test, distance and lighting as pre-flight.",
     "why_it_matters": "Tracks vision with prescribed lenses in each eye; a higher logMAR vision score means poorer vision. Statistical review bands are prototype proposals, not validated limits for spaceflight eye changes.",
-    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; Proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; human review pending): Bach, Freiburg vision test (FrACT), computer-estimated logMAR: https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/ . MedlinePlus, Visual acuity test, one eye at a time and testing with correction: https://medlineplus.gov/ency/article/003396.htm . Corrected monocular output is the project definition; do not substitute binocular or uncorrected results."
+    "source": "guia_breve_umbrales_atrofia_SANS (1).pdf (2026-11-14), p. 2; Proposed prototype review bands [P]. Measurement guidance (AI-assisted source review; reviewed by Edu): Bach, Freiburg vision test (FrACT), computer-estimated logMAR: https://pmc.ncbi.nlm.nih.gov/articles/PMC11868300/ . MedlinePlus, Visual acuity test, one eye at a time and testing with correction: https://medlineplus.gov/ency/article/003396.htm . Corrected monocular output is the project definition; do not substitute binocular or uncorrected results."
   },
   "_example_indicator": {
     "name": "Example indicator (test fixture, not health data)",

@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Edu (review pending).
+# AI-assisted: generated with Codex and reviewed by Edu.
 """Validate the documented synthetic scenario, not astronaut population physiology."""
 import ast
 from datetime import datetime, timedelta

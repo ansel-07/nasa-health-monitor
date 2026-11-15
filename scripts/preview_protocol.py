@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex; human review pending.
+# AI-assisted: generated with Codex and reviewed by Javi.
 """Manual Protocol sandbox. Run: python -m streamlit run scripts/preview_protocol.py.
 
 Uses the existing nonmedical example fixture. Dependency replacements are scoped

@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Check-in with real clock, symptom detection and CSV/JSON persistence.
 
 All configuration and readings are synthetic fixtures under tmp_path. No clock,

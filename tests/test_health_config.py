@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Edu (review pending).
+# AI-assisted: generated with Codex and reviewed by Edu.
 """Production content boundaries from Edu's guide/#43, using synthetic references."""
 from datetime import datetime, timedelta
 

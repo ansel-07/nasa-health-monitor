@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and reviewed by Javi (review pending).
+# AI-assisted: generated with Claude Code and reviewed by Javi.
 """Practice runs (tutorials, AGENTS.md 16.4): same engine, nothing saved (#97).
 
 Runs the _example fixture protocol with real storage pointed at a temp folder;

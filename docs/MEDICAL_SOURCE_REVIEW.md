@@ -1,4 +1,4 @@
-<!-- AI-assisted: generated with Codex; human review by Edu pending. -->
+<!-- AI-assisted: generated with Codex and reviewed by Edu. -->
 
 # Medical source extraction for issue #43
 

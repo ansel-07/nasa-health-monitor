@@ -1,5 +1,5 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
-# AI-assisted: lifecycle implementation generated with Codex; human review pending.
+# AI-assisted: lifecycle implementation generated with Codex and reviewed by Juan Carlos.
 """Episode lifecycle: open, confirm, dismiss, pending list. Owner: Juan Carlos.
 
 Rules: AGENTS.md, sections 5.4, 7 and 10. Storage goes through core/data.py only.

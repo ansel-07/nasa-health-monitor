@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and Codex; human review pending.
+# AI-assisted: generated with Claude Code and Codex, reviewed by Javi.
 """Run a protocol flowchart for an active episode. Owner: Javi."""
 import json
 from copy import deepcopy

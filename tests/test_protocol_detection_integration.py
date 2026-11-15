@@ -1,4 +1,4 @@
-# AI-assisted: generated with Claude Code and reviewed by Javi (review pending).
+# AI-assisted: generated with Claude Code and reviewed by Javi.
 """Protocol readings routed through episode detection, with real CSV/JSON storage.
 
 All indicators, rules and protocols are synthetic test fixtures, not health

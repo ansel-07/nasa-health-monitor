@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Symptom-based episode lifecycle using synthetic content and temporary storage."""
 from copy import deepcopy
 from datetime import datetime, timedelta

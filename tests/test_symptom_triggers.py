@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Synthetic symptom/state rules; no medical content."""
 from copy import deepcopy
 

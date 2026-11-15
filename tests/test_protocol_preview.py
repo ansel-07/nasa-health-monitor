@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex; human review pending.
+# AI-assisted: generated with Codex and reviewed by Javi.
 """Manual sandbox journeys and restoration of production dependencies."""
 import pytest
 from streamlit.testing.v1 import AppTest

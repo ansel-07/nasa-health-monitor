@@ -1,5 +1,5 @@
 # AI-assisted: generated with Claude Code and reviewed by Ansel.
-# AI-assisted: Check-in implementation generated with Codex; human review pending.
+# AI-assisted: Check-in implementation generated with Codex and reviewed by Juan Carlos.
 """Check-in: measurement form, trigger alert and confirmation step. Owner: Juan Carlos.
 
 Mascot: a compact assistant line without a visual; small to the left of the chart.

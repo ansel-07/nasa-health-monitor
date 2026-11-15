@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Protect the published Check-in demo against seed/config/UI integration regressions.
 
 Use the real seed and configuration, copying runtime data into a temporary browser

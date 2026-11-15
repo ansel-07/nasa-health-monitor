@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Exercise the real multipage app and per-session storage with synthetic fixtures.
 
 AppTest uses one fixed session id, so the fixture supplies distinct browser ids.

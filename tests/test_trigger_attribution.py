@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex and reviewed by Juan Carlos (review pending).
+# AI-assisted: generated with Codex and reviewed by Juan Carlos.
 """Synthetic batch attribution: matched states never substitute incoming evidence."""
 import json
 from copy import deepcopy

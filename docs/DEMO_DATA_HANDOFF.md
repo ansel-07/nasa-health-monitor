@@ -1,4 +1,4 @@
-<!-- AI-assisted: generated with Codex; human review pending. -->
+<!-- AI-assisted: generated with Codex and reviewed by Edu. -->
 
 # Synthetic demo data handoff
 

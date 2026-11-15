@@ -1,4 +1,4 @@
-# AI-assisted: generated with Codex; human review pending.
+# AI-assisted: generated with Codex and reviewed by Javi.
 """Protocol execution against the example fixture with isolated storage."""
 from copy import deepcopy
 from datetime import datetime
