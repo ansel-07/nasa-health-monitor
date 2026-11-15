@@ -457,8 +457,10 @@ def main() -> None:
                         if result["status"] == "active" else "Repeat measurement recorded. The alert was not confirmed and has been dismissed.")
             else:
                 if not draft:
-                    draft = {"measurements": [_measurement(astronaut, key, indicators[key]["unit"], value)
-                                              for key, value in values.items()], "saved": 0}
+                    # Validate the whole group before saving a row or locking a retry draft.
+                    draft = {"measurements": [episodes._measurement(
+                        _measurement(astronaut, key, indicators[key]["unit"], value), mission.now())
+                        for key, value in values.items()], "saved": 0}
                     st.session_state[draft_key] = draft
                 result = opened
                 while draft["saved"] < len(draft["measurements"]):

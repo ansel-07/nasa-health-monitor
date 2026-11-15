@@ -65,6 +65,14 @@ def test_real_seed_check_in_confirms_without_incomplete_baselines(tmp_path, monk
     click("Simulate wait")
     assert_assessments_available()
     assert not app.number_input[0].disabled
+    before_rows = data.load_measurements().copy()
+    before_episode = data.get_open_episode("a1")
+    app.number_input[0].set_value(-1)
+    click("Confirm repeat measurement")
+    assert any("non-negative" in item.value for item in app.error)
+    assert data.get_open_episode("a1") == before_episode
+    assert data.load_measurements().equals(before_rows)
+    assert not app.number_input[0].disabled
     app.number_input[0].set_value(initial["trigger"]["value"])
     click("Confirm repeat measurement")
 
