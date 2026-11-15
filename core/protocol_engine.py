@@ -266,7 +266,8 @@ def _short(text: str, limit: int = 34) -> str:
     return sentence if len(sentence) <= limit else sentence[:limit - 1].rstrip() + "…"
 
 
-def _wrap(text: str, width: int = 18) -> str:
+def _wrap(text: str, width: int = 18, max_lines: int | None = None) -> str:
+    """Break text into lines of about `width` characters; with max_lines, end in "…" at a word."""
     lines, line = [], ""
     for word in text.split():
         if line and len(line) + 1 + len(word) > width:
@@ -274,10 +275,22 @@ def _wrap(text: str, width: int = 18) -> str:
             line = word
         else:
             line = f"{line} {word}".strip()
-    return "\n".join(lines + [line])
+    lines.append(line)
+    if max_lines and len(lines) > max_lines:
+        lines = lines[:max_lines]
+        last = lines[-1].rstrip("…").rstrip(" ,;:")
+        while last and len(last) + 1 > width:
+            last = last.rsplit(" ", 1)[0] if " " in last else last[:width - 1]
+        lines[-1] = last.rstrip(" ,;:") + "…"
+    return "\n".join(lines)
 
 
-def _node_label(node: dict, indicators: dict) -> str:
+# Focused view (#188): step labels on up to four short lines that end at a whole word, instead of
+# being cut at 34 characters, so the current step can be read on a projector.
+_FOCUS_LABEL, _FOCUS_WRAP, _FOCUS_LINES = 200, 14, 4
+
+
+def _node_label(node: dict, indicators: dict, limit: int = 34) -> str:
     kind = node["type"]
     if kind == "decision":
         return "Check"
@@ -289,8 +302,8 @@ def _node_label(node: dict, indicators: dict) -> str:
         return f"End: {_readable(node['outcome'])}"
     if kind == "measure":
         name = indicators.get(node["indicator"], {}).get("name", "")
-        return _short(f"Measure {name if name and not name.startswith(TODO_MARK) else _readable(node['indicator'])}")
-    return _short(node.get("text", ""))
+        return _short(f"Measure {name if name and not name.startswith(TODO_MARK) else _readable(node['indicator'])}", limit)
+    return _short(node.get("text", ""), limit)
 
 
 def _condition_label(cond: dict) -> str:
@@ -376,7 +389,7 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
     shown, hidden = (list(protocol["nodes"]), 0) if whole else _focus(protocol, trace)
     # Focused view: only the route taken and the ways out of the current step (through automatic nodes).
     ahead = {current} | {n for n in shown if n not in visited and protocol["nodes"][n]["type"] in _AUTOMATIC}
-    font, edge_font = (11, 9) if whole else (16, 13)
+    font, edge_font = (11, 9) if whole else (20, 11)
     quote = lambda value: json.dumps(value, ensure_ascii=False)  # Graphviz reads UTF-8, not \u escapes
     lines = ["digraph protocol {",
              'graph [rankdir=LR, bgcolor="transparent", nodesep=0.3, ranksep=0.45];',
@@ -392,7 +405,8 @@ def flowchart_dot(episode: dict, whole: bool = False) -> str:
         fill, border = _CURRENT if node_id == current else _VISITED if node_id in visited else _AHEAD
         width = 2.5 if node_id == current else 1
         shape = "diamond" if node["type"] == "decision" else "box"
-        label = _wrap(_node_label(node, indicators))
+        label = (_wrap(_node_label(node, indicators)) if whole
+                 else _wrap(_node_label(node, indicators, _FOCUS_LABEL), _FOCUS_WRAP, _FOCUS_LINES))
         lines.append(f"{quote(node_id)} [label={quote(label)}, shape={shape}, "
                      f'fillcolor="{fill}", color="{border}", penwidth={width}];')
     for node_id in shown:

@@ -462,7 +462,7 @@ def test_focused_flowchart_shows_recent_steps_current_and_where_options_lead(epi
     assert drawn_nodes(dot) == {"_earlier", "symptoms", "do_action", "remeasure", "contact_crew", "monitor"}
     assert 'label="… 2 earlier steps"' in dot
     assert '"_earlier" -> "symptoms"' in dot
-    assert "fontsize=16" in dot
+    assert "fontsize=20" in dot   # #188: larger text in the focused view
 
 
 def test_focused_flowchart_follows_automatic_nodes_and_hides_unrelated_edges(episode):
@@ -477,6 +477,24 @@ def test_focused_flowchart_follows_automatic_nodes_and_hides_unrelated_edges(epi
     # A visited node's other branches are not drawn, even if their target is on screen.
     assert '"route" -> "contact_now"' not in dot
     assert "penwidth=2.5" in edge_line(dot, "route", "intro_mars")
+
+
+def test_wrap_limits_lines_and_ends_at_a_whole_word():
+    assert engine._wrap("one two three", 18) == "one two three"
+    text = "In either eye: new field gap, central distortion, correction needed"
+    assert engine._wrap(text, 14, 4).split("\n") == ["In either eye:", "new field gap,", "central", "distortion…"]
+
+
+def test_focused_labels_show_more_text_on_short_lines_but_whole_view_stays_short(episode):
+    """#188: focused labels wrap on up to four short lines and end at a word; whole view unchanged."""
+    episode.update(current_node="do_action")
+    text = engine.load_protocol("_example")["nodes"]["do_action"]["text"].split(". ")[0]
+    label = node_line(engine.flowchart_dot(episode), "do_action").split('label="')[1].split('", shape')[0]
+    lines = label.split("\\n")
+    assert len(lines) <= engine._FOCUS_LINES and all(len(line) <= engine._FOCUS_WRAP + 1 for line in lines)
+    shown = " ".join(lines).rstrip("…")
+    assert text.startswith(shown) and (label.endswith("…") or shown == text.rstrip("."))
+    assert node_line(engine.flowchart_dot(episode, whole=True), "do_action").count("\\n") <= 1
 
 
 @pytest.mark.parametrize("cond,label", [
