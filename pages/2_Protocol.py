@@ -77,7 +77,7 @@ def format_delay(minutes: float) -> str:
 
 
 def show_result(episode: dict, step: dict, astronaut: str) -> None:
-    mascot.say(step["text"], "neutral", size="large")
+    mascot.say(step["text"], "neutral", size="medium")
     labels = {"resolved": "Resolved", "monitoring": "Monitoring", "handed_over": "Handed over"}
     st.success(f"Protocol completed: {labels[episode['status']]}")
     if episode.get("closed_at"):
@@ -89,16 +89,16 @@ def main() -> None:
     mascot.voice_toggle()
     astronaut = st.session_state.get("astronaut")
     if not astronaut:
-        mascot.say("Choose an astronaut on the Home page first.", "neutral", size="large")
+        mascot.say("Choose an astronaut on the Home page first.", "neutral", size="medium")
         st.page_link("pages/0_Home.py", label="Go to Home")
         return
 
     episode = data.get_open_episode(astronaut)
     if episode and episode["problem"].startswith("_"):
-        mascot.say("No astronaut protocol is available for this issue.", "neutral", size="large")
+        mascot.say("No astronaut protocol is available for this issue.", "neutral", size="medium")
         return
     if episode and episode["status"] == "pending_confirmation":
-        mascot.say("This issue needs a repeat measurement before a protocol can start. Go to Check-in to complete confirmation.", "neutral", size="large")
+        mascot.say("This issue needs a repeat measurement before a protocol can start. Go to Check-in to complete confirmation.", "neutral", size="medium")
         st.page_link("pages/1_Check_in.py", label="Go to Check-in")
         return
 
@@ -110,7 +110,7 @@ def main() -> None:
         if completed:
             episode = max(completed, key=lambda item: item.get("closed_at") or "")
         else:
-            mascot.say("You have no active protocol.", "neutral", size="large")
+            mascot.say("You have no active protocol.", "neutral", size="medium")
             show_pending(astronaut)
             st.page_link("pages/1_Check_in.py", label="Open Check-in")
             return
@@ -122,7 +122,7 @@ def main() -> None:
             episode = protocol_engine.submit(episode, None)
         step = protocol_engine.current_step(episode)
     except (ValueError, KeyError, OSError):
-        mascot.say("This protocol is unavailable because required information is missing or invalid. Please ask the mission team for help.", "neutral", size="large")
+        mascot.say("This protocol is unavailable because required information is missing or invalid. Please ask the mission team for help.", "neutral", size="medium")
         st.error("The protocol cannot continue until the missing information is available.")
         return
 

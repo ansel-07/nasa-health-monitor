@@ -204,7 +204,7 @@ validate_all(strict: bool = False) -> list[str]   # error messages; empty if OK
 # core/mascot.py  (Ansel)
 say(text: str, mood: str = "neutral", size: str = "large") -> None
 beside(text: str, mood: str = "neutral") -> DeltaGenerator   # mascot small on the left; returns the right column for the visual
-# Draws the mascot with a speech bubble and reads `text` aloud. mood: one of MOODS. size: "large" | "small".
+# Draws the mascot with subtitles and reads `text` aloud. mood: one of MOODS. size: "large" (Welcome only) | "medium" (alone on other screens) | "small" (beside()).
 voice_toggle() -> None   # "Voice on/off" control; draw it once per astronaut screen
 
 # core/data.py  (Fran)
@@ -279,7 +279,7 @@ Layout decided by Ansel; details in `docs/FRONTEND_MASCOT_LAYOUT.md` (it wins ov
 
 - **Where it appears:** Welcome, Main Menu, Check-in and Protocols. **Not** on Trends or Tutorials.
 - **Look:** the spec face (cyan eyes and smile, no frame) with **subtitles below it** (no speech bubble).
-- **Alone on the screen:** `mascot.say(text, mood, size="large")`, big (35 % of the browser height) and centred. Cards and buttons are **not** a visual: they go below the subtitles (Welcome, Main Menu, Check-in list, every Protocols state without a step).
+- **Alone on the screen:** on the Welcome `mascot.say(text, mood, size="large")`, big (35 % of the browser height) and centred; on every other screen `size="medium"`, a compact assistant line (face at most 112 px left of its subtitles, in a panel; Ansel, `docs/UI_STYLE.md`). Cards and buttons are **not** a visual: they go below the subtitles (Welcome, Main Menu, Check-in list, every Protocols state without a step).
 - **Only with a chart or a flowchart** (Check-in detail, an active protocol step): `mascot.beside()`; the mascot slides to the left and shrinks (a 600 ms entry animation, once), the visual takes the right. **Buttons always go below**, full width.
 
   ```python

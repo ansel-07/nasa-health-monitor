@@ -4,10 +4,12 @@
 Rules: AGENTS.md, section 8; layout: docs/FRONTEND_MASCOT_LAYOUT.md section 1.
 Pages call only say(), beside() and voice_toggle(); one mascot per screen run.
 
-- Alone: say(text, mood, size="large"), big and centred (35 % of the browser height).
+- Welcome only: say(text, mood, size="large"), big and centred (35 % of the browser height).
+- Alone on any other screen: say(text, mood, size="medium"), a compact assistant line: the face
+  (at most 112 px) on the left of its subtitles, in a panel (docs/UI_STYLE.md).
 - With a chart or flowchart: beside(text, mood), small on the left (45 % of big); the right
-  column is returned for the visual. Buttons go below. Moving between the two layouts plays a
-  short entry animation once (CSS in the parent page, keyed containers).
+  column is returned for the visual. Buttons go below. Moving between layouts plays a short
+  entry animation once (CSS in the parent page, keyed containers).
 - Subtitles are revealed word by word (with the voice when it is on) and the mouth talks
   meanwhile, only when the text is new (session_state["mascot_last_text"]). A rerun with the
   same text shows the full subtitles at once, silently.
@@ -41,13 +43,20 @@ _OPEN_MOUTH = "M44 90 Q61 84 78 90 Q78 110 61 112 Q44 110 44 90 Z"
 _EYE_HEIGHT = {"happy": 18, "neutral": 26, "thinking": 14, "worried": 30, "serious": 12}
 
 # Fallback face heights when the parent page cannot be measured (35 % of 1080 px; 45 % of it).
-_FACE_PX = {"large": 380, "small": 171}
-_FACE_SHARE = {"large": 0.35, "small": 0.35 * 0.45}
+_FACE_PX = {"large": 380, "medium": 104, "small": 171}
+_FACE_SHARE = {"large": 0.35, "medium": 0.13, "small": 0.35 * 0.45}
+_FACE_MAX_PX = {"large": 2000, "medium": 112, "small": 2000}
 # Narrow screens (phones): the big face is at most 55 % of the browser width, subtitles smaller.
 _MAX_WIDTH_SHARE = 0.55
-_NARROW_PX, _NARROW_FONT_PX = 640, {"large": 22, "small": 16}
-_FONT_PX = {"large": 28, "small": 18}
-_CHARS_PER_LINE = {"large": 48, "small": 18}
+_NARROW_PX, _NARROW_FONT_PX = 640, {"large": 22, "medium": 17, "small": 16}
+_FONT_PX = {"large": 28, "medium": 21, "small": 17}
+_CHARS_PER_LINE = {"large": 48, "medium": 60, "small": 18}
+# Colours and fonts of docs/UI_STYLE.md (the iframe does not inherit the page's styles).
+_ACCENT, _TEXT, _SURFACE, _BORDER = "#5EF2FF", "#E6EDF7", "#131C2E", "#22304A"
+_FONT_FACES = "".join(
+    f"@font-face {{ font-family: 'IBM Plex Sans'; font-weight: {weight}; "
+    f"src: url('/app/static/fonts/IBMPlexSans-{name}.woff2') format('woff2'); }}"
+    for weight, name in ((400, "Regular"), (500, "Medium")))
 _WORD_MS, _TALK_MS, _BOUNDARY_WAIT_MS = 330, 160, 700
 
 _LAST_TEXT = "mascot_last_text"
@@ -62,6 +71,10 @@ _TO_SIDE_CSS = """<style>
 .st-key-mascot_visual { animation: mascot-fade-in 300ms ease-in 300ms both; }
 @media (max-width: 768px) { .st-key-mascot_side { animation: none; } }
 """ + _REDUCED.format(sel=".st-key-mascot_side, .st-key-mascot_visual") + "\n</style>"
+_FADE_CSS = """<style>
+@keyframes mascot-fade-in { from { opacity: 0; } to { opacity: 1; } }
+{sel} { animation: mascot-fade-in 400ms ease-out; }
+</style>"""
 _TO_CENTRE_CSS = """<style>
 @keyframes mascot-to-centre { from { transform: translateX(-37.5%) scale(0.45); } to { transform: none; } }
 .st-key-mascot_alone { animation: mascot-to-centre 600ms ease-in-out; transform-origin: center top; }
@@ -74,7 +87,10 @@ def frame_height(text: str, size: str) -> int:
     The frame resizes itself to its content in the browser; this is the first height.
     """
     lines = max(1, -(-len(text) // _CHARS_PER_LINE[size]))  # ceil
-    return _FACE_PX[size] + 40 + lines * round(_FONT_PX[size] * 1.45)
+    text_px = lines * round(_FONT_PX[size] * 1.45)
+    if size == "medium":   # face and subtitles side by side, inside a padded panel
+        return max(_FACE_PX[size], text_px) + 34
+    return _FACE_PX[size] + 40 + text_px
 
 
 def _word_spans(text: str) -> str:
@@ -104,20 +120,26 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
     # json.dumps does not escape "</", which would close the <script> early (CODE_REVIEW BUG-18).
     text_js = json.dumps(text).replace("</", "<\\/")
 
+    row = size == "medium"
+    layout = ("flex-direction:row;align-items:center;gap:22px;padding:12px 22px;"
+              f"background:{_SURFACE};border:1px solid {_BORDER};border-radius:12px;"
+              if row else "flex-direction:column;align-items:center;gap:14px;")
     return f"""
-<div class="mascot" style="display:flex;flex-direction:column;align-items:center;gap:12px;font-family:sans-serif;">
+<div class="mascot" style="display:flex;{layout}font-family:'IBM Plex Sans',sans-serif;">
   <svg class="face" width="{face_w}" height="{face_px}" viewBox="0 0 {_VIEWBOX_W} {_VIEWBOX_H}" fill="none" role="img" aria-label="{html.escape(MASCOT_NAME)} ({mood})">
-    <rect class="eye" x="13" y="{eye_y}" width="30" height="{eye_h}" rx="9" fill="#5EF2FF"/>
-    <rect class="eye" x="80" y="{eye_y}" width="30" height="{eye_h}" rx="9" fill="#5EF2FF"/>
-    <path class="mouth" d="{_MOUTHS[mood]}" stroke="#5EF2FF" stroke-width="9" stroke-linecap="round"/>
-    <path class="mouth-open" d="{_OPEN_MOUTH}" fill="#5EF2FF" style="display:none"/>
+    <rect class="eye" x="13" y="{eye_y}" width="30" height="{eye_h}" rx="9" fill="{_ACCENT}"/>
+    <rect class="eye" x="80" y="{eye_y}" width="30" height="{eye_h}" rx="9" fill="{_ACCENT}"/>
+    <path class="mouth" d="{_MOUTHS[mood]}" stroke="{_ACCENT}" stroke-width="9" stroke-linecap="round"/>
+    <path class="mouth-open" d="{_OPEN_MOUTH}" fill="{_ACCENT}" style="display:none"/>
   </svg>
-  <div class="subtitles" style="background:rgba(0,0,0,0.72);color:#fff;border-radius:8px;padding:6px 14px;font-size:{font}px;line-height:1.45;text-align:center;max-width:92%;">
+  <div class="subtitles" style="color:{_TEXT};font-weight:{500 if size == "large" else 400};font-size:{font}px;line-height:1.45;text-align:{"left" if row else "center"};max-width:{"none" if row else "92%"};flex:{"1" if row else "none"};">
     {_word_spans(text)}
   </div>
 </div>
 <style>
+  {_FONT_FACES}
   html, body {{ margin: 0; padding: 0; background: transparent; overflow: hidden; }}
+  .face {{ flex: none; }}
   .w {{ visibility: {hidden}; }}
   .eye {{ animation: blink 4s infinite; transform-origin: center; transform-box: fill-box; }}
   @keyframes blink {{ 0%, 94%, 100% {{ transform: scaleY(1); }} 97% {{ transform: scaleY(0.1); }} }}
@@ -125,7 +147,7 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
 <script>
   (function () {{
     var SPEAK = {speak}, ANIMATE = {"true" if animate else "false"}, SHARE = {_FACE_SHARE[size]};
-    var SCALE = {_FACE_SHARE[size] / _FACE_SHARE["large"]}, MAX_W = {_MAX_WIDTH_SHARE};
+    var SCALE = {_FACE_SHARE[size] / _FACE_SHARE["large"]}, MAX_W = {_MAX_WIDTH_SHARE}, MAX_PX = {_FACE_MAX_PX[size]};
     var face = document.querySelector(".face");
     function fit() {{
       try {{
@@ -138,7 +160,7 @@ def build_html(text: str, mood: str = "neutral", size: str = "large", voice_on: 
     }}
     try {{
       var p = window.parent;
-      var h = Math.round(Math.min(p.innerHeight * SHARE, p.innerWidth * MAX_W * SCALE));
+      var h = Math.round(Math.min(p.innerHeight * SHARE, p.innerWidth * MAX_W * SCALE, MAX_PX));
       if (p.innerWidth < {_NARROW_PX}) document.querySelector(".subtitles").style.fontSize = "{_NARROW_FONT_PX[size]}px";
       if (h > 40) {{ face.setAttribute("height", h); face.setAttribute("width", Math.round(h * {_VIEWBOX_W} / {_VIEWBOX_H})); }}
     }} catch (e) {{}}
@@ -213,17 +235,18 @@ def _render(text: str, mood: str, size: str) -> None:
 def say(text: str, mood: str = "neutral", size: str = "large") -> None:
     """Draw the mascot saying `text` and read it aloud if the voice is on.
 
-    size="large": big and centred (animates back from the side if the last mascot was small).
+    size="large": big and centred, Welcome only (animates back from the side after a small one).
+    size="medium": the compact assistant line of every other screen (fades in after a small one).
     size="small": the small face only; beside() uses it for the mascot column.
     """
-    if size != "large":
+    if size == "small":
         _render(text, mood, size)
         return
     with st.container(key="mascot_alone"):
         if st.session_state.get(_LAYOUT) == "small":
-            st.html(_TO_CENTRE_CSS)
+            st.html(_TO_CENTRE_CSS if size == "large" else _FADE_CSS.replace("{sel}", ".st-key-mascot_alone"))
         _render(text, mood, size)
-    st.session_state[_LAYOUT] = "large"
+    st.session_state[_LAYOUT] = size
 
 
 def beside(text: str, mood: str = "neutral"):
@@ -235,6 +258,8 @@ def beside(text: str, mood: str = "neutral"):
     """
     if st.session_state.get(_LAYOUT) == "large":
         st.html(_TO_SIDE_CSS)
+    elif st.session_state.get(_LAYOUT) == "medium":
+        st.html(_FADE_CSS.replace("{sel}", ".st-key-mascot_side, .st-key-mascot_visual"))
     mascot_col, visual_col = st.columns([1, 3], vertical_alignment="top")  # top: visible next to long lists
     with mascot_col, st.container(key="mascot_side"):
         say(text, mood, size="small")

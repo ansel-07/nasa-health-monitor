@@ -171,3 +171,26 @@ def test_face_is_capped_by_the_screen_width():
     big, small = build_html("Hi", size="large"), build_html("Hi", size="small")
     assert "MAX_W = 0.55" in big and "p.innerWidth * MAX_W * SCALE" in big
     assert "SCALE = 1.0" in big and "SCALE = 0.45" in small
+
+
+def test_medium_is_a_compact_row_with_capped_face():
+    """docs/UI_STYLE.md: outside the Welcome the mascot is an assistant line, face at most 112 px."""
+    out = build_html("Hi", size="medium")
+    assert "flex-direction:row" in out and "MAX_PX = 112" in out
+    assert "flex-direction:row" not in build_html("Hi", size="large")
+
+
+def test_subtitles_use_the_app_font_without_a_black_box():
+    out = build_html("Hi", size="large")
+    assert "IBMPlexSans-Regular.woff2" in out and "rgba(0,0,0,0.72)" not in out
+
+
+def test_medium_say_fades_in_after_a_small_mascot():
+    def script():
+        from core import mascot
+        mascot.say("Alone", "neutral", size="medium")
+
+    assert "mascot-fade-in" not in _styles(_run(script))
+    app = _run(script, {"mascot_layout": "small"})
+    assert "mascot-fade-in" in _styles(app) and "mascot-to-centre" not in _styles(app)
+    assert app.session_state["mascot_layout"] == "medium"
