@@ -1,4 +1,4 @@
-<!-- AI-assisted: written with Claude Code for Javi's bug hunt; human review by Javi pending. -->
+<!-- AI-assisted: written with Claude Code for Javi's bug hunt and reviewed by Javi. -->
 
 # Bug hunt: Javi's part (#248)
 
