@@ -115,7 +115,8 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     Practice mode (tutorials, AGENTS.md 16.4): if episode["practice"] is true the
     same flow runs in memory only. Nothing is saved: no episode, no measurement,
     no detection. Measured values only go to vars and the decision context, and
-    action waits are not enforced. Symptom levels still come from stored data.
+    action waits are not enforced. Practice readings override stored values for
+    symptom decisions within that run; the stored astronaut data is untouched.
     """
     if episode["status"] in OUTCOMES:
         return deepcopy(episode)
@@ -139,6 +140,12 @@ def submit(episode: dict, user_input: dict | None) -> dict:
     timestamp = at.isoformat()
     visited = set()
     latest = dict(data.latest_values(updated["astronaut"]))
+    if practice:
+        # Replay only this in-memory run's accepted readings, in their actual order.
+        for entry in updated["log"]:
+            measured = protocol["nodes"].get(entry["node"], {})
+            if measured.get("type") == "measure":
+                latest[measured["indicator"]] = entry["input"]
 
     while True:
         node_id = updated["current_node"]
@@ -158,6 +165,8 @@ def submit(episode: dict, user_input: dict | None) -> dict:
                 # Recomputed at every decision so it reflects measurements saved above.
                 ctx["symptoms"] = triggers.symptom_levels(
                     updated["problem"], updated["astronaut"], updated["environment"])
+                if practice:
+                    ctx["symptoms"] = triggers._symptom_levels(problem, ctx)
             target = node["default"]
             for branch in node["branches"]:
                 if conditions.check(branch["if"], ctx):

@@ -8,7 +8,7 @@ from datetime import datetime
 
 import pytest
 
-from core import activity, mission, models
+from core import activity, config, data, mission, models
 from core import protocol_engine as engine
 
 
@@ -51,6 +51,34 @@ def test_practice_does_not_enforce_action_wait(storage, practice):
 def test_practice_input_is_not_mutated(storage, practice):
     engine.submit(practice, None)
     assert practice["current_node"] is None and practice["log"] == []
+
+
+def test_practice_symptom_decisions_use_its_readings_across_reruns(storage, monkeypatch):
+    problems = {"synthetic": {"symptoms": {"signal": {"levels": [
+        {"level": "concern", "when": {"indicator": "_example_indicator", "at_least": 10}},
+    ]}}, "states": [{"state": "watch", "when": {"symptom": "signal", "level_is": "concern"}}]}}
+    condition = {"symptom": "signal", "level_is": "concern"}
+    protocol = {"start": "measure", "nodes": {
+        "measure": {"type": "measure", "indicator": "_example_indicator", "save_as": "after", "next": "first"},
+        "first": {"type": "decision", "branches": [{"if": condition, "next": "pause"}], "default": "ignored"},
+        "pause": {"type": "info", "text": "Synthetic pause.", "next": "second"},
+        "second": {"type": "decision", "branches": [{"if": condition, "next": "used"}], "default": "ignored"},
+        "ignored": {"type": "end", "outcome": "monitoring", "text": "Synthetic reading ignored."},
+        "used": {"type": "end", "outcome": "resolved", "text": "Synthetic reading used."},
+    }}
+    stored = {"_example_indicator": 1}
+    monkeypatch.setattr(data, "latest_values", lambda _: dict(stored))
+    monkeypatch.setattr(config, "load_problems", lambda **kwargs: problems)
+    monkeypatch.setattr(engine, "load_problems", lambda **kwargs: problems)
+    monkeypatch.setattr(engine, "load_protocol", lambda _: protocol)
+    episode = engine.practice_episode("a1", "synthetic", "mars")
+    episode = engine.submit(episode, {"value": 25})
+    assert episode["current_node"] == "pause" and episode["status"] == "active"
+    episode = engine.submit(episode, None)
+    episode = engine.submit(episode, {"action": "continue"})
+    assert episode["current_node"] == "used" and episode["status"] == "resolved"
+    assert stored == {"_example_indicator": 1}
+    assert list(storage.iterdir()) == []
 
 
 @pytest.mark.parametrize("level,allowed", [(100, False), (80, False), (70, True), (0, True)])
