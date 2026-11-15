@@ -35,9 +35,10 @@ def show_list(astronaut: str, environment: str) -> None:
     st.write("Practise each protocol here, so you know it before you need it. Nothing you enter is saved.")
     if not problems:
         st.info("No protocols are configured yet.")
-    grid = st.columns(3)
     for index, (problem_id, problem) in enumerate(problems.items()):
         level = activity.bar_level(astronaut, "tutorial", problem_id)
+        if index % 3 == 0:
+            grid = st.columns(3)   # rows of three: narrow screens keep the configured order
         with grid[index % 3]:
             with st.container(border=True):
                 st.markdown(f"**{problem['name']}**")

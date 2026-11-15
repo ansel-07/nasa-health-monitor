@@ -200,8 +200,11 @@ def main() -> None:
         st.caption("Bars show time since completion, not health status. You can measure at any time.")
         if not checkins:
             st.info("No check-ins are configured yet.")
-        grid = st.columns(3)
-        for index, (checkin_id, checkin) in enumerate(checkins.items()):
+        # Rows of three, so narrow screens stack the cards in the configured order.
+        items = list(checkins.items())
+        for index, (checkin_id, checkin) in enumerate(items):
+            if index % 3 == 0:
+                grid = st.columns(3)
             with grid[index % 3]:
                 with st.container(border=True, key=f"check_in_activity_{index}"):
                     if st.button(checkin["name"], key=f"check_in_card:{checkin_id}", width="stretch"):

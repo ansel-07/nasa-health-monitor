@@ -164,3 +164,10 @@ def test_voice_toggle_is_drawn():
     assert not app.exception and app.toggle[0].label == "Voice"
     app.toggle[0].set_value(True).run()
     assert app.session_state["voice_on"] is True
+
+
+def test_face_is_capped_by_the_screen_width():
+    """Task 8 (narrow screens): on a phone the face is limited by the width, not only the height."""
+    big, small = build_html("Hi", size="large"), build_html("Hi", size="small")
+    assert "MAX_W = 0.55" in big and "p.innerWidth * MAX_W * SCALE" in big
+    assert "SCALE = 1.0" in big and "SCALE = 0.45" in small
