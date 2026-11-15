@@ -254,7 +254,7 @@ def test_new_mission_alert_replaces_previous_no_alert_feedback(mission_workspace
 
     assert not app.exception
     assert not app.success
-    assert "needs a repeat measurement" in speech[-1]
+    assert "needs another measurement" in speech[-1]
     button(app, "Continue repeat measurement").click().run()
     assert button(app, "Confirm repeat measurement").disabled
     assert data.get_open_episode("a1")["problem"] == "synthetic_b"
@@ -266,11 +266,11 @@ def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_wor
     speech = []
     monkeypatch.setattr(mascot, "say", lambda text, *args, **kwargs: speech.append(text))
     app, _ = record_and_wait()
-    assert "needs a repeat measurement" in speech[-1]
+    assert "needs another measurement" in speech[-1]
     app.number_input[0].set_value(16)
     button(app, "Confirm repeat measurement").click().run()
     assert not app.success
-    assert speech[-1] == "Your alert is confirmed. Open Protocol to continue with the guided steps."
+    assert speech[-1] == "Your alert's confirmed. Open Protocol for the guided steps."
 
     if finish == "protocol":
         result = protocol_engine.submit(data.get_open_episode("a1"), {"action": "continue"})
@@ -289,7 +289,7 @@ def test_closed_or_reset_episode_does_not_keep_confirmation_feedback(mission_wor
     assert data.get_open_episode("a1") is None
     assert not app.success
     assert all(item.label != "Open Protocol" for item in app.button)
-    assert speech[-1] == "Choose a check-in to record your measurements."
+    assert speech[-1] == "Pick a check-in. Let's record your measurements."
     assert disk_snapshot() == before
 
 
@@ -365,12 +365,58 @@ def test_active_alarm_takes_over_the_check_in_list(mission_workspace, monkeypatc
     app.session_state["astronaut"] = "a1"
     app.session_state["environment"] = "mars"
     app.run()
-    assert speech[-1] == "Choose a check-in to record your measurements."
+    assert speech[-1] == "Pick a check-in. Let's record your measurements."
     activity.report_issues('a1', ['alarm_a'], source='check_in_list')
     app.run()
     assert not app.exception
     assert "urgent symptom" in speech[-1]
     assert any("Synthetic alarm. Synthetic action." in item.value for item in app.error)
+
+
+def test_alarm_remains_visible_through_navigation_and_recording_until_resolved(mission_workspace):
+    (config.CONFIG_DIR / 'subjective_issues.json').write_text(json.dumps({
+        'settings': {'persistence_days': 3, 'speed_multiplier': 2},
+        'issues': {'alarm_a': {'label': 'Synthetic alarm', 'alarm': True,
+                               'action': 'Synthetic action.', 'check_ins': []}},
+    }), encoding='utf-8')
+    activity.report_issues('a1', ['alarm_a'], source='check_in_list')
+    app = screen()
+    assert any('Synthetic action.' in item.value for item in app.error)
+    button(app, 'Back to check-ins').click().run()
+    assert not app.exception
+    assert any('Synthetic action.' in item.value for item in app.error)
+    button(app, 'Check x').click().run()
+    app.number_input[0].set_value(0)
+    button(app, 'Record measurement').click().run()
+    assert not app.exception
+    assert any('Synthetic action.' in item.value for item in app.error)
+    assert activity.active_issues('a1')[0]['issue'] == 'alarm_a'
+    assert data.load_episodes() == []
+    urgent = next(item for item in app.multiselect if item.label == 'Urgent symptoms you have now')
+    urgent.set_value([])
+    button(app, 'Save issues').click().run()
+    assert not app.exception and not app.error
+    assert activity.active_issues('a1') == []
+    assert data.load_episodes() == []
+
+
+@pytest.mark.parametrize('detail', [False, True])
+def test_corrupt_activity_history_keeps_the_page_usable_without_false_recency(mission_workspace, detail):
+    models.ACTIVITY_FILE.write_text('{invalid activity', encoding='utf-8')
+    app = AppTest.from_file(str(PAGE))
+    app.session_state['astronaut'] = 'a1'
+    app.session_state['environment'] = 'mars'
+    app.session_state['check_in_selected:a1:mars'] = 'x' if detail else None
+    app.run()
+    assert not app.exception
+    assert any('Subjective issues could not be loaded' in item.value for item in app.error)
+    assert not any(item.label == 'Save issues' for item in app.button)
+    if detail:
+        assert not button(app, 'Record measurement').disabled
+    else:
+        assert not button(app, 'Check x').disabled and not app.get('progress')
+    assert models.ACTIVITY_FILE.read_text(encoding='utf-8') == '{invalid activity'
+    assert data.load_episodes() == []
 
 
 def test_issue_details_are_saved_and_a_task_not_completed_asks_for_safety(mission_workspace):

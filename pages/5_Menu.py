@@ -31,17 +31,17 @@ try:
 except (ValueError, KeyError, OSError):
     alarms = []
 
-# Placeholder lines: final wording and moods are still to be decided by the team.
+# Dialogue copy supplied by Gonzalo; existing mood assignments are retained.
 if alarms:
-    text, mood = "You reported an urgent symptom. Stop the risky task and contact the crew medical officer now.", "serious"
+    text, mood = "You've reported an urgent symptom. Stop the risky task and contact the crew medical officer now.", "serious"
 elif open_episode and open_episode["status"] == "active":
-    text, mood = f"{names[astronaut]}, you have a protocol to follow.", "worried"
+    text, mood = f"You've got a protocol to follow, {names[astronaut]}.", "worried"
 elif open_episode:
-    text, mood = f"{names[astronaut]}, an alert needs a repeat measurement in Check-in.", "worried"
+    text, mood = f"{names[astronaut]}, an alert needs another measurement in Check-in.", "worried"
 elif pending:
-    text, mood = f"{names[astronaut]}, {len(pending)} alert(s) are waiting for you.", "thinking"
+    text, mood = f"Hey {names[astronaut]}, {len(pending)} alert(s) need your attention.", "thinking"
 else:
-    text, mood = f"Hi {names[astronaut]}! What would you like to do?", "happy"
+    text, mood = f"Alright, {names[astronaut]}. What's the plan?", "happy"
 
 mascot.say(text, mood, size="medium")
 
@@ -55,8 +55,10 @@ levels = [activity.bar_level(astronaut, "check_in", checkin_id) for checkin_id i
 problems = config.load_problems()
 ready = sum(activity.can_repeat_tutorial(astronaut, problem_id) for problem_id in problems)
 tracked = len(data.latest_values(astronaut))
-CARDS = [("Check-in", "pages/1_Check_in.py", "monitor_heart",
-          f"Lowest recency {min(levels)}%" if levels else "", min(levels) if levels else None),
+repeat_waiting = bool(open_episode and open_episode["status"] == "pending_confirmation")
+checkin_status = ("Repeat measurement waiting" if repeat_waiting
+                  else f"Lowest recency {min(levels)}%" if levels else "")
+CARDS = [("Check-in", "pages/1_Check_in.py", "monitor_heart", checkin_status, min(levels) if levels else None),
          ("Trends", "pages/3_Trends.py", "show_chart", f"{tracked} indicators tracked", None),
          ("Tutorials", "pages/4_Tutorials.py", "school", f"{ready} of {len(problems)} ready to practise", None)]
 if (open_episode and open_episode["status"] == "active") or pending:
@@ -65,7 +67,7 @@ if (open_episode and open_episode["status"] == "active") or pending:
     CARDS.insert(0, ("Protocols", "pages/2_Protocol.py", "medical_services", status, None))
 for column, (label, page, icon, status, level) in zip(st.columns(len(CARDS)), CARDS):
     with column:
-        if ui.card(f"menu_{label}", label, icon, status, level, primary=label == "Protocols"):
+        if ui.card(f"menu_{label}", label, icon, status, level, primary=label == "Protocols" or (label == "Check-in" and repeat_waiting)):
             st.switch_page(page)
 
 if feedback := st.session_state.pop("menu_feedback", None):
