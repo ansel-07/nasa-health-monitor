@@ -136,7 +136,9 @@ astronaut = st.session_state["astronaut"]
 environment = st.session_state["environment"]
 
 run = st.session_state.get(RUN)
-if run and run["astronaut"] != astronaut:   # astronaut changed on the Welcome screen
+if run and (run["astronaut"] != astronaut or run["environment"] != environment):
+    # Astronaut or environment changed on the Welcome screen: the practice run used the old
+    # environment, so its branches (e.g. Mars vs Moon) would no longer match. Start again.
     st.session_state.pop(RUN, None)
     run = None
 if run:
