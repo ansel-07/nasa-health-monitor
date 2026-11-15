@@ -10,6 +10,7 @@ their `triggers`. Thresholds still marked TODO are skipped, so a band only appea
 Edu has written its value.
 """
 from datetime import datetime, timedelta
+from math import isfinite
 from numbers import Real
 
 import pandas as pd
@@ -54,7 +55,7 @@ NOW_COLOR = "#E6EDF7"
 
 
 def _is_number(x) -> bool:
-    return isinstance(x, Real) and not isinstance(x, bool)
+    return isinstance(x, Real) and not isinstance(x, bool) and isfinite(x)
 
 
 def _valid_baseline(baseline: dict | None, metric: str) -> bool:
@@ -97,9 +98,13 @@ def _intervals(cond: dict, indicator: str, baseline: dict | None) -> list[tuple[
     if metric == "abs_z_score":
         mu, sigma = baseline["mean"], baseline["std"]
         a, b = (max(lows) if lows else None), (min(highs) if highs else None)
+        if b is not None and b <= 0:
+            return []  # |z| is non-negative; a single equality point has no band area.
         if a is not None and b is not None and a >= b:
             return []
-        if a is None:  # |z| below b: one range around the baseline
+        if a is None or a <= 0:  # No positive lower bound: one unbroken range.
+            if b is None:
+                return [(None, None)]
             return [(mu - b * sigma, mu + b * sigma)]
         return [(None if b is None else mu - b * sigma, mu - a * sigma),
                 (mu + a * sigma, None if b is None else mu + b * sigma)]

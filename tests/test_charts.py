@@ -224,6 +224,9 @@ def ranges(monkeypatch, *levels, indicator="_example_indicator"):
     ({"metric": "z_score", "at_most": -1.5}, [(None, 59.0, "below")]),
     ({"metric": "abs_z_score", "at_least": 2}, [(None, 58.0, "below"), (66.0, None, "above")]),
     ({"metric": "abs_z_score", "below": 1}, [(60.0, 64.0, "between")]),
+    ({"metric": "abs_z_score", "below": -1}, []),
+    ({"metric": "abs_z_score", "above": -1}, [(None, None, "above")]),
+    ({"metric": "abs_z_score", "at_least": -1, "below": 2}, [(58.0, 66.0, "between")]),
     ({"metric": "abs_z_score", "at_least": 2, "below": 3},
      [(56.0, 58.0, "between"), (66.0, 68.0, "between")]),
     ({"metric": "raw", "above": 100}, [(100.0, None, "above")]),
@@ -240,6 +243,8 @@ def test_metric_bounds_become_values_in_the_indicator_unit(tmp_data, monkeypatch
     {"metric": "raw", "at_least": 5, "at_most": 3},                 # empty range
     {"metric": "baseline_delta", "at_least": 20, "below": "TODO_EDU"},  # incomplete: skip all of it
     {"metric": "not_a_metric", "above": 1},
+    {"metric": "raw", "above": float("nan")},
+    {"metric": "z_score", "below": float("inf")},
 ])
 def test_unusable_metric_conditions_give_no_band(tmp_data, monkeypatch, cond):
     add_preflight_60_62_64()
