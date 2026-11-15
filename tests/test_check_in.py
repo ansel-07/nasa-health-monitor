@@ -485,15 +485,16 @@ def test_unfinished_symptom_configuration_blocks_submission(screen):
 
 
 @pytest.mark.parametrize("status", ["pending_confirmation", "active"])
-def test_symptom_state_and_detection_snapshot_are_displayed(screen, status):
+@pytest.mark.parametrize("severity,display", [("watch", "Watch"), ("medical_urgency", "Medical urgency")])
+def test_symptom_state_and_detection_snapshot_are_displayed(screen, status, severity, display):
     app, state = screen
     symptom_problem(state)
     opened(state, status)
-    state["open"].update(severity="watch", symptoms={"a": "watch", "older": "concern", "absent": "not_present"})
+    state["open"].update(severity=severity, symptoms={"a": "watch", "older": "concern", "absent": "not_present"})
     before = deepcopy(state["open"])
     app.run()
     assert not app.exception
-    assert any("Problem state: watch" in text.value for text in app.markdown)
+    assert any(f"Problem state: {display}" == text.value for text in app.markdown)
     assert not app.dataframe
     assert app.table[0].value.to_dict("records") == [
         {"Symptom": "Synthetic symptom", "Level": "watch"},
